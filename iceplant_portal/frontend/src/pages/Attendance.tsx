@@ -40,9 +40,10 @@ export default function Attendance() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<{id: string; name: string} | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [filters, setFilters] = useState({
+    employee_name: '',
     employee_id: '',
     department: '',
     date: '',
@@ -154,8 +155,8 @@ export default function Attendance() {
     }
   };
 
-  const handleEmployeeClick = (employeeId: string) => {
-    setSelectedEmployee(employeeId);
+  const handleEmployeeClick = (employeeId: string, employeeName: string) => {
+    setSelectedEmployee({ id: employeeId, name: employeeName });
     setModalOpen(true);
   };
 
@@ -193,6 +194,13 @@ export default function Attendance() {
       <Paper sx={{ mb: 2, p: 2 }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <FilterIcon color="action" />
+          <TextField
+            name="employee_name"
+            label="Employee Name"
+            value={filters.employee_name}
+            onChange={handleFilterChange}
+            size="small"
+          />
           <TextField
             name="employee_id"
             label="Employee ID"
@@ -245,6 +253,7 @@ export default function Attendance() {
           <TableHead>
             <TableRow>
               <TableCell>Date</TableCell>
+              <TableCell>Employee Name</TableCell>
               <TableCell>Employee ID</TableCell>
               <TableCell>Department</TableCell>
               <TableCell>Check In</TableCell>
@@ -255,13 +264,13 @@ export default function Attendance() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                   <CircularProgress />
                 </TableCell>
               </TableRow>
             ) : records.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={7} align="center">
                   No attendance records found
                 </TableCell>
               </TableRow>
@@ -284,22 +293,41 @@ export default function Attendance() {
                     <Link
                       component="button"
                       variant="body2"
-                      onClick={() => handleEmployeeClick(record.employee_id)}
-                      sx={{ textDecoration: 'none' }}
+                      onClick={() => handleEmployeeClick(record.employee_id, record.employee_name)}
+                      sx={{ textDecoration: 'none', fontWeight: 500 }}
+                      aria-label={`View attendance details for ${record.employee_name}`}
+                      tabIndex={0}
+                    >
+                      {record.employee_name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Typography 
+                      component="div" 
+                      variant="body2" 
+                      color="textSecondary"
+                      aria-label={`Employee ID: ${record.employee_id}`}
                     >
                       {record.employee_id}
-                    </Link>
+                    </Typography>
                   </TableCell>
                   <TableCell>
                     <Chip 
                       label={record.department}
                       color={record.department === 'NO SHOW' ? 'warning' : 'default'}
                       size="small"
+                      aria-label={`Department: ${record.department}`}
                     />
                   </TableCell>
-                  <TableCell>{formatTime(record.check_in)}</TableCell>
-                  <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
-                  <TableCell>{record.duration || '-'}</TableCell>
+                  <TableCell aria-label={`Check in time: ${formatTime(record.check_in)}`}>
+                    {formatTime(record.check_in)}
+                  </TableCell>
+                  <TableCell aria-label={`Check out time: ${record.check_out ? formatTime(record.check_out) : 'Not checked out'}`}>
+                    {record.check_out ? formatTime(record.check_out) : '-'}
+                  </TableCell>
+                  <TableCell aria-label={`Duration: ${record.duration || 'Not available'}`}>
+                    {record.duration || '-'}
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -316,13 +344,18 @@ export default function Attendance() {
             setPage(0);
           }}
           rowsPerPageOptions={[5, 10, 25, 50]}
+          labelDisplayedRows={({ from, to, count }) => 
+            `${from}–${to} of ${count !== -1 ? count : `more than ${to}`}`
+          }
+          labelRowsPerPage="Rows per page:"
         />
       </TableContainer>
 
       <EmployeeAttendanceModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        employeeId={selectedEmployee || ''}
+        employeeId={selectedEmployee?.id || ''}
+        employeeName={selectedEmployee?.name || ''}
       />
     </Box>
   );

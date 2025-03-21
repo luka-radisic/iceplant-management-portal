@@ -28,68 +28,95 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         return department
     
     def make_aware(self, naive_datetime):
-        """Convert naive datetime to timezone-aware datetime"""
+        """Convert naive datetime to timezone-aware datetime, treating input as Asia/Manila time"""
         if naive_datetime is None:
             return None
         if timezone.is_aware(naive_datetime):
             return naive_datetime
-        return timezone.make_aware(naive_datetime, timezone=pytz.UTC)
+            
+        # Create a timezone object for Philippines
+        manila_tz = pytz.timezone('Asia/Manila')
+        
+        # Localize the naive datetime to Manila time
+        local_dt = manila_tz.localize(naive_datetime)
+        
+        # Convert to UTC for storage
+        return local_dt.astimezone(pytz.UTC)
     
     def clean_check_ins(self, df):
-        """Remove duplicate check-ins within 3 minutes"""
-        print("Cleaning duplicate check-ins...")
-        df = df.sort_values(['Person ID', 'Time'])
-        cleaned_records = []
+        """Clean and format attendance records from XLSX file"""
+        print("Processing attendance records...")
         
-        for employee_id, group in df.groupby('Person ID'):
-            last_time = None
-            for _, row in group.iterrows():
-                current_time = pd.to_datetime(row['Time'])
-                
-                # If this is the first record or more than 3 minutes from last record
-                if last_time is None or (current_time - last_time).total_seconds() > 180:
-                    cleaned_records.append(row)
-                    last_time = current_time
-                else:
-                    print(f"Skipping duplicate check-in for {employee_id} at {current_time}")
+        # Convert Time column to datetime
+        df['Time'] = pd.to_datetime(df['Time'])
+        
+        # Create records list
+        cleaned_records = []
+        for _, record in df.iterrows():
+            # Create naive datetime object
+            time = record['Time'].to_pydatetime()
             
-        return pd.DataFrame(cleaned_records)
+            new_record = {
+                'Time': time,
+                'Person ID': record['Person ID'],
+                'Name': record['Name'],
+                'Department': self.clean_department(record['Department']),
+                'Attendance Event': record['Attendance Event']
+            }
+            
+            # Log in local time for debugging
+            manila_tz = pytz.timezone('Asia/Manila')
+            aware_time = self.make_aware(time)
+            local_time = aware_time.astimezone(manila_tz)
+            
+            print(f"Processing record: ID {new_record['Person ID']}, "
+                  f"Name: {new_record['Name']}, "
+                  f"Original Time: {time.strftime('%Y-%m-%d %H:%M')}, "
+                  f"Local Time: {local_time.strftime('%Y-%m-%d %H:%M')}, "
+                  f"Event: {new_record['Attendance Event']}, "
+                  f"Dept: {new_record['Department']}")
+            
+            cleaned_records.append(new_record)
+        
+        # Sort by time after all records are processed
+        df_cleaned = pd.DataFrame(cleaned_records)
+        return df_cleaned.sort_values(['Time'], ascending=False)
 
     def add_no_show_records(self, employee_ids, start_date, end_date):
-        """Add NO SHOW records for missing days"""
+        """Add NO SHOW records for missing employees"""
         print("Adding NO SHOW records...")
         no_shows = []
-        date_range = pd.date_range(start_date, end_date)
         
-        for employee_id in employee_ids:
-            # Get existing attendance records for this employee
-            existing_records = Attendance.objects.filter(
-                employee_id=employee_id,
-                check_in__date__range=(start_date, end_date)
-            ).values_list('check_in__date', flat=True)
-            
-            # Convert to set for faster lookup
-            existing_dates = set(existing_records)
-            
-            # Find missing dates
-            for date in date_range:
-                if date.date() not in existing_dates:
-                    print(f"Adding NO SHOW for {employee_id} on {date.date()}")
-                    no_shows.append({
-                        'employee_id': employee_id,
-                        'check_in': self.make_aware(date),
-                        'check_out': None,
-                        'department': 'NO SHOW',
-                        'import_date': timezone.now().date()
-                    })
+        # Get all employee names (including those not present today)
+        all_employees = {
+            str(id_): Attendance.objects.filter(employee_id=str(id_))
+                                      .values_list('employee_name', flat=True)
+                                      .first()
+            for id_ in range(1, 17)  # Assuming employee IDs 1-16
+        }
+        
+        # Find employees without records for today
+        present_ids = set(str(id_) for id_ in employee_ids)
+        missing_ids = set(all_employees.keys()) - present_ids
+        
+        for employee_id in missing_ids:
+            employee_name = all_employees[employee_id]
+            if employee_name:
+                print(f"Adding NO SHOW for {employee_id} ({employee_name})")
+                no_shows.append({
+                    'employee_id': employee_id,
+                    'employee_name': employee_name,
+                    'check_in': self.make_aware(datetime.combine(start_date, datetime.min.time().replace(hour=8))),
+                    'check_out': None,
+                    'department': 'NO SHOW',
+                    'import_date': start_date
+                })
         
         return no_shows
 
     @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def import_xlsx(self, request):
-        """
-        Import attendance records from Smart PSS Lite XLSX export
-        """
+        """Import attendance records from Smart PSS Lite XLSX export"""
         print("Starting XLSX import...")
         if 'file' not in request.FILES:
             print("No file found in request.FILES")
@@ -107,7 +134,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             print(f"Columns found: {df.columns.tolist()}")
             
             # Validate required columns
-            required_columns = ['Time', 'Person ID', 'Department', 'Attendance Event']
+            required_columns = ['Time', 'Person ID', 'Name', 'Department', 'Attendance Event']
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 print(f"Missing columns: {missing_columns}")
@@ -119,80 +146,46 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Clean and prepare data
-            print("Cleaning department names...")
-            df['Department'] = df['Department'].apply(self.clean_department)
-            
-            # Remove duplicate check-ins
+            # Process records
             df = self.clean_check_ins(df)
-            df = df.sort_values(['Person ID', 'Time'])
-            print(f"Found {len(df)} records after cleaning duplicates")
+            print(f"Found {len(df)} records after processing")
             
-            # Get date range and unique employees
-            start_date = pd.to_datetime(df['Time']).min().date()
-            end_date = pd.to_datetime(df['Time']).max().date()
+            # Get date range (using local time)
+            manila_tz = pytz.timezone('Asia/Manila')
+            start_date = self.make_aware(df['Time'].min().to_pydatetime()).astimezone(manila_tz).date()
+            end_date = self.make_aware(df['Time'].max().to_pydatetime()).astimezone(manila_tz).date()
             employee_ids = df['Person ID'].unique()
             
             # Process records within a transaction
             with transaction.atomic():
+                # Delete existing records for this date range
+                Attendance.objects.filter(
+                    check_in__date__range=(start_date, end_date)
+                ).delete()
+                
                 records_created = 0
-                current_date = None
-                current_employee = None
-                check_in_time = None
                 
-                print("Processing attendance records...")
+                # Create new records exactly as they appear in the file
                 for _, row in df.iterrows():
-                    # Convert to timezone-aware datetime
-                    event_time = self.make_aware(pd.to_datetime(row['Time']))
-                    employee_id = str(row['Person ID'])
+                    check_in_time = self.make_aware(row['Time'].to_pydatetime())
+                    local_time = check_in_time.astimezone(manila_tz)
                     
-                    # If we're processing a new day or new employee, reset check-in time
-                    if (current_date != event_time.date() or 
-                        current_employee != employee_id):
-                        if check_in_time and current_employee:
-                            # Create record for previous employee if they didn't check out
-                            print(f"Creating record for employee {current_employee} (no checkout)")
-                            Attendance.objects.create(
-                                employee_id=current_employee,
-                                check_in=check_in_time,
-                                check_out=None,
-                                department=row['Department'],
-                                import_date=current_date
-                            )
-                            records_created += 1
-                        
-                        current_date = event_time.date()
-                        current_employee = employee_id
-                        check_in_time = event_time
-                        print(f"New check-in for employee {employee_id} at {event_time}")
-                    else:
-                        # This is a check-out for the current employee
-                        if check_in_time:
-                            # Only create record if there was a check-in
-                            print(f"Creating record for employee {employee_id} (with checkout)")
-                            Attendance.objects.create(
-                                employee_id=employee_id,
-                                check_in=check_in_time,
-                                check_out=event_time,
-                                department=row['Department'],
-                                import_date=current_date
-                            )
-                            records_created += 1
-                            check_in_time = None
-                
-                # Handle the last record if it was a check-in
-                if check_in_time and current_employee:
-                    print(f"Creating final record for employee {current_employee}")
+                    print(f"Creating record for {row['Name']}: "
+                          f"Time: {local_time.strftime('%Y-%m-%d %H:%M')} "
+                          f"Event: {row['Attendance Event']} "
+                          f"Dept: {row['Department']}")
+                    
                     Attendance.objects.create(
-                        employee_id=current_employee,
+                        employee_id=str(row['Person ID']),
+                        employee_name=str(row['Name']),
                         check_in=check_in_time,
-                        check_out=None,
+                        check_out=None,  # No checkout times in original data
                         department=row['Department'],
-                        import_date=current_date
+                        import_date=local_time.date()
                     )
                     records_created += 1
                 
-                # Add NO SHOW records
+                # Add NO SHOW records for missing employees
                 no_show_records = self.add_no_show_records(employee_ids, start_date, end_date)
                 if no_show_records:
                     print(f"Adding {len(no_show_records)} NO SHOW records")

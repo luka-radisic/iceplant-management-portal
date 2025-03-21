@@ -3,6 +3,7 @@ from django.utils import timezone
 
 class Attendance(models.Model):
     employee_id = models.CharField(max_length=50)
+    employee_name = models.CharField(max_length=100, null=True, blank=True)
     check_in = models.DateTimeField()
     check_out = models.DateTimeField(null=True, blank=True)
     department = models.CharField(max_length=50)
@@ -14,7 +15,8 @@ class Attendance(models.Model):
         verbose_name_plural = 'Attendance Records'
     
     def __str__(self):
-        return f"{self.employee_id} - {self.check_in.date()}"
+        name_display = self.employee_name or self.employee_id
+        return f"{name_display} ({self.employee_id}) - {self.check_in.date()}"
     
     @property
     def duration(self):

@@ -26,9 +26,10 @@ interface EmployeeAttendanceModalProps {
   open: boolean;
   onClose: () => void;
   employeeId: string;
+  employeeName: string;
 }
 
-export default function EmployeeAttendanceModal({ open, onClose, employeeId }: EmployeeAttendanceModalProps) {
+export default function EmployeeAttendanceModal({ open, onClose, employeeId, employeeName }: EmployeeAttendanceModalProps) {
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -119,7 +120,19 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId }: E
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        Employee Attendance Details - {employeeId}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography component="div" variant="h6">
+            {employeeName}
+          </Typography>
+          <Typography 
+            component="div" 
+            variant="body2" 
+            color="textSecondary" 
+            sx={{ ml: 1 }}
+          >
+            ({employeeId})
+          </Typography>
+        </Box>
       </DialogTitle>
       <DialogContent>
         {loading ? (
@@ -132,38 +145,58 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId }: E
             <Box mb={3}>
               <Grid container spacing={2}>
                 <Grid item xs={12}>
-                  <Typography variant="h6" gutterBottom>Monthly Statistics</Typography>
+                  <Typography component="div" variant="h6" gutterBottom>
+                    Monthly Statistics for {employeeName}
+                  </Typography>
                 </Grid>
                 <Grid item xs={4}>
                   <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="textSecondary">Present Days</Typography>
-                    <Typography variant="h6">{stats.presentDays}</Typography>
+                    <Typography component="div" variant="body2" color="textSecondary">
+                      Present Days
+                    </Typography>
+                    <Typography component="div" variant="h6">
+                      {stats.presentDays}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={4}>
                   <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="textSecondary">No Shows</Typography>
-                    <Typography variant="h6">{stats.noShows}</Typography>
+                    <Typography component="div" variant="body2" color="textSecondary">
+                      No Shows
+                    </Typography>
+                    <Typography component="div" variant="h6">
+                      {stats.noShows}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={4}>
                   <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="textSecondary">Attendance Rate</Typography>
-                    <Typography variant="h6">
+                    <Typography component="div" variant="body2" color="textSecondary">
+                      Attendance Rate
+                    </Typography>
+                    <Typography component="div" variant="h6">
                       {((stats.presentDays / stats.totalDays) * 100).toFixed(1)}%
                     </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={6}>
                   <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="textSecondary">Avg. Check-in</Typography>
-                    <Typography variant="h6">{stats.avgCheckIn}</Typography>
+                    <Typography component="div" variant="body2" color="textSecondary">
+                      Avg. Check-in
+                    </Typography>
+                    <Typography component="div" variant="h6">
+                      {stats.avgCheckIn}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={6}>
                   <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="textSecondary">Avg. Check-out</Typography>
-                    <Typography variant="h6">{stats.avgCheckOut}</Typography>
+                    <Typography component="div" variant="body2" color="textSecondary">
+                      Avg. Check-out
+                    </Typography>
+                    <Typography component="div" variant="h6">
+                      {stats.avgCheckOut}
+                    </Typography>
                   </Paper>
                 </Grid>
               </Grid>
