@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
 
 from sales.models import Sale
@@ -48,8 +48,8 @@ class SaleViewSet(viewsets.ModelViewSet):
         summary = queryset.values('period').annotate(
             total_sales=Count('id'),
             total_blocks=Sum('quantity'),
-            level1_blocks=Sum('quantity', filter={'brine_level': 1}),
-            level2_blocks=Sum('quantity', filter={'brine_level': 2})
+            level1_blocks=Sum('quantity', filter=Q(brine_level=1)),
+            level2_blocks=Sum('quantity', filter=Q(brine_level=2))
         ).order_by('period')
         
         return Response(summary) 
