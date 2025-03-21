@@ -17,16 +17,20 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Link,
+  Chip,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
   Refresh as RefreshIcon,
   FilterList as FilterIcon,
+  CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { format } from 'date-fns';
-import apiService from '../services/api';
+import apiService, { endpoints } from '../services/api';
 import { AttendanceRecord } from '../types/api';
+import EmployeeAttendanceModal from '../components/EmployeeAttendanceModal';
 
 export default function Attendance() {
   const { enqueueSnackbar } = useSnackbar();
@@ -35,9 +39,14 @@ export default function Attendance() {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     employee_id: '',
     department: '',
+    date: '',
+    status: 'all', // 'all', 'present', 'no-show'
   });
 
   const fetchAttendanceRecords = async () => {
@@ -48,11 +57,25 @@ export default function Attendance() {
         page: page + 1,
         page_size: rowsPerPage,
       };
-      const response = await apiService.get(apiService.endpoints.attendance, params);
-      setRecords(response.results || []);
+      console.log('Fetching attendance with params:', params);
+      const response = await apiService.get('/api/attendance/attendance/', params);
+      console.log('API Response:', response);
+      
+      if (response.results) {
+        setRecords(response.results);
+        setTotalCount(response.count || 0);
+      } else {
+        console.error('Unexpected API response format:', response);
+        enqueueSnackbar('Invalid response format from server', { variant: 'error' });
+      }
     } catch (error) {
       console.error('Error fetching attendance records:', error);
-      enqueueSnackbar('Failed to fetch attendance records', { variant: 'error' });
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        enqueueSnackbar(error.response.data.detail || 'Failed to fetch attendance records', { variant: 'error' });
+      } else {
+        enqueueSnackbar('Network error while fetching records', { variant: 'error' });
+      }
     } finally {
       setLoading(false);
     }
@@ -64,18 +87,48 @@ export default function Attendance() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      enqueueSnackbar('No file selected', { variant: 'error' });
+      return;
+    }
+
+    // Check file type
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      enqueueSnackbar('Please select an Excel file (.xlsx or .xls)', { variant: 'error' });
+      return;
+    }
 
     setUploading(true);
     try {
-      await apiService.upload(apiService.endpoints.importAttendance, file);
-      enqueueSnackbar('Successfully imported attendance records', { variant: 'success' });
+      console.log('Starting file upload:', file.name);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await apiService.upload(
+        endpoints.importAttendance,
+        file
+      );
+
+      console.log('Upload response:', response);
+      enqueueSnackbar(response.message || 'Successfully imported attendance records', { variant: 'success' });
       fetchAttendanceRecords();
     } catch (error) {
       console.error('Error uploading file:', error);
-      enqueueSnackbar('Failed to import attendance records', { variant: 'error' });
+      let errorMessage = 'Failed to upload file';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setUploading(false);
+      // Reset the file input
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -85,8 +138,25 @@ export default function Attendance() {
     setPage(0);
   };
 
-  const formatDateTime = (dateString: string) => {
-    return format(new Date(dateString), 'MMM d, yyyy HH:mm');
+  const formatTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'HH:mm');
+    } catch (error) {
+      return '-';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch (error) {
+      return '-';
+    }
+  };
+
+  const handleEmployeeClick = (employeeId: string) => {
+    setSelectedEmployee(employeeId);
+    setModalOpen(true);
   };
 
   return (
@@ -144,6 +214,28 @@ export default function Attendance() {
             <MenuItem value="Maintenance">Maintenance</MenuItem>
             <MenuItem value="Admin">Admin</MenuItem>
             <MenuItem value="Delivery">Delivery</MenuItem>
+            <MenuItem value="NO SHOW">No Show</MenuItem>
+          </TextField>
+          <TextField
+            name="date"
+            label="Date"
+            type="date"
+            value={filters.date}
+            onChange={handleFilterChange}
+            size="small"
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            name="status"
+            label="Status"
+            value={filters.status}
+            onChange={handleFilterChange}
+            size="small"
+            select
+          >
+            <MenuItem value="all">All Records</MenuItem>
+            <MenuItem value="present">Present Only</MenuItem>
+            <MenuItem value="no-show">No Shows Only</MenuItem>
           </TextField>
         </Stack>
       </Paper>
@@ -152,6 +244,7 @@ export default function Attendance() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Date</TableCell>
               <TableCell>Employee ID</TableCell>
               <TableCell>Department</TableCell>
               <TableCell>Check In</TableCell>
@@ -162,25 +255,50 @@ export default function Attendance() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
                   <CircularProgress />
                 </TableCell>
               </TableRow>
             ) : records.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center">
+                <TableCell colSpan={6} align="center">
                   No attendance records found
                 </TableCell>
               </TableRow>
             ) : (
               records.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell>{record.employee_id}</TableCell>
-                  <TableCell>{record.department}</TableCell>
-                  <TableCell>{formatDateTime(record.check_in)}</TableCell>
+                <TableRow 
+                  key={record.id}
+                  sx={{ 
+                    bgcolor: record.department === 'NO SHOW' ? '#fff3e0' : 'inherit',
+                    '&:hover': { bgcolor: record.department === 'NO SHOW' ? '#ffe0b2' : '#f5f5f5' }
+                  }}
+                >
                   <TableCell>
-                    {record.check_out ? formatDateTime(record.check_out) : '-'}
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <CalendarIcon fontSize="small" color="action" />
+                      {formatDate(record.check_in)}
+                    </Stack>
                   </TableCell>
+                  <TableCell>
+                    <Link
+                      component="button"
+                      variant="body2"
+                      onClick={() => handleEmployeeClick(record.employee_id)}
+                      sx={{ textDecoration: 'none' }}
+                    >
+                      {record.employee_id}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={record.department}
+                      color={record.department === 'NO SHOW' ? 'warning' : 'default'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>{formatTime(record.check_in)}</TableCell>
+                  <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
                   <TableCell>{record.duration || '-'}</TableCell>
                 </TableRow>
               ))
@@ -189,7 +307,7 @@ export default function Attendance() {
         </Table>
         <TablePagination
           component="div"
-          count={-1}
+          count={totalCount}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}
@@ -200,6 +318,12 @@ export default function Attendance() {
           rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </TableContainer>
+
+      <EmployeeAttendanceModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        employeeId={selectedEmployee || ''}
+      />
     </Box>
   );
 } 

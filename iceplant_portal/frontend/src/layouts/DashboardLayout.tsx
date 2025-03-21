@@ -25,7 +25,7 @@ import {
   Receipt as ExpensesIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const drawerWidth = 240;
@@ -57,11 +57,7 @@ const menuItems = [
   { text: 'Expenses', icon: <ExpensesIcon />, path: '/expenses' },
 ];
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout() {
   const [open, setOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -134,7 +130,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </Drawer>
       <Main open={open}>
         <Toolbar />
-        {children}
+        <Outlet />
       </Main>
     </Box>
   );

@@ -26,23 +26,19 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               
-              {/* Protected Routes */}
               <Route
-                path="/"
                 element={
                   <ProtectedRoute>
-                    <DashboardLayout>
-                      <Routes>
-                        <Route index element={<Dashboard />} />
-                        <Route path="attendance" element={<Attendance />} />
-                        <Route path="sales" element={<Sales />} />
-                        <Route path="inventory" element={<Inventory />} />
-                        <Route path="expenses" element={<Expenses />} />
-                      </Routes>
-                    </DashboardLayout>
+                    <DashboardLayout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/expenses" element={<Expenses />} />
+              </Route>
 
               {/* Catch all route */}
               <Route path="*" element={<Navigate to="/" replace />} />
