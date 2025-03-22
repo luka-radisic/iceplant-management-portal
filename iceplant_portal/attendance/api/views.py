@@ -19,7 +19,29 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     queryset = Attendance.objects.all()
     serializer_class = AttendanceSerializer
     filterset_fields = ['employee_id', 'department', 'import_date']
-    search_fields = ['employee_id', 'department']
+    search_fields = ['employee_id', 'department', 'employee_name']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Get date range filters
+        start_date = self.request.query_params.get('start_date', None)
+        end_date = self.request.query_params.get('end_date', None)
+        
+        # Apply date range filtering if provided
+        if start_date:
+            queryset = queryset.filter(check_in__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(check_in__date__lte=end_date)
+            
+        # Get status filter
+        status = self.request.query_params.get('status', 'all')
+        if status == 'present':
+            queryset = queryset.exclude(department='NO SHOW')
+        elif status == 'no-show':
+            queryset = queryset.filter(department='NO SHOW')
+            
+        return queryset.order_by('-check_in')
     
     def clean_department(self, department):
         """Remove the 'Santa Rita Iceplant\' prefix from department names"""

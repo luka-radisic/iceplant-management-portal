@@ -46,7 +46,8 @@ export default function Attendance() {
     employee_name: '',
     employee_id: '',
     department: '',
-    date: '',
+    start_date: '',
+    end_date: '',
     status: 'all', // 'all', 'present', 'no-show'
   });
 
@@ -225,10 +226,19 @@ export default function Attendance() {
             <MenuItem value="NO SHOW">No Show</MenuItem>
           </TextField>
           <TextField
-            name="date"
-            label="Date"
+            name="start_date"
+            label="Start Date"
             type="date"
-            value={filters.date}
+            value={filters.start_date}
+            onChange={handleFilterChange}
+            size="small"
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            name="end_date"
+            label="End Date"
+            type="date"
+            value={filters.end_date}
             onChange={handleFilterChange}
             size="small"
             InputLabelProps={{ shrink: true }}

@@ -40,8 +40,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     avgCheckOut: '',
   });
   const [filters, setFilters] = useState({
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
+    start_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
+    end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
     status: 'all', // 'all', 'present', 'no-show'
   });
 
@@ -50,8 +50,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     try {
       const response = await apiService.get('/api/attendance/attendance/', {
         employee_id: employeeId,
-        month: filters.month,
-        year: filters.year,
+        start_date: filters.start_date,
+        end_date: filters.end_date,
         status: filters.status,
       });
 
@@ -207,36 +207,23 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               <Grid container spacing={2}>
                 <Grid item xs={4}>
                   <TextField
-                    select
                     fullWidth
-                    label="Month"
-                    value={filters.month}
-                    onChange={(e) => setFilters(prev => ({ ...prev, month: Number(e.target.value) }))}
-                  >
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <MenuItem key={i + 1} value={i + 1}>
-                        {format(new Date(2000, i, 1), 'MMMM')}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    label="Start Date"
+                    type="date"
+                    value={filters.start_date}
+                    onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                  />
                 </Grid>
                 <Grid item xs={4}>
                   <TextField
-                    select
                     fullWidth
-                    label="Year"
-                    value={filters.year}
-                    onChange={(e) => setFilters(prev => ({ ...prev, year: Number(e.target.value) }))}
-                  >
-                    {Array.from({ length: 5 }, (_, i) => {
-                      const year = new Date().getFullYear() - 2 + i;
-                      return (
-                        <MenuItem key={year} value={year}>
-                          {year}
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
+                    label="End Date"
+                    type="date"
+                    value={filters.end_date}
+                    onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                  />
                 </Grid>
                 <Grid item xs={4}>
                   <TextField
