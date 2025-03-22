@@ -18,6 +18,7 @@ import {
   MenuItem,
   Grid,
   CircularProgress,
+  TablePagination,
 } from '@mui/material';
 import { format } from 'date-fns';
 import apiService from '../services/api';
@@ -32,34 +33,45 @@ interface EmployeeAttendanceModalProps {
 export default function EmployeeAttendanceModal({ open, onClose, employeeId, employeeName }: EmployeeAttendanceModalProps) {
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<any[]>([]);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
   const [stats, setStats] = useState({
     totalDays: 0,
     presentDays: 0,
     noShows: 0,
+    lateArrivals: 0,
+    missingCheckouts: 0,
     avgCheckIn: '',
     avgCheckOut: '',
   });
   const [filters, setFilters] = useState({
     start_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
     end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
-    status: 'all', // 'all', 'present', 'no-show'
+    status: 'all', // 'all', 'present', 'no-show', 'late', 'missing-checkout'
   });
 
   const fetchEmployeeRecords = async () => {
     setLoading(true);
     try {
-      const response = await apiService.get('/api/attendance/attendance/', {
+      // First, get all records for statistics (without pagination)
+      const statsResponse = await apiService.get('/api/attendance/attendance/', {
         employee_id: employeeId,
         start_date: filters.start_date,
         end_date: filters.end_date,
         status: filters.status,
+        page_size: 1000, // Large number to get all records for stats
       });
 
-      setRecords(response.results || []);
-
-      // Calculate statistics
-      const presentRecords = response.results.filter((r: any) => r.department !== 'NO SHOW');
-      const noShows = response.results.filter((r: any) => r.department === 'NO SHOW');
+      // Calculate statistics from all records
+      const allRecords = statsResponse.results || [];
+      const presentRecords = allRecords.filter((r: any) => r.department !== 'NO SHOW');
+      const noShows = allRecords.filter((r: any) => r.department === 'NO SHOW');
+      const lateArrivals = presentRecords.filter((r: any) => {
+        const checkInTime = new Date(r.check_in);
+        return checkInTime.getHours() > 8 || (checkInTime.getHours() === 8 && checkInTime.getMinutes() > 0);
+      });
+      const missingCheckouts = presentRecords.filter((r: any) => !r.check_out);
 
       // Calculate average check-in/out times
       const checkInTimes = presentRecords
@@ -82,12 +94,27 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
         : '-';
 
       setStats({
-        totalDays: response.results.length,
+        totalDays: allRecords.length,
         presentDays: presentRecords.length,
         noShows: noShows.length,
+        lateArrivals: lateArrivals.length,
+        missingCheckouts: missingCheckouts.length,
         avgCheckIn,
         avgCheckOut,
       });
+
+      // Then get paginated records for display
+      const response = await apiService.get('/api/attendance/attendance/', {
+        employee_id: employeeId,
+        start_date: filters.start_date,
+        end_date: filters.end_date,
+        status: filters.status,
+        page: page + 1,
+        page_size: rowsPerPage,
+      });
+
+      setRecords(response.results || []);
+      setTotalCount(response.count || 0);
     } catch (error) {
       console.error('Error fetching employee records:', error);
     } finally {
@@ -99,7 +126,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     if (open && employeeId) {
       fetchEmployeeRecords();
     }
-  }, [open, employeeId, filters]);
+  }, [open, employeeId, filters, page, rowsPerPage]);
 
   const formatTime = (dateString: string) => {
     try {
@@ -146,7 +173,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               <Grid container spacing={2}>
                 <Grid item xs={12}>
                   <Typography component="div" variant="h6" gutterBottom>
-                    Monthly Statistics for {employeeName}
+                    Attendance Statistics for Selected Period
                   </Typography>
                 </Grid>
                 <Grid item xs={4}>
@@ -179,7 +206,27 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     </Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={3}>
+                  <Paper sx={{ p: 2, textAlign: 'center' }}>
+                    <Typography component="div" variant="body2" color="textSecondary">
+                      Late Arrivals
+                    </Typography>
+                    <Typography component="div" variant="h6">
+                      {stats.lateArrivals}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={3}>
+                  <Paper sx={{ p: 2, textAlign: 'center' }}>
+                    <Typography component="div" variant="body2" color="textSecondary">
+                      Missing Checkouts
+                    </Typography>
+                    <Typography component="div" variant="h6">
+                      {stats.missingCheckouts}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={3}>
                   <Paper sx={{ p: 2, textAlign: 'center' }}>
                     <Typography component="div" variant="body2" color="textSecondary">
                       Avg. Check-in
@@ -189,7 +236,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     </Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={3}>
                   <Paper sx={{ p: 2, textAlign: 'center' }}>
                     <Typography component="div" variant="body2" color="textSecondary">
                       Avg. Check-out
@@ -211,7 +258,10 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     label="Start Date"
                     type="date"
                     value={filters.start_date}
-                    onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
+                    onChange={(e) => {
+                      setFilters(prev => ({ ...prev, start_date: e.target.value }));
+                      setPage(0); // Reset to first page when changing filters
+                    }}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -221,7 +271,10 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     label="End Date"
                     type="date"
                     value={filters.end_date}
-                    onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
+                    onChange={(e) => {
+                      setFilters(prev => ({ ...prev, end_date: e.target.value }));
+                      setPage(0); // Reset to first page when changing filters
+                    }}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -231,11 +284,16 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     fullWidth
                     label="Status"
                     value={filters.status}
-                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                    onChange={(e) => {
+                      setFilters(prev => ({ ...prev, status: e.target.value }));
+                      setPage(0); // Reset to first page when changing filters
+                    }}
                   >
                     <MenuItem value="all">All Records</MenuItem>
                     <MenuItem value="present">Present Only</MenuItem>
                     <MenuItem value="no-show">No Shows Only</MenuItem>
+                    <MenuItem value="late">Late Arrivals</MenuItem>
+                    <MenuItem value="missing-checkout">Missing Checkouts</MenuItem>
                   </TextField>
                 </Grid>
               </Grid>
@@ -250,26 +308,71 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     <TableCell>Check In</TableCell>
                     <TableCell>Check Out</TableCell>
                     <TableCell>Duration</TableCell>
-                    <TableCell>Department</TableCell>
+                    <TableCell>Status</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {records.map((record) => (
-                    <TableRow 
-                      key={record.id}
-                      sx={{ 
-                        bgcolor: record.department === 'NO SHOW' ? '#fff3e0' : 'inherit'
-                      }}
-                    >
-                      <TableCell>{formatDate(record.check_in)}</TableCell>
-                      <TableCell>{formatTime(record.check_in)}</TableCell>
-                      <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
-                      <TableCell>{record.duration || '-'}</TableCell>
-                      <TableCell>{record.department}</TableCell>
-                    </TableRow>
-                  ))}
+                  {records.map((record) => {
+                    const isLate = new Date(record.check_in).getHours() >= 8;
+                    const isMissingCheckout = !record.check_out;
+                    
+                    return (
+                      <TableRow 
+                        key={record.id}
+                        sx={{ 
+                          bgcolor: record.department === 'NO SHOW' ? '#fff3e0' : 'inherit'
+                        }}
+                      >
+                        <TableCell>{formatDate(record.check_in)}</TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            {formatTime(record.check_in)}
+                            {isLate && (
+                              <Typography
+                                component="span"
+                                variant="caption"
+                                color="error"
+                                sx={{ ml: 1 }}
+                              >
+                                Late
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            {record.check_out ? formatTime(record.check_out) : '-'}
+                            {isMissingCheckout && (
+                              <Typography
+                                component="span"
+                                variant="caption"
+                                color="warning.main"
+                                sx={{ ml: 1 }}
+                              >
+                                Missing
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>{record.duration || '-'}</TableCell>
+                        <TableCell>{record.department}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
+              <TablePagination
+                component="div"
+                count={totalCount}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(event) => {
+                  setRowsPerPage(parseInt(event.target.value, 10));
+                  setPage(0);
+                }}
+                rowsPerPageOptions={[10, 25, 50, 100]}
+              />
             </TableContainer>
           </>
         )}
