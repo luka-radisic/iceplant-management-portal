@@ -5,10 +5,19 @@ from datetime import datetime, time, timedelta
 import os
 
 def employee_photo_path(instance, filename):
-    # File will be uploaded to MEDIA_ROOT/employee_photos/employee_<id>/<filename>
-    ext = filename.split('.')[-1]
-    new_filename = f'profile_photo.{ext}'
-    return f'employee_photos/employee_{instance.employee_id}/{new_filename}'
+    """
+    Generate a unique path for each employee's photo.
+    Path format: employee_photos/employee_{id}/{timestamp}_{filename}
+    """
+    # Get the original file extension
+    ext = filename.split('.')[-1].lower()
+    
+    # Create a unique filename using employee ID and timestamp
+    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S_%f')
+    new_filename = f'profile_{instance.employee_id}_{timestamp}.{ext}'
+    
+    # Create a unique path for each employee
+    return os.path.join('employee_photos', f'employee_{instance.employee_id}', new_filename)
 
 class EmployeeProfile(models.Model):
     """Store employee profile information including photo"""

@@ -9,6 +9,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 import pytz
 from rest_framework.viewsets import ModelViewSet
+import os
 
 from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile
 from .serializers import (
@@ -423,9 +424,9 @@ class EmployeeProfileViewSet(ModelViewSet):
         try:
             profile = self.get_object()
             
-            print(f"Processing photo upload for employee {employee_id}")
+            print(f"\n=== Processing photo upload for employee {employee_id} ===")
+            print(f"Current profile photo: {profile.photo.name if profile.photo else 'None'}")
             print(f"Request FILES: {request.FILES}")
-            print(f"Request data: {request.data}")
             
             if 'photo' not in request.FILES:
                 print("No photo file found in request")
@@ -435,7 +436,10 @@ class EmployeeProfileViewSet(ModelViewSet):
                 )
                 
             photo_file = request.FILES['photo']
-            print(f"Received file: {photo_file.name}, size: {photo_file.size}, type: {photo_file.content_type}")
+            print(f"\nReceived file details:")
+            print(f"- Name: {photo_file.name}")
+            print(f"- Size: {photo_file.size} bytes")
+            print(f"- Content type: {photo_file.content_type}")
             
             # Validate file type
             allowed_types = ['image/jpeg', 'image/png', 'image/gif']
@@ -456,21 +460,47 @@ class EmployeeProfileViewSet(ModelViewSet):
                 
             # Delete old photo if it exists
             if profile.photo:
-                print(f"Deleting old photo: {profile.photo.name}")
-                profile.photo.delete(save=False)
+                old_photo_path = profile.photo.path
+                old_photo_name = profile.photo.name
+                print(f"\nDeleting old photo:")
+                print(f"- Path: {old_photo_path}")
+                print(f"- Name: {old_photo_name}")
                 
-            print("Saving new photo...")
+                try:
+                    if os.path.exists(old_photo_path):
+                        os.remove(old_photo_path)
+                        print("- Old photo file deleted successfully")
+                    else:
+                        print("- Old photo file not found on disk")
+                    
+                    # Delete the photo field
+                    profile.photo.delete(save=False)
+                    print("- Old photo field cleared successfully")
+                    
+                    # Try to remove empty directories
+                    photo_dir = os.path.dirname(old_photo_path)
+                    if os.path.exists(photo_dir) and not os.listdir(photo_dir):
+                        os.rmdir(photo_dir)
+                        print(f"- Removed empty directory: {photo_dir}")
+                except Exception as e:
+                    print(f"- Error during cleanup: {str(e)}")
+            
+            print("\nSaving new photo...")
             profile.photo = photo_file
             profile.save()
             
-            print("Photo saved successfully")
+            print(f"New photo saved successfully:")
+            print(f"- New photo path: {profile.photo.path}")
+            print(f"- New photo name: {profile.photo.name}")
+            
             serializer = self.get_serializer(profile)
             return Response(serializer.data)
             
         except Exception as e:
             import traceback
-            print(f"Error uploading photo: {str(e)}")
-            print(f"Traceback: {traceback.format_exc()}")
+            print(f"\nError uploading photo:")
+            print(f"- Error message: {str(e)}")
+            print(f"- Traceback: {traceback.format_exc()}")
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST

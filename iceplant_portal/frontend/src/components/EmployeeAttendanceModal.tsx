@@ -257,12 +257,21 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   // Function to fetch employee profile
   const fetchEmployeeProfile = async () => {
     try {
-      const response = await apiService.getEmployeeProfile(employeeId);
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      const response = await apiService.get(`/api/attendance/employee-profile/${employeeId}/?t=${timestamp}`);
       if (response && response.photo_url) {
-        setProfilePicture(response.photo_url);
+        // Add timestamp to photo URL to prevent browser caching
+        const photoUrl = response.photo_url.includes('?')
+          ? `${response.photo_url}&t=${timestamp}`
+          : `${response.photo_url}?t=${timestamp}`;
+        setProfilePicture(photoUrl);
+      } else {
+        setProfilePicture(null);
       }
     } catch (error) {
       console.error('Error fetching employee profile:', error);
+      setProfilePicture(null);
     }
   };
 
@@ -295,19 +304,26 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
     setUploadingPhoto(true);
     try {
+      // Use apiService's uploadEmployeePhoto method instead of direct fetch
       const response = await apiService.uploadEmployeePhoto(employeeId, file);
       console.log('Upload response:', response);
 
       if (response && response.photo_url) {
-        setProfilePicture(response.photo_url);
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const photoUrl = response.photo_url.includes('?')
+          ? `${response.photo_url}&t=${timestamp}`
+          : `${response.photo_url}?t=${timestamp}`;
+        setProfilePicture(photoUrl);
         enqueueSnackbar('Profile picture updated successfully', { variant: 'success' });
       } else {
         throw new Error('Invalid response format');
       }
     } catch (error) {
       console.error('Error uploading profile picture:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to upload profile picture';
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to upload profile picture';
       enqueueSnackbar(errorMessage, { variant: 'error' });
+      setProfilePicture(null);
     } finally {
       setUploadingPhoto(false);
       // Reset the file input
@@ -414,13 +430,13 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     <Box>
                       <input
                         accept="image/*"
-                        id="profile-picture-upload"
                         type="file"
+                        id={`profile-picture-upload-${employeeId}`}
                         style={{ display: 'none' }}
                         onChange={handleProfilePictureUpload}
                         disabled={uploadingPhoto}
                       />
-                      <label htmlFor="profile-picture-upload">
+                      <label htmlFor={`profile-picture-upload-${employeeId}`}>
                         <IconButton
                           component="span"
                           sx={{
@@ -441,39 +457,46 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                   )
                 }
               >
-                <Box sx={{ position: 'relative' }}>
-                  <Avatar
-                    src={profilePicture || undefined}
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      bgcolor: 'primary.main',
-                      fontSize: '2rem',
-                    }}
-                  >
-                    {employeeName.split(' ').map(n => n[0]).join('')}
-                  </Avatar>
-                  {profilePicture && (
-                    <IconButton
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        top: -8,
-                        right: -8,
-                        bgcolor: 'error.main',
-                        color: 'white',
-                        '&:hover': {
-                          bgcolor: 'error.dark',
-                        },
-                      }}
-                      onClick={handleRemovePhoto}
-                      disabled={uploadingPhoto}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  )}
-                </Box>
+                <Avatar
+                  src={profilePicture || undefined}
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    bgcolor: 'primary.main',
+                    fontSize: '2rem',
+                  }}
+                  imgProps={{
+                    onError: (e) => {
+                      console.error('Error loading profile image, falling back to initials');
+                      setProfilePicture(null);
+                      // Prevent infinite error loop
+                      (e.target as HTMLImageElement).onerror = null;
+                    }
+                  }}
+                >
+                  {employeeName.split(' ').map(n => n[0]).join('')}
+                </Avatar>
               </Badge>
+              {profilePicture && (
+                <IconButton
+                  size="small"
+                  sx={{
+                    position: 'absolute',
+                    top: -8,
+                    right: -8,
+                    bgcolor: 'error.main',
+                    color: 'white',
+                    '&:hover': {
+                      bgcolor: 'error.dark',
+                    },
+                    zIndex: 1,
+                  }}
+                  onClick={handleRemovePhoto}
+                  disabled={uploadingPhoto}
+                >
+                  <DeleteIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
             </Box>
             <Box>
               <Typography component="div" variant="h6">
