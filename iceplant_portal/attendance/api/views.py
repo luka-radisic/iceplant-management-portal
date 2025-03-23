@@ -10,12 +10,16 @@ from datetime import datetime, timedelta
 import pytz
 from rest_framework.viewsets import ModelViewSet
 import os
+from django.http import Http404
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import F, ExpressionWrapper, DurationField
 
-from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile
+from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 from .serializers import (
     AttendanceSerializer, 
     ImportLogSerializer, 
-    EmployeeProfileSerializer
+    EmployeeProfileSerializer,
+    DepartmentShiftSerializer
 )
 
 class AttendanceViewSet(viewsets.ModelViewSet):
@@ -26,28 +30,98 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     serializer_class = AttendanceSerializer
     filterset_fields = ['employee_id', 'department', 'import_date']
     search_fields = ['employee_id', 'department', 'employee_name']
+    pagination_class = PageNumberPagination
+    page_size = 50  # Default page size
+    page_size_query_param = 'page_size'
+    max_page_size = 500  # Maximum allowed page size
     
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Get date range filters
+        # Get all filters
         start_date = self.request.query_params.get('start_date', None)
         end_date = self.request.query_params.get('end_date', None)
-        
-        # Apply date range filtering if provided
-        if start_date:
-            queryset = queryset.filter(check_in__date__gte=start_date)
-        if end_date:
-            queryset = queryset.filter(check_in__date__lte=end_date)
-            
-        # Get status filter
+        employee_id = self.request.query_params.get('employee_id', None)
         status = self.request.query_params.get('status', 'all')
+        
+        # Apply employee_id filter first if provided
+        if employee_id:
+            queryset = queryset.filter(employee_id=employee_id)
+            
+        # Apply date range filtering only if explicitly provided
+        if start_date:
+            # Convert to datetime for exact start of day
+            start_datetime = datetime.strptime(f"{start_date} 00:00:00", "%Y-%m-%d %H:%M:%S")
+            start_datetime = timezone.make_aware(start_datetime, timezone.get_current_timezone())
+            queryset = queryset.filter(check_in__gte=start_datetime)
+            
+        if end_date:
+            # Convert to datetime for end of day
+            end_datetime = datetime.strptime(f"{end_date} 23:59:59", "%Y-%m-%d %H:%M:%S")
+            end_datetime = timezone.make_aware(end_datetime, timezone.get_current_timezone())
+            queryset = queryset.filter(check_in__lte=end_datetime)
+            
+        # Apply status filters
         if status == 'present':
             queryset = queryset.exclude(department='NO SHOW')
         elif status == 'no-show':
             queryset = queryset.filter(department='NO SHOW')
+        elif status == 'missing-checkout':
+            queryset = queryset.filter(check_out__isnull=True).exclude(department='NO SHOW')
+        elif status == 'late':
+            # For late arrivals, we need to join with EmployeeShift
+            if employee_id:
+                try:
+                    shift = EmployeeShift.objects.get(employee_id=employee_id)
+                    shift_start = shift.shift_start
+                    # Add 1 hour grace period
+                    grace_period = timedelta(hours=1)
+                    
+                    # Convert shift start time to a time delta for comparison
+                    shift_start_parts = shift_start.strftime('%H:%M').split(':')
+                    shift_start_delta = timedelta(
+                        hours=int(shift_start_parts[0]),
+                        minutes=int(shift_start_parts[1])
+                    ) + grace_period
+                    
+                    # Add time comparison
+                    queryset = queryset.annotate(
+                        check_in_time=ExpressionWrapper(
+                            F('check_in__hour') * 60 + F('check_in__minute'),
+                            output_field=DurationField()
+                        )
+                    ).filter(
+                        check_in_time__gt=shift_start_delta.total_seconds() / 60
+                    ).exclude(department='NO SHOW')
+                except EmployeeShift.DoesNotExist:
+                    pass
             
         return queryset.order_by('-check_in')
+    
+    def paginate_queryset(self, queryset):
+        """Override to handle pagination properly"""
+        try:
+            # Get the requested page size
+            page_size = self.request.query_params.get(self.page_size_query_param)
+            if page_size:
+                # Ensure page size doesn't exceed max
+                page_size = min(int(page_size), self.max_page_size)
+                self.paginator.page_size = page_size
+            
+            return super().paginate_queryset(queryset)
+        except Exception as e:
+            print(f"Pagination error: {str(e)}")
+            # If page is out of range, return last page
+            if 'Page is not a valid value' in str(e):
+                # Get the last valid page
+                page_size = self.paginator.get_page_size(self.request)
+                total_items = queryset.count()
+                max_page = (total_items - 1) // page_size
+                self.request.query_params._mutable = True
+                self.request.query_params['page'] = str(max_page + 1)
+                self.request.query_params._mutable = False
+                return super().paginate_queryset(queryset)
+            return []
     
     def clean_department(self, department):
         """Remove the 'Santa Rita Iceplant\' prefix from department names"""
@@ -256,7 +330,27 @@ class EmployeeShiftViewSet(ModelViewSet):
     def retrieve(self, request, employee_id=None):
         """Get shift configuration for an employee"""
         try:
+            # First try to get employee's shift configuration
             shift = EmployeeShift.objects.get(employee_id=employee_id)
+            
+            # If using department settings, try to get department configuration
+            if shift.use_department_settings and shift.department:
+                try:
+                    dept_shift = DepartmentShift.objects.get(department=shift.department)
+                    return Response({
+                        'shift_start': dept_shift.shift_start.strftime('%H:%M'),
+                        'shift_end': dept_shift.shift_end.strftime('%H:%M'),
+                        'break_duration': dept_shift.break_duration,
+                        'is_night_shift': dept_shift.is_night_shift,
+                        'is_rotating_shift': dept_shift.is_rotating_shift,
+                        'shift_duration': dept_shift.shift_duration,
+                        'use_department_settings': True,
+                        'department': shift.department
+                    })
+                except DepartmentShift.DoesNotExist:
+                    pass
+            
+            # Return employee's own configuration
             return Response({
                 'shift_start': shift.shift_start.strftime('%H:%M'),
                 'shift_end': shift.shift_end.strftime('%H:%M'),
@@ -264,36 +358,64 @@ class EmployeeShiftViewSet(ModelViewSet):
                 'is_night_shift': shift.is_night_shift,
                 'is_rotating_shift': shift.is_rotating_shift,
                 'rotation_partner_id': shift.rotation_partner_id,
-                'shift_duration': shift.shift_duration
+                'shift_duration': shift.shift_duration,
+                'use_department_settings': shift.use_department_settings,
+                'department': shift.department
             })
         except EmployeeShift.DoesNotExist:
-            # Return default configuration based on employee ID
-            is_rotating = employee_id in ['1', '8']  # Special handling for employees 1 and 8
+            # Try to get employee's department from profile
+            try:
+                profile = EmployeeProfile.objects.get(employee_id=employee_id)
+                if profile.department_track_shifts:
+                    try:
+                        dept_shift = DepartmentShift.objects.get(department=profile.department)
+                        return Response({
+                            'shift_start': dept_shift.shift_start.strftime('%H:%M'),
+                            'shift_end': dept_shift.shift_end.strftime('%H:%M'),
+                            'break_duration': dept_shift.break_duration,
+                            'is_night_shift': dept_shift.is_night_shift,
+                            'is_rotating_shift': dept_shift.is_rotating_shift,
+                            'shift_duration': dept_shift.shift_duration,
+                            'use_department_settings': True,
+                            'department': profile.department
+                        })
+                    except DepartmentShift.DoesNotExist:
+                        pass
+            except EmployeeProfile.DoesNotExist:
+                pass
+            
+            # Return default configuration
             return Response({
                 'shift_start': '06:00',
-                'shift_end': '18:00' if is_rotating else '16:00',
+                'shift_end': '16:00',
                 'break_duration': 2,
                 'is_night_shift': False,
-                'is_rotating_shift': is_rotating,
-                'rotation_partner_id': '8' if employee_id == '1' else '1' if employee_id == '8' else None,
-                'shift_duration': 12 if is_rotating else 8
+                'is_rotating_shift': False,
+                'shift_duration': 8,
+                'use_department_settings': True,
+                'department': None
             })
     
     def create(self, request, employee_id=None):
         """Create or update shift configuration for an employee"""
         try:
-            shift_data = {
-                'shift_start': request.data['shift_start'],
-                'shift_end': request.data['shift_end'],
-                'break_duration': request.data['break_duration'],
-                'is_night_shift': request.data['is_night_shift'],
-                'is_rotating_shift': request.data.get('is_rotating_shift', False),
-                'rotation_partner_id': request.data.get('rotation_partner_id'),
-                'shift_duration': request.data.get('shift_duration', 8)
-            }
+            shift_data = request.data.copy()
+            
+            # If using department settings, get the department from profile
+            if shift_data.get('use_department_settings'):
+                try:
+                    profile = EmployeeProfile.objects.get(employee_id=employee_id)
+                    shift_data['department'] = profile.department
+                except EmployeeProfile.DoesNotExist:
+                    pass
+            
+            shift, created = EmployeeShift.objects.update_or_create(
+                employee_id=employee_id,
+                defaults=shift_data
+            )
             
             # If this is a rotating shift, ensure partner configuration is updated
-            if shift_data['is_rotating_shift'] and shift_data['rotation_partner_id']:
+            if shift_data.get('is_rotating_shift') and shift_data.get('rotation_partner_id'):
                 partner_shift, _ = EmployeeShift.objects.get_or_create(
                     employee_id=shift_data['rotation_partner_id']
                 )
@@ -302,10 +424,6 @@ class EmployeeShiftViewSet(ModelViewSet):
                 partner_shift.shift_duration = 12
                 partner_shift.save()
             
-            shift, created = EmployeeShift.objects.update_or_create(
-                employee_id=employee_id,
-                defaults=shift_data
-            )
             return Response(status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
@@ -375,8 +493,8 @@ class EmployeeProfileViewSet(ModelViewSet):
     """API endpoint for managing employee profiles"""
     queryset = EmployeeProfile.objects.all()
     serializer_class = EmployeeProfileSerializer
-    parser_classes = (MultiPartParser, FormParser, JSONParser)
     lookup_field = 'employee_id'
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -398,25 +516,39 @@ class EmployeeProfileViewSet(ModelViewSet):
         except EmployeeProfile.DoesNotExist:
             # Try to create profile from attendance records
             try:
-                attendance = Attendance.objects.filter(employee_id=employee_id).first()
-                if attendance:
+                # Get the most recent attendance record for this employee
+                attendance = Attendance.objects.filter(
+                    employee_id=employee_id,
+                    employee_name__isnull=False  # Ensure we have a name
+                ).order_by('-check_in').first()
+                
+                if attendance and attendance.employee_name:
                     return EmployeeProfile.objects.create(
                         employee_id=employee_id,
-                        full_name=attendance.employee_name or f"Employee {employee_id}",
+                        full_name=attendance.employee_name,
                         department=attendance.department,
                         is_active=True,
-                        date_joined=timezone.now().date()
+                        date_joined=attendance.check_in.date()
                     )
+                else:
+                    # Check if the employee ID is within valid range (1-20)
+                    try:
+                        emp_id = int(employee_id)
+                        if 1 <= emp_id <= 20:  # Assuming valid employee IDs are 1-20
+                            return EmployeeProfile.objects.create(
+                                employee_id=employee_id,
+                                full_name=f"Employee {employee_id}",
+                                department="Unassigned",
+                                is_active=True,
+                                date_joined=timezone.now().date()
+                            )
+                        else:
+                            raise Http404(f"Invalid employee ID: {employee_id}")
+                    except ValueError:
+                        raise Http404(f"Invalid employee ID format: {employee_id}")
             except Exception as e:
-                print(f"Error creating profile: {str(e)}")
-            # If no attendance record, create basic profile
-            return EmployeeProfile.objects.create(
-                employee_id=employee_id,
-                full_name=f"Employee {employee_id}",
-                department="Unassigned",
-                is_active=True,
-                date_joined=timezone.now().date()
-            )
+                print(f"Error creating profile for employee {employee_id}: {str(e)}")
+                raise Http404(f"Could not create profile for employee {employee_id}")
 
     @action(detail=True, methods=['POST'], parser_classes=[MultiPartParser])
     def upload_photo(self, request, employee_id=None):
@@ -519,4 +651,71 @@ class EmployeeProfileViewSet(ModelViewSet):
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
-            ) 
+            )
+
+    @action(detail=False, methods=['get'])
+    def departments(self, request):
+        """Get a list of unique departments"""
+        # Get only active employees' departments and exclude empty departments
+        departments = (
+            EmployeeProfile.objects
+            .filter(is_active=True)
+            .exclude(department__isnull=True)
+            .exclude(department__exact='')
+            .values_list('department', flat=True)
+            .distinct()
+            .order_by('department')
+        )
+        return Response({'departments': list(departments)})
+
+class DepartmentShiftViewSet(ModelViewSet):
+    """API endpoint for managing department shift configurations"""
+    queryset = DepartmentShift.objects.all()
+    serializer_class = DepartmentShiftSerializer
+    lookup_field = 'department'
+
+    def retrieve(self, request, department=None):
+        """Get shift configuration for a department"""
+        try:
+            shift = DepartmentShift.objects.get(department=department)
+            serializer = self.get_serializer(shift)
+            return Response(serializer.data)
+        except DepartmentShift.DoesNotExist:
+            # Return default configuration
+            return Response({
+                'department': department,
+                'shift_start': '06:00',
+                'shift_end': '16:00',
+                'break_duration': 2,
+                'is_night_shift': False,
+                'is_rotating_shift': False,
+                'shift_duration': 8
+            })
+
+    def create(self, request, department=None):
+        """Create or update shift configuration for a department"""
+        try:
+            shift_data = request.data.copy()
+            shift_data['department'] = department
+            
+            shift, created = DepartmentShift.objects.update_or_create(
+                department=department,
+                defaults=shift_data
+            )
+            
+            # Update all employee profiles in this department to use department shifts
+            EmployeeProfile.objects.filter(department=department).update(
+                department_track_shifts=True
+            )
+            
+            serializer = self.get_serializer(shift)
+            return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def update(self, request, department=None):
+        """Update shift configuration for a department"""
+        return self.create(request, department) 

@@ -33,6 +33,14 @@ class EmployeeProfile(models.Model):
     position = models.CharField(max_length=100, blank=True)
     date_joined = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    track_shifts = models.BooleanField(
+        default=False,
+        help_text="Enable shift tracking for this employee"
+    )
+    department_track_shifts = models.BooleanField(
+        default=False,
+        help_text="Department-level setting for shift tracking"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -129,6 +137,7 @@ class ImportLog(models.Model):
 class EmployeeShift(models.Model):
     """Store shift configuration per employee"""
     employee_id = models.CharField(max_length=50, unique=True)
+    department = models.CharField(max_length=50, null=True, blank=True, help_text="Employee's department for shift inheritance")
     shift_start = models.TimeField(help_text="Shift start time (e.g., 06:00 for morning, 18:00 for night)")
     shift_end = models.TimeField(help_text="Shift end time (e.g., 16:00 for morning, 04:00 for night)")
     break_duration = models.IntegerField(default=2, help_text="Break duration in hours")
@@ -137,10 +146,25 @@ class EmployeeShift(models.Model):
     rotation_partner_id = models.CharField(max_length=50, null=True, blank=True, 
         help_text="Employee ID of the rotation partner for 12-hour shifts")
     shift_duration = models.IntegerField(default=8, help_text="Shift duration in hours")
+    use_department_settings = models.BooleanField(default=True, help_text="If True, use department shift settings")
     
     def __str__(self):
         shift_type = "Night" if self.is_night_shift else "Morning"
         return f"{self.employee_id} - {shift_type} Shift ({self.shift_start.strftime('%H:%M')}-{self.shift_end.strftime('%H:%M')})"
+
+    def save(self, *args, **kwargs):
+        if self.use_department_settings:
+            try:
+                dept_shift = DepartmentShift.objects.get(department=self.department)
+                self.shift_start = dept_shift.shift_start
+                self.shift_end = dept_shift.shift_end
+                self.break_duration = dept_shift.break_duration
+                self.is_night_shift = dept_shift.is_night_shift
+                self.is_rotating_shift = dept_shift.is_rotating_shift
+                self.shift_duration = dept_shift.shift_duration
+            except DepartmentShift.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
 
     def get_shift_period(self, check_in_time):
         """
@@ -222,3 +246,24 @@ class EmployeeShift(models.Model):
                 return 'Night Shift'
             return 'Morning Shift'
         return 'Outside Shift Hours'
+
+class DepartmentShift(models.Model):
+    """Store shift configuration per department"""
+    department = models.CharField(max_length=50, unique=True)
+    shift_start = models.TimeField(help_text="Default shift start time for the department")
+    shift_end = models.TimeField(help_text="Default shift end time for the department")
+    break_duration = models.IntegerField(default=2, help_text="Default break duration in hours")
+    is_night_shift = models.BooleanField(default=False, help_text="If True, shift ends next day")
+    is_rotating_shift = models.BooleanField(default=False, help_text="If True, department uses rotating shifts")
+    shift_duration = models.IntegerField(default=8, help_text="Default shift duration in hours")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        shift_type = "Night" if self.is_night_shift else "Morning"
+        return f"{self.department} - {shift_type} Shift ({self.shift_start.strftime('%H:%M')}-{self.shift_end.strftime('%H:%M')})"
+
+    class Meta:
+        verbose_name = 'Department Shift'
+        verbose_name_plural = 'Department Shifts'
+        ordering = ['department']

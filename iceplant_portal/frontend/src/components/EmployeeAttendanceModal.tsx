@@ -51,9 +51,11 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<any[]>([]);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [totalCount, setTotalCount] = useState(0);
   const [showShiftConfig, setShowShiftConfig] = useState(false);
+  const [trackShifts, setTrackShifts] = useState(false);
+  const [departmentTrackShifts, setDepartmentTrackShifts] = useState(false);
   const [shiftConfig, setShiftConfig] = useState<ShiftConfig>({
     shift_start: '06:00',
     shift_end: '16:00',
@@ -71,14 +73,44 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     avgCheckIn: '',
     avgCheckOut: '',
   });
-  const [filters, setFilters] = useState({
-    start_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
-    end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
-    status: 'all', // 'all', 'present', 'no-show', 'late', 'missing-checkout', 'morning-shift', 'night-shift'
+  const [filters, setFilters] = useState(() => {
+    const today = new Date();
+    const firstDayCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    return {
+      start_date: firstDayCurrentMonth.toISOString().split('T')[0],
+      end_date: today.toISOString().split('T')[0],
+      status: 'all',
+    };
   });
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+
+  // Function to set quick date filters
+  const setQuickDateFilter = (months: number) => {
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - months + 1);
+    start.setDate(1); // First day of the month
+
+    setFilters(prev => ({
+      ...prev,
+      start_date: start.toISOString().split('T')[0],
+      end_date: end.toISOString().split('T')[0],
+    }));
+    setPage(0);
+  };
+
+  // Function to clear date filters
+  const clearDateFilters = () => {
+    setFilters(prev => ({
+      ...prev,
+      start_date: '',
+      end_date: '',
+    }));
+    setPage(0);
+  };
 
   // Function to fetch employee's shift configuration
   const fetchEmployeeShift = async () => {
@@ -167,33 +199,55 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     return checkInTime > graceEndTime;
   };
 
+  // Function to fetch employee records
   const fetchEmployeeRecords = async () => {
     setLoading(true);
     try {
-      // First, get all records for statistics (without pagination)
-      const statsResponse = await apiService.get('/api/attendance/attendance/', {
+      // Prepare filter parameters
+      const filterParams = {
         employee_id: employeeId,
-        start_date: filters.start_date,
-        end_date: filters.end_date,
-        status: filters.status,
-        page_size: 1000,
-      });
+        page_size: rowsPerPage,
+        page: page + 1,  // Add pagination parameters
+      };
 
-      // Calculate statistics from all records
-      const allRecords = statsResponse.results || [];
-      const presentRecords = allRecords.filter((r: any) => r.department !== 'NO SHOW');
-      const noShows = allRecords.filter((r: any) => r.department === 'NO SHOW');
+      // Add date filters if they are set
+      if (filters.start_date) {
+        filterParams.start_date = filters.start_date;
+      }
+      if (filters.end_date) {
+        filterParams.end_date = filters.end_date;
+      }
 
-      // Calculate shift-based statistics
-      const recordsWithShifts = presentRecords.map(record => ({
+      // Add status filter with proper mapping
+      if (filters.status !== 'all') {
+        filterParams.status = filters.status;
+      }
+
+      // Get paginated records
+      const response = await apiService.get('/api/attendance/attendance/', filterParams);
+
+      // Handle empty or error responses
+      if (!response || !response.results) {
+        setRecords([]);
+        setTotalCount(0);
+        return;
+      }
+
+      const allRecords = response.results || [];
+      const totalRecords = response.count || 0;
+
+      // Add shift information to records
+      const recordsWithShifts = allRecords.map(record => ({
         ...record,
         checkInTime: new Date(record.check_in),
         shiftType: getShiftType(new Date(record.check_in)),
       }));
 
+      // Calculate statistics
+      const presentRecords = allRecords.filter((r: any) => r.department !== 'NO SHOW');
+      const noShows = allRecords.filter((r: any) => r.department === 'NO SHOW');
       const morningShifts = recordsWithShifts.filter(r => r.shiftType === 'Morning Shift');
       const nightShifts = recordsWithShifts.filter(r => r.shiftType === 'Night Shift');
-
       const lateArrivals = recordsWithShifts.filter(r => isLateForShift(r.checkInTime));
       const missingCheckouts = presentRecords.filter((r: any) => !r.check_out);
 
@@ -218,7 +272,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
         : '-';
 
       setStats({
-        totalDays: allRecords.length,
+        totalDays: totalRecords,
         presentDays: presentRecords.length,
         noShows: noShows.length,
         lateArrivals: lateArrivals.length,
@@ -229,26 +283,15 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
         avgCheckOut,
       });
 
-      // Then get paginated records for display
-      const response = await apiService.get('/api/attendance/attendance/', {
-        employee_id: employeeId,
-        start_date: filters.start_date,
-        end_date: filters.end_date,
-        status: filters.status,
-        page: page + 1,
-        page_size: rowsPerPage,
-      });
-
-      // Add shift information to records
-      const enrichedRecords = (response.results || []).map(record => ({
-        ...record,
-        shiftType: getShiftType(new Date(record.check_in)),
-      }));
-
-      setRecords(enrichedRecords);
-      setTotalCount(response.count || 0);
+      setTotalCount(totalRecords);
+      setRecords(recordsWithShifts);
     } catch (error) {
       console.error('Error fetching employee records:', error);
+      // Handle 404 errors gracefully
+      if (error.response?.status === 404) {
+        setRecords([]);
+        setTotalCount(0);
+      }
     } finally {
       setLoading(false);
     }
@@ -257,17 +300,19 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   // Function to fetch employee profile
   const fetchEmployeeProfile = async () => {
     try {
-      // Add timestamp to prevent caching
       const timestamp = new Date().getTime();
       const response = await apiService.get(`/api/attendance/employee-profile/${employeeId}/?t=${timestamp}`);
-      if (response && response.photo_url) {
-        // Add timestamp to photo URL to prevent browser caching
-        const photoUrl = response.photo_url.includes('?')
-          ? `${response.photo_url}&t=${timestamp}`
-          : `${response.photo_url}?t=${timestamp}`;
-        setProfilePicture(photoUrl);
-      } else {
-        setProfilePicture(null);
+      if (response) {
+        setTrackShifts(response.track_shifts);
+        setDepartmentTrackShifts(response.department_track_shifts);
+        if (response.photo_url) {
+          const photoUrl = response.photo_url.includes('?')
+            ? `${response.photo_url}&t=${timestamp}`
+            : `${response.photo_url}?t=${timestamp}`;
+          setProfilePicture(photoUrl);
+        } else {
+          setProfilePicture(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching employee profile:', error);
@@ -348,6 +393,72 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }
   };
 
+  // Function to toggle shift tracking
+  const handleShiftTrackingToggle = async () => {
+    try {
+      const response = await apiService.updateEmployeeProfile(employeeId, {
+        track_shifts: !trackShifts,
+      });
+      setTrackShifts(response.track_shifts);
+
+      // If enabling shifts and department has shift settings, use them
+      if (response.track_shifts && response.department) {
+        try {
+          const deptShift = await apiService.getDepartmentShift(response.department);
+          if (deptShift) {
+            setShiftConfig({
+              shift_start: deptShift.shift_start,
+              shift_end: deptShift.shift_end,
+              break_duration: deptShift.break_duration,
+              is_night_shift: deptShift.is_night_shift,
+            });
+            await saveEmployeeShift();
+          }
+        } catch (error) {
+          console.error('Error fetching department shift:', error);
+        }
+      }
+
+      fetchEmployeeRecords();
+    } catch (error) {
+      console.error('Error updating shift tracking:', error);
+      enqueueSnackbar('Failed to update shift tracking', { variant: 'error' });
+    }
+  };
+
+  // Function to toggle department shift tracking
+  const handleDepartmentShiftTrackingToggle = async () => {
+    try {
+      const response = await apiService.updateEmployeeProfile(employeeId, {
+        department_track_shifts: !departmentTrackShifts,
+      });
+      setDepartmentTrackShifts(response.department_track_shifts);
+
+      // If enabling department shifts, fetch and apply department settings
+      if (response.department_track_shifts && response.department) {
+        try {
+          const deptShift = await apiService.getDepartmentShift(response.department);
+          if (deptShift) {
+            setShiftConfig({
+              shift_start: deptShift.shift_start,
+              shift_end: deptShift.shift_end,
+              break_duration: deptShift.break_duration,
+              is_night_shift: deptShift.is_night_shift,
+            });
+            await saveEmployeeShift();
+          }
+        } catch (error) {
+          console.error('Error fetching department shift:', error);
+        }
+      }
+
+      fetchEmployeeRecords();
+    } catch (error) {
+      console.error('Error updating department shift tracking:', error);
+      enqueueSnackbar('Failed to update department shift tracking', { variant: 'error' });
+    }
+  };
+
   useEffect(() => {
     if (open && employeeId) {
       fetchEmployeeProfile();
@@ -355,6 +466,20 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       fetchEmployeeRecords();
     }
   }, [open, employeeId]);
+
+  // Add new effect to handle filter changes
+  useEffect(() => {
+    if (open && employeeId) {
+      fetchEmployeeRecords();
+    }
+  }, [filters]);
+
+  // Add effect for pagination changes
+  useEffect(() => {
+    if (open && employeeId) {
+      fetchEmployeeRecords();
+    }
+  }, [page, rowsPerPage]);
 
   const ShiftConfigDialog = () => (
     <Dialog open={showShiftConfig} onClose={() => setShowShiftConfig(false)}>
@@ -511,11 +636,33 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               </Typography>
             </Box>
           </Box>
-          <Tooltip title="Configure Shifts">
-            <IconButton onClick={() => setShowShiftConfig(true)}>
-              <SettingsIcon />
-            </IconButton>
-          </Tooltip>
+          <Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={trackShifts}
+                  onChange={handleShiftTrackingToggle}
+                />
+              }
+              label="Track Shifts"
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={departmentTrackShifts}
+                  onChange={handleDepartmentShiftTrackingToggle}
+                />
+              }
+              label="Department Shifts"
+            />
+            {trackShifts && (
+              <Tooltip title="Configure Shifts">
+                <IconButton onClick={() => setShowShiftConfig(true)}>
+                  <SettingsIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
         </Box>
       </DialogTitle>
       <DialogContent>
@@ -525,7 +672,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
           </Box>
         ) : (
           <>
-            {/* Statistics Summary */}
+            {/* Statistics Summary - Show different stats based on shift tracking */}
             <Box mb={3}>
               <Grid container spacing={2}>
                 <Grid item xs={12}>
@@ -533,92 +680,163 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     Attendance Statistics for Selected Period
                   </Typography>
                 </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Morning Shifts
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.morningShifts}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Night Shifts
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.nightShifts}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      No Shows
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.noShows}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Attendance Rate
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {((stats.presentDays / stats.totalDays) * 100).toFixed(1)}%
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Late Arrivals
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.lateArrivals}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Missing Checkouts
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.missingCheckouts}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Avg. Check-in
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.avgCheckIn}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Avg. Check-out
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.avgCheckOut}
-                    </Typography>
-                  </Paper>
-                </Grid>
+                {trackShifts ? (
+                  // Show shift-based statistics
+                  <>
+                    <Grid item xs={3}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Morning Shifts
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.morningShifts}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Night Shifts
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.nightShifts}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          No Shows
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.noShows}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Attendance Rate
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {((stats.presentDays / stats.totalDays) * 100).toFixed(1)}%
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Late Arrivals
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.lateArrivals}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Missing Checkouts
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.missingCheckouts}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Avg. Check-in
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.avgCheckIn}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={3}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Avg. Check-out
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.avgCheckOut}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  </>
+                ) : (
+                  // Show simplified statistics
+                  <>
+                    <Grid item xs={4}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Present Days
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.presentDays}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Attendance Rate
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {((stats.presentDays / stats.totalDays) * 100).toFixed(1)}%
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Paper sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography component="div" variant="body2" color="textSecondary">
+                          Missing Checkouts
+                        </Typography>
+                        <Typography component="div" variant="h6">
+                          {stats.missingCheckouts}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  </>
+                )}
               </Grid>
             </Box>
 
             {/* Filters */}
             <Box mb={3}>
               <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Box display="flex" gap={1} mb={2}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setQuickDateFilter(1)}
+                    >
+                      Current Month
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setQuickDateFilter(2)}
+                    >
+                      Last 2 Months
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setQuickDateFilter(3)}
+                    >
+                      Last 3 Months
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={clearDateFilters}
+                    >
+                      Show All
+                    </Button>
+                  </Box>
+                </Grid>
                 <Grid item xs={4}>
                   <TextField
                     fullWidth
@@ -673,7 +891,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                 <TableHead>
                   <TableRow>
                     <TableCell>Date</TableCell>
-                    <TableCell>Shift</TableCell>
+                    {trackShifts && <TableCell>Shift</TableCell>}
                     <TableCell>Check In</TableCell>
                     <TableCell>Check Out</TableCell>
                     <TableCell>Duration</TableCell>
@@ -683,7 +901,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                 <TableBody>
                   {records.map((record) => {
                     const checkInTime = new Date(record.check_in);
-                    const isLate = isLateForShift(checkInTime);
+                    const isLate = trackShifts && isLateForShift(checkInTime);
                     const isMissingCheckout = !record.check_out;
 
                     return (
@@ -694,15 +912,17 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                         }}
                       >
                         <TableCell>{formatDateStr(record.check_in)}</TableCell>
-                        <TableCell>
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            color={record.shiftType === 'Outside Shift Hours' ? 'error' : 'textPrimary'}
-                          >
-                            {record.shiftType}
-                          </Typography>
-                        </TableCell>
+                        {trackShifts && (
+                          <TableCell>
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              color={record.shiftType === 'Outside Shift Hours' ? 'error' : 'textPrimary'}
+                            >
+                              {record.shiftType}
+                            </Typography>
+                          </TableCell>
+                        )}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             {formatTime(record.check_in)}
@@ -744,13 +964,21 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                 component="div"
                 count={totalCount}
                 page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
+                onPageChange={(_, newPage) => {
+                  setPage(newPage);
+                  window.scrollTo(0, 0);
+                }}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={(event) => {
-                  setRowsPerPage(parseInt(event.target.value, 10));
+                  const newSize = parseInt(event.target.value, 10);
+                  setRowsPerPage(newSize);
                   setPage(0);
+                  window.scrollTo(0, 0);
                 }}
-                rowsPerPageOptions={[10, 25, 50, 100]}
+                rowsPerPageOptions={[25, 50, 100, 200, 500]}
+                labelDisplayedRows={({ from, to, count }) =>
+                  `${from}–${to} of ${count !== -1 ? count : `more than ${to}`}`
+                }
               />
             </TableContainer>
           </>
@@ -759,7 +987,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
-      <ShiftConfigDialog />
+      {trackShifts && <ShiftConfigDialog />}
     </Dialog>
   );
 } 

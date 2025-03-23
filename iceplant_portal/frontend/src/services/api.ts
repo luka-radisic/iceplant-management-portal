@@ -72,6 +72,10 @@ export const endpoints = {
   // Expenses
   expenses: '/api/expenses/expenses/',
   expensesSummary: '/api/expenses/expenses/summary/',
+
+  departmentShift: '/api/attendance/department-shift/',
+  departmentShiftDetail: (department: string) => `/api/attendance/department-shift/${department}/`,
+  employeeProfileDepartments: '/api/attendance/employee-profile/departments/',
 };
 
 // Generic API functions
@@ -176,6 +180,22 @@ export const apiService = {
 
   async updateEmployeeProfile(employeeId: string, data: any) {
     return this.put(`/api/attendance/employee-profile/${employeeId}/`, data);
+  },
+
+  async getDepartmentShifts() {
+    return this.get(endpoints.departmentShift);
+  },
+
+  async getDepartmentShift(department: string) {
+    return this.get(endpoints.departmentShiftDetail(department));
+  },
+
+  async updateDepartmentShift(department: string, data: any) {
+    return this.post(endpoints.departmentShiftDetail(department), data);
+  },
+
+  async getDepartments() {
+    return this.get(endpoints.employeeProfileDepartments);
   },
 };
 

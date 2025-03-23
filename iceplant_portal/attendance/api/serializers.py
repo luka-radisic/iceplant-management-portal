@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile
+from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 
 class EmployeeProfileSerializer(serializers.ModelSerializer):
     photo_url = serializers.SerializerMethodField()
@@ -15,6 +15,8 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             'position',
             'date_joined',
             'is_active',
+            'track_shifts',
+            'department_track_shifts',
         ]
         read_only_fields = ['photo_url']
 
@@ -41,4 +43,20 @@ class AttendanceSerializer(serializers.ModelSerializer):
 class ImportLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ImportLog
-        fields = '__all__' 
+        fields = '__all__'
+
+class DepartmentShiftSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DepartmentShift
+        fields = [
+            'department',
+            'shift_start',
+            'shift_end',
+            'break_duration',
+            'is_night_shift',
+            'is_rotating_shift',
+            'shift_duration',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at'] 
