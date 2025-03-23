@@ -50,11 +50,11 @@ admin.site.register(EmployeeShift, EmployeeShiftAdmin)
 @admin.register(DepartmentShift)
 class DepartmentShiftAdmin(admin.ModelAdmin):
     list_display = ('department', 'shift_type_display', 'shift_start', 'shift_end', 'break_duration', 'is_rotating_shift')
-    list_filter = ('is_night_shift', 'is_rotating_shift')
+    list_filter = ('shift_type', 'is_rotating_shift')
     search_fields = ('department',)
     
     def shift_type_display(self, obj):
         if obj.is_rotating_shift:
             return '12-Hour Rotating'
-        return 'Night' if obj.is_night_shift else 'Morning'
+        return obj.get_shift_type_display()
     shift_type_display.short_description = 'Shift Type'

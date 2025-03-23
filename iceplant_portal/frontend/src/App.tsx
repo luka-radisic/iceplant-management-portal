@@ -1,15 +1,15 @@
-import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
 import { SnackbarProvider } from 'notistack';
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
-import theme from './theme/theme';
-import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './contexts/AuthContext';
 import DashboardLayout from './layouts/DashboardLayout';
+import Attendance from './pages/Attendance';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
-import Attendance from './pages/Attendance';
+import theme from './theme/theme';
 
 // Placeholder components for other routes
 const Sales = () => <div>Sales Page (Coming Soon)</div>;
@@ -25,7 +25,7 @@ function App() {
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
-              
+
               <Route
                 element={
                   <ProtectedRoute>

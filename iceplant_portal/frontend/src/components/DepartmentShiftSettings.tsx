@@ -20,10 +20,10 @@ import apiService from '../services/api';
 
 interface DepartmentShift {
   department: string;
+  shift_type: 'morning' | 'night';
   shift_start: string;
   shift_end: string;
   break_duration: number;
-  is_night_shift: boolean;
   is_rotating_shift: boolean;
   shift_duration: number;
 }
@@ -51,24 +51,42 @@ export default function DepartmentShiftSettings() {
   const fetchDepartmentShifts = async () => {
     setLoading(true);
     try {
-      const shifts: DepartmentShift[] = [];
+      const allShifts: DepartmentShift[] = [];
       for (const department of departments) {
         try {
           const response = await apiService.getDepartmentShift(department);
-          shifts.push({
+          const shifts = Array.isArray(response) ? response : [response];
+
+          // If no shifts exist, create default morning and night shifts
+          if (shifts.length === 0) {
+            allShifts.push(
+              {
+                department,
+                shift_type: 'morning',
+                shift_start: '06:00',
+                shift_end: '18:00',
+                break_duration: 2,
+                is_rotating_shift: false,
+                shift_duration: 12,
+              },
+              {
             department,
-            shift_start: response.shift_start || '06:00',
-            shift_end: response.shift_end || '16:00',
-            break_duration: response.break_duration || 2,
-            is_night_shift: response.is_night_shift || false,
-            is_rotating_shift: response.is_rotating_shift || false,
-            shift_duration: response.shift_duration || 8,
-          });
+                shift_type: 'night',
+                shift_start: '18:00',
+                shift_end: '06:00',
+                break_duration: 2,
+                is_rotating_shift: false,
+                shift_duration: 12,
+              }
+            );
+          } else {
+            allShifts.push(...shifts);
+          }
         } catch (error) {
           console.error(`Error fetching shift for department ${department}:`, error);
         }
       }
-      setDepartmentShifts(shifts);
+      setDepartmentShifts(allShifts);
     } catch (error) {
       console.error('Error fetching department shifts:', error);
       enqueueSnackbar('Failed to fetch department shifts', { variant: 'error' });
@@ -87,10 +105,10 @@ export default function DepartmentShiftSettings() {
     }
   }, [departments]);
 
-  const handleShiftChange = (department: string, field: keyof DepartmentShift, value: any) => {
+  const handleShiftChange = (department: string, shift_type: 'morning' | 'night', field: keyof DepartmentShift, value: any) => {
     setDepartmentShifts(prev =>
       prev.map(shift =>
-        shift.department === department
+        shift.department === department && shift.shift_type === shift_type
           ? { ...shift, [field]: value }
           : shift
       )
@@ -99,11 +117,11 @@ export default function DepartmentShiftSettings() {
 
   const handleSave = async (department: string) => {
     try {
-      const shift = departmentShifts.find(s => s.department === department);
-      if (!shift) return;
+      const shifts = departmentShifts.filter(s => s.department === department);
+      if (shifts.length === 0) return;
 
-      await apiService.updateDepartmentShift(department, shift);
-      enqueueSnackbar(`Shift settings saved for ${department}`, { variant: 'success' });
+      await apiService.updateDepartmentShift(department, shifts);
+      enqueueSnackbar('Shift settings saved successfully', { variant: 'success' });
 
       // Refresh the data after saving
       await fetchDepartmentShifts();
@@ -131,23 +149,26 @@ export default function DepartmentShiftSettings() {
           <TableHead>
             <TableRow>
               <TableCell>Department</TableCell>
+              <TableCell>Shift Type</TableCell>
               <TableCell>Shift Start</TableCell>
               <TableCell>Shift End</TableCell>
               <TableCell>Break Duration (hrs)</TableCell>
-              <TableCell>Night Shift</TableCell>
               <TableCell>Rotating Shift</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {departmentShifts.map((shift) => (
-              <TableRow key={shift.department}>
+              <TableRow key={`${shift.department}-${shift.shift_type}`}>
                 <TableCell>{shift.department}</TableCell>
+                <TableCell>
+                  {shift.shift_type === 'morning' ? 'Morning Shift' : 'Night Shift'}
+                </TableCell>
                 <TableCell>
                   <TextField
                     type="time"
                     value={shift.shift_start}
-                    onChange={(e) => handleShiftChange(shift.department, 'shift_start', e.target.value)}
+                    onChange={(e) => handleShiftChange(shift.department, shift.shift_type, 'shift_start', e.target.value)}
                     InputLabelProps={{ shrink: true }}
                     size="small"
                   />
@@ -156,7 +177,7 @@ export default function DepartmentShiftSettings() {
                   <TextField
                     type="time"
                     value={shift.shift_end}
-                    onChange={(e) => handleShiftChange(shift.department, 'shift_end', e.target.value)}
+                    onChange={(e) => handleShiftChange(shift.department, shift.shift_type, 'shift_end', e.target.value)}
                     InputLabelProps={{ shrink: true }}
                     size="small"
                   />
@@ -165,7 +186,7 @@ export default function DepartmentShiftSettings() {
                   <TextField
                     type="number"
                     value={shift.break_duration}
-                    onChange={(e) => handleShiftChange(shift.department, 'break_duration', Number(e.target.value))}
+                    onChange={(e) => handleShiftChange(shift.department, shift.shift_type, 'break_duration', Number(e.target.value))}
                     InputProps={{ inputProps: { min: 0, max: 24 } }}
                     size="small"
                     sx={{ width: '80px' }}
@@ -175,25 +196,13 @@ export default function DepartmentShiftSettings() {
                   <FormControlLabel
                     control={
                       <Switch
-                        checked={shift.is_night_shift}
-                        onChange={(e) => handleShiftChange(shift.department, 'is_night_shift', e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label=""
-                  />
-                </TableCell>
-                <TableCell>
-                  <FormControlLabel
-                    control={
-                      <Switch
                         checked={shift.is_rotating_shift}
                         onChange={(e) => {
-                          handleShiftChange(shift.department, 'is_rotating_shift', e.target.checked);
+                          handleShiftChange(shift.department, shift.shift_type, 'is_rotating_shift', e.target.checked);
                           if (e.target.checked) {
-                            handleShiftChange(shift.department, 'shift_duration', 12);
+                            handleShiftChange(shift.department, shift.shift_type, 'shift_duration', 12);
                           } else {
-                            handleShiftChange(shift.department, 'shift_duration', 8);
+                            handleShiftChange(shift.department, shift.shift_type, 'shift_duration', 8);
                           }
                         }}
                         size="small"

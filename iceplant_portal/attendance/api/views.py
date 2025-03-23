@@ -326,6 +326,7 @@ class EmployeeShiftViewSet(ModelViewSet):
     """API endpoint for managing employee shift configurations"""
     queryset = EmployeeShift.objects.all()
     lookup_field = 'employee_id'
+    http_method_names = ['get', 'post', 'put', 'delete']  # Explicitly allow PUT method
     
     def retrieve(self, request, employee_id=None):
         """Get shift configuration for an employee"""
@@ -431,10 +432,42 @@ class EmployeeShiftViewSet(ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-    def update(self, request, employee_id=None):
+    def update(self, request, employee_id=None, *args, **kwargs):
         """Update shift configuration for an employee"""
-        return self.create(request, employee_id)
-        
+        try:
+            shift_data = request.data.copy()
+            
+            # If using department settings, get the department from profile
+            if shift_data.get('use_department_settings'):
+                try:
+                    profile = EmployeeProfile.objects.get(employee_id=employee_id)
+                    shift_data['department'] = profile.department
+                except EmployeeProfile.DoesNotExist:
+                    pass
+            
+            # Get or create the shift
+            shift, created = EmployeeShift.objects.update_or_create(
+                employee_id=employee_id,
+                defaults=shift_data
+            )
+            
+            # If this is a rotating shift, ensure partner configuration is updated
+            if shift_data.get('is_rotating_shift') and shift_data.get('rotation_partner_id'):
+                partner_shift, _ = EmployeeShift.objects.get_or_create(
+                    employee_id=shift_data['rotation_partner_id']
+                )
+                partner_shift.is_rotating_shift = True
+                partner_shift.rotation_partner_id = employee_id
+                partner_shift.shift_duration = 12
+                partner_shift.save()
+            
+            return Response(status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     @action(detail=True, methods=['get'])
     def check_shift_status(self, request, employee_id=None):
         """
@@ -675,41 +708,64 @@ class DepartmentShiftViewSet(ModelViewSet):
     lookup_field = 'department'
 
     def retrieve(self, request, department=None):
-        """Get shift configuration for a department"""
+        """Get shift configurations for a department"""
         try:
-            shift = DepartmentShift.objects.get(department=department)
-            serializer = self.get_serializer(shift)
-            return Response(serializer.data)
-        except DepartmentShift.DoesNotExist:
-            # Return default configuration
-            return Response({
-                'department': department,
-                'shift_start': '06:00',
-                'shift_end': '16:00',
-                'break_duration': 2,
-                'is_night_shift': False,
-                'is_rotating_shift': False,
-                'shift_duration': 8
-            })
+            shifts = DepartmentShift.objects.filter(department=department)
+            if shifts.exists():
+                serializer = self.get_serializer(shifts, many=True)
+                return Response(serializer.data)
+            
+            # Return default configurations for both shifts
+            return Response([
+                {
+                    'department': department,
+                    'shift_type': 'morning',
+                    'shift_start': '06:00',
+                    'shift_end': '18:00',
+                    'break_duration': 2,
+                    'is_rotating_shift': False,
+                    'shift_duration': 12
+                },
+                {
+                    'department': department,
+                    'shift_type': 'night',
+                    'shift_start': '18:00',
+                    'shift_end': '06:00',
+                    'break_duration': 2,
+                    'is_rotating_shift': False,
+                    'shift_duration': 12
+                }
+            ])
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def create(self, request, department=None):
-        """Create or update shift configuration for a department"""
+        """Create or update shift configurations for a department"""
         try:
-            shift_data = request.data.copy()
-            shift_data['department'] = department
+            shift_data = request.data
+            if not isinstance(shift_data, list):
+                shift_data = [shift_data]
             
-            shift, created = DepartmentShift.objects.update_or_create(
-                department=department,
-                defaults=shift_data
-            )
+            shifts = []
+            for data in shift_data:
+                data['department'] = department
+                shift, created = DepartmentShift.objects.update_or_create(
+                    department=department,
+                    shift_type=data.get('shift_type', 'morning'),
+                    defaults=data
+                )
+                shifts.append(shift)
             
             # Update all employee profiles in this department to use department shifts
             EmployeeProfile.objects.filter(department=department).update(
                 department_track_shifts=True
             )
             
-            serializer = self.get_serializer(shift)
-            return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+            serializer = self.get_serializer(shifts, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
                 {'error': str(e)},
@@ -717,5 +773,5 @@ class DepartmentShiftViewSet(ModelViewSet):
             )
 
     def update(self, request, department=None):
-        """Update shift configuration for a department"""
+        """Update shift configurations for a department"""
         return self.create(request, department) 

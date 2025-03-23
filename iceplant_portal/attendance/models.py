@@ -249,21 +249,26 @@ class EmployeeShift(models.Model):
 
 class DepartmentShift(models.Model):
     """Store shift configuration per department"""
-    department = models.CharField(max_length=50, unique=True)
+    SHIFT_TYPES = [
+        ('morning', 'Morning Shift'),
+        ('night', 'Night Shift'),
+    ]
+    
+    department = models.CharField(max_length=50)
+    shift_type = models.CharField(max_length=10, choices=SHIFT_TYPES, default='morning')
     shift_start = models.TimeField(help_text="Default shift start time for the department")
     shift_end = models.TimeField(help_text="Default shift end time for the department")
     break_duration = models.IntegerField(default=2, help_text="Default break duration in hours")
-    is_night_shift = models.BooleanField(default=False, help_text="If True, shift ends next day")
     is_rotating_shift = models.BooleanField(default=False, help_text="If True, department uses rotating shifts")
     shift_duration = models.IntegerField(default=8, help_text="Default shift duration in hours")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        shift_type = "Night" if self.is_night_shift else "Morning"
-        return f"{self.department} - {shift_type} Shift ({self.shift_start.strftime('%H:%M')}-{self.shift_end.strftime('%H:%M')})"
+        return f"{self.department} - {self.get_shift_type_display()} ({self.shift_start.strftime('%H:%M')}-{self.shift_end.strftime('%H:%M')})"
 
     class Meta:
         verbose_name = 'Department Shift'
         verbose_name_plural = 'Department Shifts'
-        ordering = ['department']
+        ordering = ['department', 'shift_type']
+        unique_together = ['department', 'shift_type']  # Ensure only one of each shift type per department

@@ -1,31 +1,31 @@
-import React, { useState } from 'react';
-import { styled } from '@mui/material/styles';
 import {
-  Box,
-  Drawer,
+  ChevronLeft as ChevronLeftIcon,
+  Dashboard as DashboardIcon,
+  Receipt as ExpensesIcon,
+  Inventory as InventoryIcon,
+  Logout as LogoutIcon,
+  Menu as MenuIcon,
+  People as PeopleIcon,
+  ShoppingCart as SalesIcon,
+} from '@mui/icons-material';
+import {
   AppBar,
-  Toolbar,
-  List,
-  Typography,
+  Box,
+  Button,
   Divider,
+  Drawer,
   IconButton,
+  List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Button,
+  Toolbar,
+  Typography,
 } from '@mui/material';
-import {
-  Menu as MenuIcon,
-  ChevronLeft as ChevronLeftIcon,
-  Dashboard as DashboardIcon,
-  People as PeopleIcon,
-  ShoppingCart as SalesIcon,
-  Inventory as InventoryIcon,
-  Receipt as ExpensesIcon,
-  Logout as LogoutIcon,
-} from '@mui/icons-material';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { styled } from '@mui/material/styles';
+import { useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const drawerWidth = 240;

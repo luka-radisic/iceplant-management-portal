@@ -132,9 +132,11 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   // Function to save employee's shift configuration
   const saveEmployeeShift = async () => {
     try {
-      await apiService.post(`/api/attendance/employee-shift/${employeeId}/`, shiftConfig);
+      await apiService.put(`/api/attendance/employee-shift/${employeeId}/`, shiftConfig);
+      enqueueSnackbar('Shift configuration saved successfully', { variant: 'success' });
     } catch (error) {
       console.error('Error saving employee shift:', error);
+      enqueueSnackbar('Failed to save shift configuration', { variant: 'error' });
     }
   };
 
@@ -429,9 +431,21 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   // Function to toggle department shift tracking
   const handleDepartmentShiftTrackingToggle = async () => {
     try {
+      // First get the current profile data
+      const currentProfile = await apiService.get(`/api/attendance/employee-profile/${employeeId}/`);
+
+      // Only send required fields for update
       const response = await apiService.updateEmployeeProfile(employeeId, {
+        employee_id: employeeId,
+        full_name: currentProfile.full_name,
+        department: currentProfile.department,
+        position: currentProfile.position || '',
+        date_joined: currentProfile.date_joined,
+        is_active: currentProfile.is_active,
+        track_shifts: currentProfile.track_shifts,
         department_track_shifts: !departmentTrackShifts,
       });
+
       setDepartmentTrackShifts(response.department_track_shifts);
 
       // If enabling department shifts, fetch and apply department settings
