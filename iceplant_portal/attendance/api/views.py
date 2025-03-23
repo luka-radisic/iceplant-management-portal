@@ -8,8 +8,9 @@ from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from datetime import datetime, timedelta
 import pytz
+from rest_framework.viewsets import ModelViewSet
 
-from attendance.models import Attendance, ImportLog
+from attendance.models import Attendance, ImportLog, EmployeeShift
 from .serializers import AttendanceSerializer, ImportLogSerializer
 
 class AttendanceViewSet(viewsets.ModelViewSet):
@@ -241,3 +242,126 @@ class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = ImportLog.objects.all().order_by('-import_date')
     serializer_class = ImportLogSerializer 
+
+class EmployeeShiftViewSet(ModelViewSet):
+    """API endpoint for managing employee shift configurations"""
+    queryset = EmployeeShift.objects.all()
+    lookup_field = 'employee_id'
+    
+    def retrieve(self, request, employee_id=None):
+        """Get shift configuration for an employee"""
+        try:
+            shift = EmployeeShift.objects.get(employee_id=employee_id)
+            return Response({
+                'shift_start': shift.shift_start.strftime('%H:%M'),
+                'shift_end': shift.shift_end.strftime('%H:%M'),
+                'break_duration': shift.break_duration,
+                'is_night_shift': shift.is_night_shift,
+                'is_rotating_shift': shift.is_rotating_shift,
+                'rotation_partner_id': shift.rotation_partner_id,
+                'shift_duration': shift.shift_duration
+            })
+        except EmployeeShift.DoesNotExist:
+            # Return default configuration based on employee ID
+            is_rotating = employee_id in ['1', '8']  # Special handling for employees 1 and 8
+            return Response({
+                'shift_start': '06:00',
+                'shift_end': '18:00' if is_rotating else '16:00',
+                'break_duration': 2,
+                'is_night_shift': False,
+                'is_rotating_shift': is_rotating,
+                'rotation_partner_id': '8' if employee_id == '1' else '1' if employee_id == '8' else None,
+                'shift_duration': 12 if is_rotating else 8
+            })
+    
+    def create(self, request, employee_id=None):
+        """Create or update shift configuration for an employee"""
+        try:
+            shift_data = {
+                'shift_start': request.data['shift_start'],
+                'shift_end': request.data['shift_end'],
+                'break_duration': request.data['break_duration'],
+                'is_night_shift': request.data['is_night_shift'],
+                'is_rotating_shift': request.data.get('is_rotating_shift', False),
+                'rotation_partner_id': request.data.get('rotation_partner_id'),
+                'shift_duration': request.data.get('shift_duration', 8)
+            }
+            
+            # If this is a rotating shift, ensure partner configuration is updated
+            if shift_data['is_rotating_shift'] and shift_data['rotation_partner_id']:
+                partner_shift, _ = EmployeeShift.objects.get_or_create(
+                    employee_id=shift_data['rotation_partner_id']
+                )
+                partner_shift.is_rotating_shift = True
+                partner_shift.rotation_partner_id = employee_id
+                partner_shift.shift_duration = 12
+                partner_shift.save()
+            
+            shift, created = EmployeeShift.objects.update_or_create(
+                employee_id=employee_id,
+                defaults=shift_data
+            )
+            return Response(status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def update(self, request, employee_id=None):
+        """Update shift configuration for an employee"""
+        return self.create(request, employee_id)
+        
+    @action(detail=True, methods=['get'])
+    def check_shift_status(self, request, employee_id=None):
+        """
+        Check the shift status for a specific check-in time
+        Query params:
+        - check_in_time: ISO format datetime string
+        - include_previous: Boolean to include previous records check
+        """
+        try:
+            shift = self.get_object()
+            check_in_time = request.query_params.get('check_in_time')
+            include_previous = request.query_params.get('include_previous', 'false').lower() == 'true'
+            
+            if not check_in_time:
+                return Response(
+                    {'error': 'check_in_time parameter is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get previous records if needed
+            previous_records = None
+            if include_previous:
+                check_in_datetime = datetime.fromisoformat(check_in_time)
+                previous_records = Attendance.objects.filter(
+                    employee_id=employee_id,
+                    check_in__date=check_in_datetime.date()
+                ).order_by('check_in')
+            
+            # Get shift period
+            shift_start, shift_end = shift.get_shift_period(check_in_time)
+            
+            # Check if within shift
+            is_within = shift.is_within_shift(
+                datetime.fromisoformat(check_in_time),
+                previous_records
+            )
+            
+            # Get shift type
+            shift_type = shift.get_shift_type(datetime.fromisoformat(check_in_time))
+            
+            return Response({
+                'is_within_shift': is_within,
+                'shift_type': shift_type,
+                'shift_period': {
+                    'start': shift_start.isoformat(),
+                    'end': shift_end.isoformat()
+                }
+            })
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            ) 
