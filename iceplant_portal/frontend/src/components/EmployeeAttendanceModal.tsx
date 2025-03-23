@@ -1,5 +1,7 @@
-import { Settings as SettingsIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, PhotoCamera, Settings as SettingsIcon } from '@mui/icons-material';
 import {
+  Avatar,
+  Badge,
   Box,
   Button,
   CircularProgress,
@@ -26,6 +28,7 @@ import {
 } from '@mui/material';
 import { addHours, format, parse } from 'date-fns';
 import { format as formatTZ } from 'date-fns-tz';
+import { useSnackbar } from 'notistack';
 import { useEffect, useState } from 'react';
 import apiService from '../services/api';
 
@@ -73,6 +76,9 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
     status: 'all', // 'all', 'present', 'no-show', 'late', 'missing-checkout', 'morning-shift', 'night-shift'
   });
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   // Function to fetch employee's shift configuration
   const fetchEmployeeShift = async () => {
@@ -248,12 +254,91 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }
   };
 
+  // Function to fetch employee profile
+  const fetchEmployeeProfile = async () => {
+    try {
+      const response = await apiService.getEmployeeProfile(employeeId);
+      if (response && response.photo_url) {
+        setProfilePicture(response.photo_url);
+      }
+    } catch (error) {
+      console.error('Error fetching employee profile:', error);
+    }
+  };
+
+  // Function to handle profile picture upload
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      enqueueSnackbar('No file selected', { variant: 'error' });
+      return;
+    }
+
+    console.log('Uploading file:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      enqueueSnackbar('Invalid file type. Only JPEG, PNG and GIF are allowed.', { variant: 'error' });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      enqueueSnackbar('File too large. Maximum size is 5MB.', { variant: 'error' });
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const response = await apiService.uploadEmployeePhoto(employeeId, file);
+      console.log('Upload response:', response);
+
+      if (response && response.photo_url) {
+        setProfilePicture(response.photo_url);
+        enqueueSnackbar('Profile picture updated successfully', { variant: 'success' });
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to upload profile picture';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+    } finally {
+      setUploadingPhoto(false);
+      // Reset the file input
+      event.target.value = '';
+    }
+  };
+
+  // Function to handle profile picture removal
+  const handleRemovePhoto = async () => {
+    if (!profilePicture) return;
+
+    setUploadingPhoto(true);
+    try {
+      await apiService.removeEmployeePhoto(employeeId);
+      setProfilePicture(null);
+      enqueueSnackbar('Profile picture removed successfully', { variant: 'success' });
+    } catch (error) {
+      console.error('Error removing profile picture:', error);
+      enqueueSnackbar('Failed to remove profile picture', { variant: 'error' });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   useEffect(() => {
     if (open && employeeId) {
+      fetchEmployeeProfile();
       fetchEmployeeShift();
       fetchEmployeeRecords();
     }
-  }, [open, employeeId, filters, page, rowsPerPage]);
+  }, [open, employeeId]);
 
   const ShiftConfigDialog = () => (
     <Dialog open={showShiftConfig} onClose={() => setShowShiftConfig(false)}>
@@ -318,17 +403,90 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography component="div" variant="h6">
-              {employeeName}
-            </Typography>
-            <Typography
-              component="div"
-              variant="body2"
-              color="textSecondary"
-              sx={{ ml: 1 }}
-            >
-              ({employeeId})
-            </Typography>
+            <Box sx={{ mr: 2, position: 'relative' }}>
+              <Badge
+                overlap="circular"
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                badgeContent={
+                  uploadingPhoto ? (
+                    <CircularProgress size={32} />
+                  ) : (
+                    <Box>
+                      <input
+                        accept="image/*"
+                        id="profile-picture-upload"
+                        type="file"
+                        style={{ display: 'none' }}
+                        onChange={handleProfilePictureUpload}
+                        disabled={uploadingPhoto}
+                      />
+                      <label htmlFor="profile-picture-upload">
+                        <IconButton
+                          component="span"
+                          sx={{
+                            bgcolor: 'primary.main',
+                            color: 'white',
+                            width: 32,
+                            height: 32,
+                            '&:hover': {
+                              bgcolor: 'primary.dark',
+                            },
+                          }}
+                          disabled={uploadingPhoto}
+                        >
+                          <PhotoCamera sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </label>
+                    </Box>
+                  )
+                }
+              >
+                <Box sx={{ position: 'relative' }}>
+                  <Avatar
+                    src={profilePicture || undefined}
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      bgcolor: 'primary.main',
+                      fontSize: '2rem',
+                    }}
+                  >
+                    {employeeName.split(' ').map(n => n[0]).join('')}
+                  </Avatar>
+                  {profilePicture && (
+                    <IconButton
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        bgcolor: 'error.main',
+                        color: 'white',
+                        '&:hover': {
+                          bgcolor: 'error.dark',
+                        },
+                      }}
+                      onClick={handleRemovePhoto}
+                      disabled={uploadingPhoto}
+                    >
+                      <DeleteIcon sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  )}
+                </Box>
+              </Badge>
+            </Box>
+            <Box>
+              <Typography component="div" variant="h6">
+                {employeeName}
+              </Typography>
+              <Typography
+                component="div"
+                variant="body2"
+                color="textSecondary"
+              >
+                Employee ID: {employeeId}
+              </Typography>
+            </Box>
           </Box>
           <Tooltip title="Configure Shifts">
             <IconButton onClick={() => setShowShiftConfig(true)}>

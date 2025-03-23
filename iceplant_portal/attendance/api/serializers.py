@@ -1,5 +1,27 @@
 from rest_framework import serializers
-from attendance.models import Attendance, ImportLog
+from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile
+
+class EmployeeProfileSerializer(serializers.ModelSerializer):
+    photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EmployeeProfile
+        fields = [
+            'employee_id',
+            'full_name',
+            'photo',
+            'photo_url',
+            'department',
+            'position',
+            'date_joined',
+            'is_active',
+        ]
+        read_only_fields = ['photo_url']
+
+    def get_photo_url(self, obj):
+        if obj.photo:
+            return self.context['request'].build_absolute_uri(obj.photo.url)
+        return None
 
 class AttendanceSerializer(serializers.ModelSerializer):
     duration = serializers.SerializerMethodField()

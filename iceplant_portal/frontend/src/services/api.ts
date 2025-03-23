@@ -54,21 +54,21 @@ api.interceptors.response.use(
 export const endpoints = {
   // Auth
   login: '/api-token-auth/',
-  
+
   // Attendance
   attendance: '/api/attendance/attendance/',
   importAttendance: '/api/attendance/attendance/import_xlsx/',
   importLogs: '/api/attendance/import-logs/',
-  
+
   // Sales
   sales: '/api/sales/sales/',
   salesSummary: '/api/sales/sales/summary/',
-  
+
   // Inventory
   inventory: '/api/inventory/inventory/',
   inventoryAdjustments: '/api/inventory/inventory-adjustments/',
   lowStock: '/api/inventory/inventory/low_stock/',
-  
+
   // Expenses
   expenses: '/api/expenses/expenses/',
   expensesSummary: '/api/expenses/expenses/summary/',
@@ -148,6 +148,34 @@ export const apiService = {
       console.error('Upload failed:', error);
       throw error;
     }
+  },
+
+  async getEmployeeProfile(employeeId: string) {
+    return this.get(`/api/attendance/employee-profile/${employeeId}/`);
+  },
+
+  async uploadEmployeePhoto(employeeId: string, photoFile: File) {
+    const formData = new FormData();
+    formData.append('photo', photoFile);
+
+    const response = await api.post(
+      `/api/attendance/employee-profile/${employeeId}/upload_photo/`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+
+  async removeEmployeePhoto(employeeId: string) {
+    return this.delete(`/api/attendance/employee-profile/${employeeId}/remove_photo/`);
+  },
+
+  async updateEmployeeProfile(employeeId: string, data: any) {
+    return this.put(`/api/attendance/employee-profile/${employeeId}/`, data);
   },
 };
 

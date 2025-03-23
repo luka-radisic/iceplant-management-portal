@@ -2,6 +2,55 @@ from django.db import models
 from django.utils import timezone
 import pytz
 from datetime import datetime, time, timedelta
+import os
+
+def employee_photo_path(instance, filename):
+    # File will be uploaded to MEDIA_ROOT/employee_photos/employee_<id>/<filename>
+    ext = filename.split('.')[-1]
+    new_filename = f'profile_photo.{ext}'
+    return f'employee_photos/employee_{instance.employee_id}/{new_filename}'
+
+class EmployeeProfile(models.Model):
+    """Store employee profile information including photo"""
+    employee_id = models.CharField(max_length=50, unique=True)
+    full_name = models.CharField(max_length=100)
+    photo = models.ImageField(
+        upload_to=employee_photo_path,
+        null=True,
+        blank=True,
+        help_text="Employee profile photo"
+    )
+    department = models.CharField(max_length=50)
+    position = models.CharField(max_length=100, blank=True)
+    date_joined = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.full_name} ({self.employee_id})"
+
+    class Meta:
+        ordering = ['employee_id']
+        verbose_name = 'Employee Profile'
+        verbose_name_plural = 'Employee Profiles'
+
+    def save(self, *args, **kwargs):
+        # Delete old photo if it's being replaced
+        if self.pk:
+            try:
+                old_instance = EmployeeProfile.objects.get(pk=self.pk)
+                if old_instance.photo and self.photo != old_instance.photo:
+                    old_instance.photo.delete(save=False)
+            except EmployeeProfile.DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Delete the photo file when the profile is deleted
+        if self.photo:
+            self.photo.delete(save=False)
+        super().delete(*args, **kwargs)
 
 class Attendance(models.Model):
     employee_id = models.CharField(max_length=50)

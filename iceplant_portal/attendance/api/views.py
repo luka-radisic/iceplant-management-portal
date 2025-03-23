@@ -2,7 +2,7 @@ import pandas as pd
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db import transaction
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
@@ -10,8 +10,12 @@ from datetime import datetime, timedelta
 import pytz
 from rest_framework.viewsets import ModelViewSet
 
-from attendance.models import Attendance, ImportLog, EmployeeShift
-from .serializers import AttendanceSerializer, ImportLogSerializer
+from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile
+from .serializers import (
+    AttendanceSerializer, 
+    ImportLogSerializer, 
+    EmployeeProfileSerializer
+)
 
 class AttendanceViewSet(viewsets.ModelViewSet):
     """
@@ -360,6 +364,127 @@ class EmployeeShiftViewSet(ModelViewSet):
                     'end': shift_end.isoformat()
                 }
             })
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+class EmployeeProfileViewSet(ModelViewSet):
+    """API endpoint for managing employee profiles"""
+    queryset = EmployeeProfile.objects.all()
+    serializer_class = EmployeeProfileSerializer
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+    lookup_field = 'employee_id'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        department = self.request.query_params.get('department', None)
+        is_active = self.request.query_params.get('is_active', None)
+        
+        if department:
+            queryset = queryset.filter(department=department)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active == 'true')
+            
+        return queryset.order_by('employee_id')
+
+    def get_object(self):
+        """Get or create profile for employee"""
+        employee_id = self.kwargs[self.lookup_field]
+        try:
+            return self.queryset.get(employee_id=employee_id)
+        except EmployeeProfile.DoesNotExist:
+            # Try to create profile from attendance records
+            try:
+                attendance = Attendance.objects.filter(employee_id=employee_id).first()
+                if attendance:
+                    return EmployeeProfile.objects.create(
+                        employee_id=employee_id,
+                        full_name=attendance.employee_name or f"Employee {employee_id}",
+                        department=attendance.department,
+                        is_active=True,
+                        date_joined=timezone.now().date()
+                    )
+            except Exception as e:
+                print(f"Error creating profile: {str(e)}")
+            # If no attendance record, create basic profile
+            return EmployeeProfile.objects.create(
+                employee_id=employee_id,
+                full_name=f"Employee {employee_id}",
+                department="Unassigned",
+                is_active=True,
+                date_joined=timezone.now().date()
+            )
+
+    @action(detail=True, methods=['POST'], parser_classes=[MultiPartParser])
+    def upload_photo(self, request, employee_id=None):
+        """Upload or update employee photo"""
+        try:
+            profile = self.get_object()
+            
+            print(f"Processing photo upload for employee {employee_id}")
+            print(f"Request FILES: {request.FILES}")
+            print(f"Request data: {request.data}")
+            
+            if 'photo' not in request.FILES:
+                print("No photo file found in request")
+                return Response(
+                    {'error': 'No photo file provided'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            photo_file = request.FILES['photo']
+            print(f"Received file: {photo_file.name}, size: {photo_file.size}, type: {photo_file.content_type}")
+            
+            # Validate file type
+            allowed_types = ['image/jpeg', 'image/png', 'image/gif']
+            if photo_file.content_type not in allowed_types:
+                print(f"Invalid file type: {photo_file.content_type}")
+                return Response(
+                    {'error': 'Invalid file type. Only JPEG, PNG and GIF are allowed.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Validate file size (max 5MB)
+            if photo_file.size > 5 * 1024 * 1024:
+                print(f"File too large: {photo_file.size} bytes")
+                return Response(
+                    {'error': 'File too large. Maximum size is 5MB.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Delete old photo if it exists
+            if profile.photo:
+                print(f"Deleting old photo: {profile.photo.name}")
+                profile.photo.delete(save=False)
+                
+            print("Saving new photo...")
+            profile.photo = photo_file
+            profile.save()
+            
+            print("Photo saved successfully")
+            serializer = self.get_serializer(profile)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            import traceback
+            print(f"Error uploading photo: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['DELETE'])
+    def remove_photo(self, request, employee_id=None):
+        """Remove employee photo"""
+        try:
+            profile = self.get_object()
+            if profile.photo:
+                profile.photo.delete()
+                profile.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response(
                 {'error': str(e)},
