@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginResponse } from '../types/api';
+import { loggerService } from '../utils/logger';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -12,8 +13,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   user: null,
-  login: () => {},
-  logout: () => {},
+  login: () => { },
+  logout: () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -27,14 +28,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check if user is logged in on mount
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    
+
     if (token && storedUser) {
       try {
         const userData = JSON.parse(storedUser);
         setIsAuthenticated(true);
         setUser(userData);
+        loggerService.info('User session restored', { username: userData.username });
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
+        loggerService.error('Error restoring user session', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
@@ -42,7 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (userData: LoginResponse) => {
-    console.log('Login called with:', userData);
+    loggerService.info('User logged in', {
+      username: userData.user.username,
+      timestamp: new Date().toISOString()
+    });
     localStorage.setItem('token', userData.token);
     localStorage.setItem('user', JSON.stringify(userData.user));
     setIsAuthenticated(true);
@@ -50,6 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    const currentUser = user?.username;
+    loggerService.info('User logged out', {
+      username: currentUser,
+      timestamp: new Date().toISOString()
+    });
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsAuthenticated(false);

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { loggerService } from '../utils/logger';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
@@ -16,7 +17,7 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Token ${token}`;
     }
-    console.log('API Request:', {
+    loggerService.info('API Request', {
       url: config.url,
       method: config.method,
       headers: config.headers,
@@ -25,7 +26,10 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('Request interceptor error:', error);
+    loggerService.error('API Request Error', {
+      error: error.toString(),
+      details: error.response?.data
+    });
     return Promise.reject(error);
   }
 );
@@ -33,7 +37,7 @@ api.interceptors.request.use(
 // Response interceptor for handling errors
 api.interceptors.response.use(
   (response) => {
-    console.log('API Response:', {
+    loggerService.info('API Response', {
       url: response.config.url,
       status: response.status,
       data: response.data,
@@ -41,10 +45,11 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Error:', {
+    loggerService.error('API Error', {
       url: error.config?.url,
       status: error.response?.status,
       data: error.response?.data,
+      message: error.message
     });
     return Promise.reject(error);
   }
