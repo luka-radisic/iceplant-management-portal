@@ -4,33 +4,37 @@ A comprehensive web application for managing Ice Plant operations, including tim
 
 ## Quick Start
 
-For the easiest start-up experience, use the provided start script:
+For the easiest start-up experience, use the provided start script in the root directory:
 
 ```bash
-cd iceplant_portal
+# From the project root directory (one level up from this directory)
+cd ..
 ./start.sh
 ```
 
 This script will:
 1. Check for required dependencies (Python 3, Node.js, npm)
-2. Create and activate a virtual environment if needed
-3. Install backend dependencies
-4. Install frontend dependencies
-5. Apply database migrations
-6. Start the Django backend server
-7. Start the React frontend development server
-8. Provide URLs to access the application
+2. Navigate to the iceplant_portal directory
+3. Create and activate a virtual environment if needed
+4. Install backend dependencies
+5. Install frontend dependencies
+6. Apply database migrations
+7. Start the Django backend server
+8. Start the React frontend development server
+9. Provide URLs to access the application
 
 To stop all running development servers:
 
 ```bash
-cd iceplant_portal
+# From the project root directory
+cd ..
 ./stop.sh
 ```
 
 For advanced debugging, you can start the servers in debug mode:
 
 ```bash
+cd ..
 ./start.sh --debug
 ```
 
@@ -42,7 +46,7 @@ If you prefer to set up the application manually, follow these steps:
 
 1. Navigate to the project directory
    ```bash
-   cd iceplant_portal
+   # Make sure you're in the iceplant_portal directory
    ```
 
 2. Create and activate a virtual environment
@@ -75,7 +79,7 @@ If you prefer to set up the application manually, follow these steps:
 
 1. Navigate to the frontend directory
    ```bash
-   cd iceplant_portal/frontend
+   cd frontend
    ```
 
 2. Install dependencies
@@ -96,24 +100,31 @@ If you prefer to set up the application manually, follow these steps:
 ## Project Structure
 
 ```
-iceplant_portal/
-├── attendance/         # Django app for attendance tracking
-├── expenses/           # Django app for expense management
-├── frontend/           # React frontend application
-│   ├── public/         # Static assets
-│   └── src/            # React source code
-│       ├── components/ # Reusable UI components
-│       ├── contexts/   # React contexts
-│       ├── layouts/    # Page layouts
-│       ├── pages/      # Main application pages
-│       ├── services/   # API services
-│       ├── theme/      # UI theme configuration
-│       ├── types/      # TypeScript type definitions
-│       └── utils/      # Utility functions
-├── inventory/          # Django app for inventory management
-├── sales/              # Django app for sales tracking
-├── iceplant_portal/    # Main Django project settings
-└── templates/          # Django templates
+iceplant_portal/            # This directory (application code)
+├── attendance/             # Django app for attendance tracking
+├── expenses/               # Django app for expense management
+├── frontend/               # React frontend application
+│   ├── public/             # Static assets
+│   └── src/                # React source code
+│       ├── components/     # Reusable UI components
+│       ├── contexts/       # React contexts
+│       ├── layouts/        # Page layouts
+│       ├── pages/          # Main application pages
+│       ├── services/       # API services
+│       ├── theme/          # UI theme configuration
+│       ├── types/          # TypeScript type definitions
+│       └── utils/          # Utility functions
+├── inventory/              # Django app for inventory management
+├── sales/                  # Django app for sales tracking
+├── iceplant_portal/        # Main Django project settings
+└── templates/              # Django templates
+
+# Parent directory structure
+iceplant-management-portal/ # Project root directory
+├── iceplant_portal/        # Application code (this directory)
+├── start.sh                # Startup script
+├── stop.sh                 # Shutdown script
+└── README.md               # Project README
 ```
 
 ## License

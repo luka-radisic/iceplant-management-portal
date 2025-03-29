@@ -4,9 +4,10 @@ A comprehensive web application for managing Ice Plant operations, including tim
 
 ## Quick Start
 
-For the easiest start-up experience, use the provided start script from the project root directory:
+For the easiest start-up experience, use the provided start script from this directory:
 
 ```bash
+# From the project root directory (where this README is located)
 ./start.sh
 ```
 
@@ -24,6 +25,7 @@ This script will:
 To stop all running development servers:
 
 ```bash
+# From the project root directory
 ./stop.sh
 ```
 
@@ -36,7 +38,7 @@ For advanced debugging, you can start the servers in debug mode:
 ## Project Structure
 
 ```
-iceplant-management-portal/       # Root directory
+iceplant-management-portal/       # This directory (project root)
 ├── iceplant_portal/              # Main application directory
 │   ├── attendance/               # Django app for attendance tracking
 │   ├── expenses/                 # Django app for expense management
@@ -55,7 +57,8 @@ iceplant-management-portal/       # Root directory
 │   ├── sales/                    # Django app for sales tracking
 │   ├── iceplant_portal/          # Main Django project settings
 │   └── templates/                # Django templates
-└── start.sh, stop.sh            # Utility scripts for development
+├── start.sh                      # Startup script for development
+└── stop.sh                       # Shutdown script for development
 ```
 
 ## Access the Application
