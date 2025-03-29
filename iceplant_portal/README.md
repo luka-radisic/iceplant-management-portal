@@ -2,213 +2,120 @@
 
 A comprehensive web application for managing Ice Plant operations, including time and attendance tracking, sales management, inventory control, and expense tracking.
 
-## Features
+## Quick Start
 
-- **Time and Attendance Management**
-  - Import XLSX files from check-in system
-  - Track employee check-in/check-out times
-  - Calculate working hours
-  - Handle department assignments
+For the easiest start-up experience, use the provided start script:
 
-- **Sales Management**
-  - Record ice block sales with quantity and brine level
-  - Track buyer information and payment methods
-  - Search and filter sales records
-  - Generate sales reports
+```bash
+cd iceplant_portal
+./start.sh
+```
 
-- **Inventory Management**
-  - Track ice block stock levels
-  - Monitor raw materials (water, salt)
-  - Low stock alerts
-  - Inventory adjustment records
+This script will:
+1. Check for required dependencies (Python 3, Node.js, npm)
+2. Create and activate a virtual environment if needed
+3. Install backend dependencies
+4. Install frontend dependencies
+5. Apply database migrations
+6. Start the Django backend server
+7. Start the React frontend development server
+8. Provide URLs to access the application
 
-- **Expense Tracking**
-  - Record and categorize expenses
-  - Track vendors and payment details
-  - Upload receipts
-  - Generate expense reports
+To stop all running development servers:
 
-## Technology Stack
+```bash
+cd iceplant_portal
+./stop.sh
+```
 
-- **Backend**: Django / Django REST Framework
-- **Database**: SQLite (Development) / PostgreSQL (Production)
-- **Frontend**: React.js (Coming soon)
-- **File Processing**: Pandas for XLSX handling
-- **PDF Generation**: ReportLab for reports
+For advanced debugging, you can start the servers in debug mode:
 
-## Setup Instructions
+```bash
+./start.sh --debug
+```
+
+## Manual Setup
+
+If you prefer to set up the application manually, follow these steps:
 
 ### Backend Setup
 
-1. Clone the repository
-   ```
-   git clone <repository-url>
+1. Navigate to the project directory
+   ```bash
    cd iceplant_portal
    ```
 
 2. Create and activate a virtual environment
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
    ```
 
 3. Install dependencies
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
 4. Apply migrations
-   ```
+   ```bash
    python manage.py migrate
    ```
 
 5. Create a superuser (for admin access)
-   ```
+   ```bash
    python manage.py createsuperuser
    ```
 
 6. Run the development server
-   ```
+   ```bash
    python manage.py runserver
    ```
 
-7. Access the admin interface at http://127.0.0.1:8000/admin/
+### Frontend Setup
 
-### Frontend Setup (Coming Soon)
-
-The React frontend will be available in a future update.
-
-## API Endpoints
-
-The application provides RESTful API endpoints for all functionality:
-
-- `/api/attendance/` - Time and attendance management
-- `/api/sales/` - Sales records management
-- `/api/inventory/` - Inventory management
-- `/api/expenses/` - Expense tracking
-
-## GitHub Operations and Automation
-
-### Version Control
-
-1. **Basic Git Commands**
+1. Navigate to the frontend directory
    ```bash
-   # Clone the repository
-   git clone <repository-url>
-   
-   # Check status of your changes
-   git status
-   
-   # Add changes to staging
-   git add .
-   
-   # Commit changes
-   git commit -m "Your descriptive commit message"
-   
-   # Push changes to GitHub
-   git push origin main
+   cd iceplant_portal/frontend
    ```
 
-2. **Branch Management**
+2. Install dependencies
    ```bash
-   # Create and switch to a new branch
-   git checkout -b feature/your-feature-name
-   
-   # Switch between branches
-   git checkout main
-   
-   # Merge changes from another branch
-   git merge feature/your-feature-name
+   npm install
    ```
 
-### Automated Backups
-
-The project includes two backup solutions:
-
-1. **GitHub Actions Workflow** (`/.github/workflows/backup.yml`)
-   - Runs automatically at 1:00 AM UTC daily
-   - Creates JSON dump of the database
-   - Stores backup as GitHub artifact
-   - Retains backups for 30 days
-   - Can be triggered manually from GitHub Actions tab
-
-2. **Local Backup Script** (`backup.py`)
+3. Start the development server
    ```bash
-   # Run backup with default settings
-   python backup.py
-   
-   # Specify custom backup directory and retention period
-   python backup.py --backup-dir /path/to/backup --days-to-keep 45
+   npm run dev
    ```
 
-   Features:
-   - Creates timestamped database backups
-   - Automatically cleans up old backups
-   - Configurable backup location and retention period
-   - Returns non-zero exit code on failure
+## Access the Application
 
-### Cron Job Setup (Local Backups)
+- Django Admin: http://127.0.0.1:8000/admin/
+- Frontend: http://localhost:5173/
 
-1. **View current cron jobs**
-   ```bash
-   crontab -l
-   ```
+## Project Structure
 
-2. **Edit cron jobs**
-   ```bash
-   crontab -e
-   ```
-
-3. **Add backup schedule (example: daily at 2 AM)**
-   ```bash
-   0 2 * * * cd /path/to/iceplant_portal && venv/bin/python backup.py
-   ```
-
-### Environment Configuration
-
-1. **Setup environment variables**
-   ```bash
-   # Copy example environment file
-   cp .env.example .env
-   
-   # Edit .env file with your settings
-   nano .env
-   ```
-
-2. **Required environment variables**
-   - `DEBUG`: Set to False in production
-   - `SECRET_KEY`: Your Django secret key
-   - `DJANGO_ALLOWED_HOSTS`: Comma-separated list of allowed hosts
-   - `DB_*`: Database connection settings
-   - `EMAIL_*`: Email server configuration
-
-### Deployment Automation
-
-The project includes Docker configuration for automated deployment:
-
-1. **Build and run with Docker Compose**
-   ```bash
-   # Start services
-   docker-compose up -d
-   
-   # View logs
-   docker-compose logs
-   
-   # Stop services
-   docker-compose down
-   ```
-
-2. **Container Features**
-   - Automatic database migrations
-   - Static files collection
-   - PostgreSQL database service
-   - Volume management for persistence
-   - Environment variable configuration
+```
+iceplant_portal/
+├── attendance/         # Django app for attendance tracking
+├── expenses/           # Django app for expense management
+├── frontend/           # React frontend application
+│   ├── public/         # Static assets
+│   └── src/            # React source code
+│       ├── components/ # Reusable UI components
+│       ├── contexts/   # React contexts
+│       ├── layouts/    # Page layouts
+│       ├── pages/      # Main application pages
+│       ├── services/   # API services
+│       ├── theme/      # UI theme configuration
+│       ├── types/      # TypeScript type definitions
+│       └── utils/      # Utility functions
+├── inventory/          # Django app for inventory management
+├── sales/              # Django app for sales tracking
+├── iceplant_portal/    # Main Django project settings
+└── templates/          # Django templates
+```
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contributors
-
-- [Your Name] - Initial development
