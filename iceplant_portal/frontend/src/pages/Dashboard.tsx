@@ -12,6 +12,7 @@ import {
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import apiService, { endpoints } from '../services/api';
+import MetaHead from '../components/MetaHead';
 
 const StatCard = ({ title, value, icon: Icon, color }: any) => (
   <Paper
@@ -88,92 +89,108 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
+      <>
+        <MetaHead 
+          title="Dashboard - Ice Plant Management Portal"
+          description="Real-time dashboard view of key metrics and data for ice plant operations."
+          keywords={['ice plant', 'management', 'dashboard', 'metrics', 'analytics']}
+        />
+      
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress />
+        </Box>
+      </>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1, p: 3 }}>
-      <Grid container spacing={3}>
-        {/* Stats Cards */}
-        <Grid item xs={12} md={3}>
-          <StatCard
-            title="Employees Present"
-            value={dashboardData.employeesPresent}
-            icon={PeopleIcon}
-            color="#2196f3"
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            title="Today's Sales"
-            value={`₱${dashboardData.todaySales.toLocaleString()}`}
-            icon={SalesIcon}
-            color="#00acc1"
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            title="Ice Blocks"
-            value={dashboardData.iceBlocks}
-            icon={InventoryIcon}
-            color="#43a047"
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            title="Monthly Expenses"
-            value={`₱${dashboardData.monthlyExpenses.toLocaleString()}`}
-            icon={ExpensesIcon}
-            color="#e53935"
-          />
-        </Grid>
+    <>
+      <MetaHead 
+        title="Dashboard - Ice Plant Management Portal"
+        description="Real-time dashboard view of key metrics and data for ice plant operations."
+        keywords={['ice plant', 'management', 'dashboard', 'metrics', 'analytics']}
+      />
+    
+      <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Grid container spacing={3}>
+          {/* Stats Cards */}
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="Employees Present"
+              value={dashboardData.employeesPresent}
+              icon={PeopleIcon}
+              color="#2196f3"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="Today's Sales"
+              value={`₱${dashboardData.todaySales.toLocaleString()}`}
+              icon={SalesIcon}
+              color="#00acc1"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="Ice Blocks"
+              value={dashboardData.iceBlocks}
+              icon={InventoryIcon}
+              color="#43a047"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <StatCard
+              title="Monthly Expenses"
+              value={`₱${dashboardData.monthlyExpenses.toLocaleString()}`}
+              icon={ExpensesIcon}
+              color="#e53935"
+            />
+          </Grid>
 
-        {/* Charts */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Monthly Sales
-            </Typography>
-            {dashboardData.salesData.length > 0 ? (
-              <BarChart
-                xAxis={[{ 
-                  scaleType: 'band', 
-                  data: dashboardData.salesData.map(d => d.month) 
-                }]}
-                series={[{ 
-                  data: dashboardData.salesData.map(d => d.amount) 
-                }]}
-                height={300}
-              />
-            ) : (
-              <Typography color="text.secondary">No sales data available</Typography>
-            )}
-          </Paper>
+          {/* Charts */}
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Monthly Sales
+              </Typography>
+              {dashboardData.salesData.length > 0 ? (
+                <BarChart
+                  xAxis={[{ 
+                    scaleType: 'band', 
+                    data: dashboardData.salesData.map(d => d.month) 
+                  }]}
+                  series={[{ 
+                    data: dashboardData.salesData.map(d => d.amount) 
+                  }]}
+                  height={300}
+                />
+              ) : (
+                <Typography color="text.secondary">No sales data available</Typography>
+              )}
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Inventory Distribution
+              </Typography>
+              {dashboardData.inventoryData.length > 0 ? (
+                <PieChart
+                  series={[
+                    {
+                      data: dashboardData.inventoryData,
+                      highlightScope: { faded: 'global', highlighted: 'item' },
+                    },
+                  ]}
+                  height={300}
+                />
+              ) : (
+                <Typography color="text.secondary">No inventory data available</Typography>
+              )}
+            </Paper>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Inventory Distribution
-            </Typography>
-            {dashboardData.inventoryData.length > 0 ? (
-              <PieChart
-                series={[
-                  {
-                    data: dashboardData.inventoryData,
-                    highlightScope: { faded: 'global', highlighted: 'item' },
-                  },
-                ]}
-                height={300}
-              />
-            ) : (
-              <Typography color="text.secondary">No inventory data available</Typography>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
+      </Box>
+    </>
   );
 } 
