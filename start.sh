@@ -109,9 +109,28 @@ if [ ! -d "frontend/node_modules" ]; then
     cd .. # Return to app directory
 fi
 
-# Apply migrations if needed
-echo -e "${BLUE}Applying database migrations...${NC}"
-python manage.py migrate
+# Check for and create pending migrations
+echo -e "${BLUE}Checking for pending migrations...${NC}"
+MIGRATION_CHECK=$(python manage.py showmigrations | grep -B1 "\[ \]" | grep -v "\[ \]" | grep -v -- "--" | awk '{print $1}' | tr '\n' ' ')
+
+if [ -n "$MIGRATION_CHECK" ]; then
+    echo -e "${YELLOW}Found pending migrations. Applying them...${NC}"
+    python manage.py migrate
+fi
+
+# Check for model changes not reflected in migrations
+echo -e "${BLUE}Checking for model changes not in migrations...${NC}"
+MAKEMIGRATIONS_OUTPUT=$(python manage.py makemigrations --check 2>&1)
+if echo "$MAKEMIGRATIONS_OUTPUT" | grep -q "Your models have changes that are not yet reflected"; then
+    echo -e "${YELLOW}Model changes detected. Creating new migrations...${NC}"
+    python manage.py makemigrations
+    
+    # Apply the new migrations
+    echo -e "${BLUE}Applying new migrations...${NC}"
+    python manage.py migrate
+else
+    echo -e "${GREEN}No model changes detected.${NC}"
+fi
 
 # Start Django server in the background
 echo -e "${GREEN}Starting Django backend server...${NC}"
@@ -128,10 +147,15 @@ if ! ps -p $DJANGO_PID > /dev/null; then
     exit 1
 fi
 
-# Start frontend development server
+# Start frontend development server with increased memory limit
 echo -e "${GREEN}Starting React frontend development server...${NC}"
-cd frontend && npm run dev &
+cd frontend
+# Use NODE_OPTIONS to increase memory limit
+export NODE_OPTIONS="--max-old-space-size=4096"
+# Start npm in a more resilient way
+npm run dev &
 FRONTEND_PID=$!
+cd .. # Return to app directory
 echo -e "${GREEN}Frontend server started with PID: $FRONTEND_PID${NC}"
 
 # Small delay to let frontend server start
@@ -152,10 +176,29 @@ echo -e "${GREEN}Both servers are running. Press Ctrl+C to stop all servers.${NC
 echo -e "${BLUE}Django admin available at: ${GREEN}http://127.0.0.1:8000/admin/${NC}"
 echo -e "${BLUE}Frontend available at: ${GREEN}http://localhost:5173/${NC}"
 
-# If debug mode is enabled, show the PIDs
+# If debug mode is enabled, show the PIDs and memory usage
 if [ $DEBUG -eq 1 ]; then
     echo -e "${YELLOW}DEBUG: Django server PID: $DJANGO_PID${NC}"
     echo -e "${YELLOW}DEBUG: Frontend server PID: $FRONTEND_PID${NC}"
+    
+    # Monitor memory usage periodically
+    while true; do
+        sleep 60
+        DJANGO_MEM=$(ps -o rss= -p $DJANGO_PID 2>/dev/null)
+        FRONTEND_MEM=$(ps -o rss= -p $FRONTEND_PID 2>/dev/null)
+        
+        if [ -n "$DJANGO_MEM" ]; then
+            DJANGO_MEM_MB=$((DJANGO_MEM / 1024))
+            echo -e "${YELLOW}DEBUG: Django server memory usage: ${DJANGO_MEM_MB}MB${NC}"
+        fi
+        
+        if [ -n "$FRONTEND_MEM" ]; then
+            FRONTEND_MEM_MB=$((FRONTEND_MEM / 1024))
+            echo -e "${YELLOW}DEBUG: Frontend server memory usage: ${FRONTEND_MEM_MB}MB${NC}"
+        fi
+    done &
+    MONITOR_PID=$!
+    trap 'echo -e "${YELLOW}Shutting down servers...${NC}"; kill $DJANGO_PID 2>/dev/null; kill $FRONTEND_PID 2>/dev/null; kill $MONITOR_PID 2>/dev/null; exit' INT
 fi
 
 # Wait indefinitely (until Ctrl+C)
