@@ -38,6 +38,9 @@ interface ShiftConfig {
   shift_end: string;
   break_duration: number;
   is_night_shift: boolean;
+  is_rotating_shift: boolean;
+  shift_duration: number;
+  rotation_partner_id?: string;
 }
 
 interface EmployeeAttendanceModalProps {
@@ -60,6 +63,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     shift_end: '16:00',
     break_duration: 2,
     is_night_shift: false,
+    is_rotating_shift: false,
+    shift_duration: 8,
   });
   const [stats, setStats] = useState({
     totalDays: 0,
@@ -69,6 +74,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     missingCheckouts: 0,
     morningShifts: 0,
     nightShifts: 0,
+    dayRotatingShifts: 0,
+    nightRotatingShifts: 0,
     avgCheckIn: '',
     avgCheckOut: '',
   });
@@ -121,6 +128,9 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
           shift_end: response.shift_end,
           break_duration: response.break_duration,
           is_night_shift: response.is_night_shift,
+          is_rotating_shift: response.is_rotating_shift,
+          shift_duration: response.shift_duration,
+          rotation_partner_id: response.rotation_partner_id,
         });
       }
     } catch (error) {
@@ -169,7 +179,28 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     // Add 1 hour grace period for check-in
     const graceEndTime = addHours(shiftStartTime, 1);
 
-    if (shiftConfig.is_night_shift) {
+    // Check for 12-hour shift
+    if (shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12) {
+      // For morning shift in rotating 12-hour pattern (typically 6am-6pm)
+      const morningStart = '06:00';
+      const morningEnd = '18:00';
+      // For night shift in rotating 12-hour pattern (typically 6pm-6am)
+      const nightStart = '18:00';
+      const nightEnd = '06:00';
+      
+      const isMorningShift = 
+        (timeStr >= morningStart && timeStr < nightStart);
+      
+      const isNightShift = 
+        (timeStr >= nightStart && timeStr <= '23:59') || 
+        (timeStr >= '00:00' && timeStr < morningStart);
+      
+      if (isMorningShift) {
+        return '12-Hour Day Shift';
+      } else if (isNightShift) {
+        return '12-Hour Night Shift';
+      }
+    } else if (shiftConfig.is_night_shift) {
       // For night shift, check if time is between start time and midnight
       // or between midnight and end time next day
       const isInNightShift = (
@@ -249,6 +280,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       const noShows = allRecords.filter((r: any) => r.department === 'NO SHOW');
       const morningShifts = recordsWithShifts.filter(r => r.shiftType === 'Morning Shift');
       const nightShifts = recordsWithShifts.filter(r => r.shiftType === 'Night Shift');
+      const dayRotatingShifts = recordsWithShifts.filter(r => r.shiftType === '12-Hour Day Shift');
+      const nightRotatingShifts = recordsWithShifts.filter(r => r.shiftType === '12-Hour Night Shift');
       const lateArrivals = recordsWithShifts.filter(r => isLateForShift(r.checkInTime));
       const missingCheckouts = presentRecords.filter((r: any) => !r.check_out);
 
@@ -280,6 +313,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
         missingCheckouts: missingCheckouts.length,
         morningShifts: morningShifts.length,
         nightShifts: nightShifts.length,
+        dayRotatingShifts: dayRotatingShifts.length,
+        nightRotatingShifts: nightRotatingShifts.length,
         avgCheckIn,
         avgCheckOut,
       });
@@ -489,6 +524,34 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               }
               label="Night Shift (ends next day)"
             />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={shiftConfig.is_rotating_shift}
+                  onChange={(e) => setShiftConfig(prev => ({ ...prev, is_rotating_shift: e.target.checked }))}
+                />
+              }
+              label="Rotating Shift"
+            />
+            <TextField
+              label="Shift Duration (hours)"
+              type="number"
+              value={shiftConfig.shift_duration}
+              onChange={(e) => setShiftConfig(prev => ({ ...prev, shift_duration: Number(e.target.value) }))}
+              fullWidth
+              margin="dense"
+              InputProps={{ inputProps: { min: 0, max: 24 } }}
+            />
+            {shiftConfig.is_rotating_shift && (
+              <TextField
+                label="Rotation Partner ID"
+                type="text"
+                value={shiftConfig.rotation_partner_id || ''}
+                onChange={(e) => setShiftConfig(prev => ({ ...prev, rotation_partner_id: e.target.value }))}
+                fullWidth
+                margin="dense"
+              />
+            )}
           </Grid>
         </Grid>
       </DialogContent>
@@ -600,6 +663,23 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               >
                 Employee ID: {employeeId}
               </Typography>
+              {trackShifts && (
+                <Typography
+                  component="div"
+                  variant="body2"
+                  sx={{ 
+                    mt: 0.5, 
+                    color: shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 ? 'primary.main' : 'text.secondary',
+                    fontWeight: shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 ? 'bold' : 'normal'
+                  }}
+                >
+                  {shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 
+                    ? `12-Hour Rotating Shift`
+                    : shiftConfig.is_night_shift 
+                      ? 'Night Shift Worker' 
+                      : 'Day Shift Worker'}
+                </Typography>
+              )}
             </Box>
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', mt: 1 }}>
@@ -660,6 +740,30 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                         </Typography>
                       </Paper>
                     </Grid>
+                    {(stats.dayRotatingShifts > 0 || stats.nightRotatingShifts > 0) && (
+                      <>
+                        <Grid item xs={3}>
+                          <Paper sx={{ p: 2, textAlign: 'center' }}>
+                            <Typography component="div" variant="body2" color="textSecondary">
+                              12h Day Shifts
+                            </Typography>
+                            <Typography component="div" variant="h6">
+                              {stats.dayRotatingShifts}
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={3}>
+                          <Paper sx={{ p: 2, textAlign: 'center' }}>
+                            <Typography component="div" variant="body2" color="textSecondary">
+                              12h Night Shifts
+                            </Typography>
+                            <Typography component="div" variant="h6">
+                              {stats.nightRotatingShifts}
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      </>
+                    )}
                     <Grid item xs={3}>
                       <Paper sx={{ p: 2, textAlign: 'center' }}>
                         <Typography component="div" variant="body2" color="textSecondary">
@@ -726,184 +830,148 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
             </Box>
 
             {/* Filters */}
-            <Box mb={3}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Box display="flex" gap={1} mb={2}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => setQuickDateFilter(1)}
-                    >
-                      Current Month
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => setQuickDateFilter(2)}
-                    >
-                      Last 2 Months
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => setQuickDateFilter(3)}
-                    >
-                      Last 3 Months
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={clearDateFilters}
-                    >
-                      Show All
-                    </Button>
-                  </Box>
-                </Grid>
-                <Grid item xs={4}>
+            <Box mt={3}>
+              <Grid container spacing={2} mb={2}>
+                <Grid item xs={3}>
                   <TextField
-                    fullWidth
                     label="Start Date"
                     type="date"
                     value={filters.start_date}
-                    onChange={(e) => {
-                      setFilters(prev => ({ ...prev, start_date: e.target.value }));
-                      setPage(0);
-                    }}
+                    onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
+                    fullWidth
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                <Grid item xs={4}>
+                <Grid item xs={3}>
                   <TextField
-                    fullWidth
                     label="End Date"
                     type="date"
                     value={filters.end_date}
-                    onChange={(e) => {
-                      setFilters(prev => ({ ...prev, end_date: e.target.value }));
-                      setPage(0);
-                    }}
+                    onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
+                    fullWidth
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                <Grid item xs={4}>
+                <Grid item xs={3}>
                   <TextField
                     select
-                    fullWidth
                     label="Status"
                     value={filters.status}
-                    onChange={(e) => {
-                      setFilters(prev => ({ ...prev, status: e.target.value }));
-                      setPage(0);
-                    }}
+                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                    fullWidth
                   >
-                    <MenuItem value="all">All Records</MenuItem>
-                    <MenuItem value="morning-shift">Morning Shift</MenuItem>
-                    <MenuItem value="night-shift">Night Shift</MenuItem>
-                    <MenuItem value="no-show">No Shows</MenuItem>
-                    <MenuItem value="late">Late Arrivals</MenuItem>
-                    <MenuItem value="missing-checkout">Missing Checkouts</MenuItem>
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="present">Present</MenuItem>
+                    <MenuItem value="absent">Absent</MenuItem>
                   </TextField>
                 </Grid>
               </Grid>
-            </Box>
-
-            {/* Attendance Records Table */}
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    {trackShifts && <TableCell>Shift</TableCell>}
-                    <TableCell>Check In</TableCell>
-                    <TableCell>Check Out</TableCell>
-                    <TableCell>Duration</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {records.map((record) => {
-                    const checkInTime = new Date(record.check_in);
-                    const isLate = trackShifts && isLateForShift(checkInTime);
-                    const isMissingCheckout = !record.check_out;
-
-                    return (
-                      <TableRow
-                        key={record.id}
-                        sx={{
-                          bgcolor: record.department === 'NO SHOW' ? '#fff3e0' : 'inherit'
-                        }}
-                      >
-                        <TableCell>{formatDateStr(record.check_in)}</TableCell>
-                        {trackShifts && (
-                          <TableCell>
-                            <Typography
-                              component="span"
-                              variant="body2"
-                              color={record.shiftType === 'Outside Shift Hours' ? 'error' : 'textPrimary'}
-                            >
-                              {record.shiftType}
-                            </Typography>
-                          </TableCell>
-                        )}
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            {formatTime(record.check_in)}
-                            {isLate && (
-                              <Typography
-                                component="span"
-                                variant="caption"
-                                color="error"
-                                sx={{ ml: 1 }}
-                              >
-                                Late
-                              </Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            {record.check_out ? formatTime(record.check_out) : '-'}
-                            {isMissingCheckout && (
-                              <Typography
-                                component="span"
-                                variant="caption"
-                                color="warning.main"
-                                sx={{ ml: 1 }}
-                              >
-                                Missing
-                              </Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell>{record.duration || '-'}</TableCell>
-                        <TableCell>{record.department}</TableCell>
+              <Grid container spacing={1} mb={2}>
+                <Grid item>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setQuickDateFilter(1)}
+                  >
+                    This Month
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setQuickDateFilter(3)}
+                  >
+                    Last 3 Months
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setQuickDateFilter(6)}
+                  >
+                    Last 6 Months
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={clearDateFilters}
+                  >
+                    All Time
+                  </Button>
+                </Grid>
+              </Grid>
+              <TableContainer component={Paper}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Check In</TableCell>
+                      <TableCell>Check Out</TableCell>
+                      {trackShifts && <TableCell>Shift Type</TableCell>}
+                      <TableCell>Status</TableCell>
+                      <TableCell>Department</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {records.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={trackShifts ? 6 : 5} align="center">No records found</TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    ) : (
+                      records.map((record, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{formatDateStr(record.check_in)}</TableCell>
+                          <TableCell>{formatTime(record.check_in)}</TableCell>
+                          <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
+                          {trackShifts && (
+                            <TableCell>
+                              {record.shiftType.includes('12-Hour') ? (
+                                <Typography 
+                                  component="span" 
+                                  sx={{ 
+                                    fontWeight: 'bold', 
+                                    color: record.shiftType.includes('Night') ? 'secondary.main' : 'primary.main' 
+                                  }}
+                                >
+                                  {record.shiftType}
+                                </Typography>
+                              ) : (
+                                record.shiftType
+                              )}
+                            </TableCell>
+                          )}
+                          <TableCell>
+                            {record.department === 'NO SHOW' ? (
+                              <Typography component="span" color="error.main">Absent</Typography>
+                            ) : !record.check_out ? (
+                              <Typography component="span" color="warning.main">Missing Checkout</Typography>
+                            ) : (
+                              <Typography component="span" color="success.main">Present</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>{record.department}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
               <TablePagination
                 component="div"
                 count={totalCount}
                 page={page}
-                onPageChange={(_, newPage) => {
-                  setPage(newPage);
-                  window.scrollTo(0, 0);
-                }}
+                onPageChange={(_, newPage) => setPage(newPage)}
                 rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(event) => {
-                  const newSize = parseInt(event.target.value, 10);
-                  setRowsPerPage(newSize);
+                onRowsPerPageChange={(e) => {
+                  setRowsPerPage(parseInt(e.target.value, 10));
                   setPage(0);
-                  window.scrollTo(0, 0);
                 }}
-                rowsPerPageOptions={[25, 50, 100, 200, 500]}
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}–${to} of ${count !== -1 ? count : `more than ${to}`}`
-                }
               />
-            </TableContainer>
+            </Box>
           </>
         )}
       </DialogContent>
