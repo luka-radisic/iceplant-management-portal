@@ -14,7 +14,8 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    // Skip adding token for login requests
+    if (token && !config.url?.includes('/api-token-auth/')) {
       config.headers.Authorization = `Token ${token}`;
     }
     loggerService.info('API Request', {
@@ -78,8 +79,7 @@ export const endpoints = {
   expenses: '/api/expenses/expenses/',
   expensesSummary: '/api/expenses/expenses/summary/',
 
-  departmentShift: '/api/attendance/department-shift/',
-  departmentShiftDetail: (department: string) => `/api/attendance/department-shift/${department}/`,
+  // Employee Profile
   employeeProfileDepartments: '/api/attendance/employee-profile/departments/',
 };
 
@@ -185,18 +185,6 @@ export const apiService = {
 
   async updateEmployeeProfile(employeeId: string, data: any) {
     return this.put(`/api/attendance/employee-profile/${employeeId}/`, data);
-  },
-
-  async getDepartmentShifts() {
-    return this.get(endpoints.departmentShift);
-  },
-
-  async getDepartmentShift(department: string) {
-    return this.get(endpoints.departmentShiftDetail(department));
-  },
-
-  async updateDepartmentShift(department: string, data: any) {
-    return this.post(endpoints.departmentShiftDetail(department), data);
   },
 
   async getDepartments() {

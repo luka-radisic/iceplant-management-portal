@@ -55,7 +55,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   const [totalCount, setTotalCount] = useState(0);
   const [showShiftConfig, setShowShiftConfig] = useState(false);
   const [trackShifts, setTrackShifts] = useState(false);
-  const [departmentTrackShifts, setDepartmentTrackShifts] = useState(false);
   const [shiftConfig, setShiftConfig] = useState<ShiftConfig>({
     shift_start: '06:00',
     shift_end: '16:00',
@@ -306,7 +305,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       const response = await apiService.get(`/api/attendance/employee-profile/${employeeId}/?t=${timestamp}`);
       if (response) {
         setTrackShifts(response.track_shifts);
-        setDepartmentTrackShifts(response.department_track_shifts);
         if (response.photo_url) {
           const photoUrl = response.photo_url.includes('?')
             ? `${response.photo_url}&t=${timestamp}`
@@ -398,42 +396,9 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   // Function to toggle shift tracking
   const handleShiftTrackingToggle = async () => {
     try {
-      const response = await apiService.updateEmployeeProfile(employeeId, {
-        track_shifts: !trackShifts,
-      });
-      setTrackShifts(response.track_shifts);
-
-      // If enabling shifts and department has shift settings, use them
-      if (response.track_shifts && response.department) {
-        try {
-          const deptShift = await apiService.getDepartmentShift(response.department);
-          if (deptShift) {
-            setShiftConfig({
-              shift_start: deptShift.shift_start,
-              shift_end: deptShift.shift_end,
-              break_duration: deptShift.break_duration,
-              is_night_shift: deptShift.is_night_shift,
-            });
-            await saveEmployeeShift();
-          }
-        } catch (error) {
-          console.error('Error fetching department shift:', error);
-        }
-      }
-
-      fetchEmployeeRecords();
-    } catch (error) {
-      console.error('Error updating shift tracking:', error);
-      enqueueSnackbar('Failed to update shift tracking', { variant: 'error' });
-    }
-  };
-
-  // Function to toggle department shift tracking
-  const handleDepartmentShiftTrackingToggle = async () => {
-    try {
       // First get the current profile data
       const currentProfile = await apiService.get(`/api/attendance/employee-profile/${employeeId}/`);
-
+      
       // Only send required fields for update
       const response = await apiService.updateEmployeeProfile(employeeId, {
         employee_id: employeeId,
@@ -442,34 +407,21 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
         position: currentProfile.position || '',
         date_joined: currentProfile.date_joined,
         is_active: currentProfile.is_active,
-        track_shifts: currentProfile.track_shifts,
-        department_track_shifts: !departmentTrackShifts,
+        track_shifts: !trackShifts,
       });
-
-      setDepartmentTrackShifts(response.department_track_shifts);
-
-      // If enabling department shifts, fetch and apply department settings
-      if (response.department_track_shifts && response.department) {
-        try {
-          const deptShift = await apiService.getDepartmentShift(response.department);
-          if (deptShift) {
-            setShiftConfig({
-              shift_start: deptShift.shift_start,
-              shift_end: deptShift.shift_end,
-              break_duration: deptShift.break_duration,
-              is_night_shift: deptShift.is_night_shift,
-            });
-            await saveEmployeeShift();
-          }
-        } catch (error) {
-          console.error('Error fetching department shift:', error);
-        }
+      
+      setTrackShifts(response.track_shifts);
+      
+      // If enabling shifts, use default shift settings
+      if (response.track_shifts) {
+        // Simply use the current shift config or create a default one
+        await saveEmployeeShift();
       }
-
+      
       fetchEmployeeRecords();
     } catch (error) {
-      console.error('Error updating department shift tracking:', error);
-      enqueueSnackbar('Failed to update department shift tracking', { variant: 'error' });
+      console.error('Error updating shift tracking:', error);
+      enqueueSnackbar('Failed to update shift tracking', { variant: 'error' });
     }
   };
 
@@ -650,7 +602,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               </Typography>
             </Box>
           </Box>
-          <Box>
+          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', mt: 1 }}>
             <FormControlLabel
               control={
                 <Switch
@@ -659,15 +611,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                 />
               }
               label="Track Shifts"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={departmentTrackShifts}
-                  onChange={handleDepartmentShiftTrackingToggle}
-                />
-              }
-              label="Department Shifts"
             />
             {trackShifts && (
               <Tooltip title="Configure Shifts">
@@ -694,7 +637,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     Attendance Statistics for Selected Period
                   </Typography>
                 </Grid>
-                {trackShifts ? (
+                {trackShifts && (
                   // Show shift-based statistics
                   <>
                     <Grid item xs={3}>
@@ -774,40 +717,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                         </Typography>
                         <Typography component="div" variant="h6">
                           {stats.avgCheckOut}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  </>
-                ) : (
-                  // Show simplified statistics
-                  <>
-                    <Grid item xs={4}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography component="div" variant="body2" color="textSecondary">
-                          Present Days
-                        </Typography>
-                        <Typography component="div" variant="h6">
-                          {stats.presentDays}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={4}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography component="div" variant="body2" color="textSecondary">
-                          Attendance Rate
-                        </Typography>
-                        <Typography component="div" variant="h6">
-                          {((stats.presentDays / stats.totalDays) * 100).toFixed(1)}%
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={4}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography component="div" variant="body2" color="textSecondary">
-                          Missing Checkouts
-                        </Typography>
-                        <Typography component="div" variant="h6">
-                          {stats.missingCheckouts}
                         </Typography>
                       </Paper>
                     </Grid>
