@@ -24,7 +24,7 @@ from .serializers import (
 
 class AttendanceViewSet(viewsets.ModelViewSet):
     """
-    API endpoint for Attendance records
+    API endpoint for attendance records.
     """
     queryset = Attendance.objects.all()
     serializer_class = AttendanceSerializer
@@ -34,32 +34,36 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     page_size = 50  # Default page size
     page_size_query_param = 'page_size'
     max_page_size = 500  # Maximum allowed page size
+    filter_backends = []
     
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Get all filters
-        start_date = self.request.query_params.get('start_date', None)
-        end_date = self.request.query_params.get('end_date', None)
-        employee_id = self.request.query_params.get('employee_id', None)
-        status = self.request.query_params.get('status', 'all')
+        # Process same-day check-ins to set check-out times
+        self.process_same_day_checkins()
+            
+        # Extract request parameters
+        employee_id = self.request.query_params.get('employee_id')
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        department = self.request.query_params.get('department')
+        status = self.request.query_params.get('status')
         
-        # Apply employee_id filter first if provided
+        # Apply employee filter if provided
         if employee_id:
             queryset = queryset.filter(employee_id=employee_id)
-            
-        # Apply date range filtering only if explicitly provided
+        
+        # Apply date range filters if provided
         if start_date:
-            # Convert to datetime for exact start of day
-            start_datetime = datetime.strptime(f"{start_date} 00:00:00", "%Y-%m-%d %H:%M:%S")
-            start_datetime = timezone.make_aware(start_datetime, timezone.get_current_timezone())
+            start_datetime = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
             queryset = queryset.filter(check_in__gte=start_datetime)
-            
         if end_date:
-            # Convert to datetime for end of day
-            end_datetime = datetime.strptime(f"{end_date} 23:59:59", "%Y-%m-%d %H:%M:%S")
-            end_datetime = timezone.make_aware(end_datetime, timezone.get_current_timezone())
-            queryset = queryset.filter(check_in__lte=end_datetime)
+            end_datetime = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1))
+            queryset = queryset.filter(check_in__lt=end_datetime)
+        
+        # Apply department filter if provided
+        if department:
+            queryset = queryset.filter(department=department)
             
         # Apply status filters
         if status == 'present':
@@ -97,6 +101,70 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     pass
             
         return queryset.order_by('-check_in')
+    
+    def process_same_day_checkins(self):
+        """
+        Process attendance records to detect same-day multiple check-ins
+        and treat them as check-in/check-out pairs.
+        
+        This method looks for employees with multiple check-ins on the same day 
+        and updates the records to properly represent check-in and check-out events.
+        """
+        try:
+            # Get distinct employee IDs with attendance records
+            employee_ids = Attendance.objects.values_list('employee_id', flat=True).distinct()
+            
+            for employee_id in employee_ids:
+                # Process each employee's records
+                self._process_employee_checkins(employee_id)
+        except Exception as e:
+            print(f"Error processing same-day check-ins: {str(e)}")
+    
+    def _process_employee_checkins(self, employee_id):
+        """Process check-ins for a specific employee"""
+        # Get all check-ins for the employee ordered by time
+        records = Attendance.objects.filter(
+            employee_id=employee_id
+        ).exclude(department='NO SHOW').order_by('check_in')
+        
+        # Group records by date
+        date_records = {}
+        for record in records:
+            # Get local date (Manila time)
+            manila_tz = pytz.timezone('Asia/Manila')
+            local_date = record.check_in.astimezone(manila_tz).date()
+            
+            if local_date not in date_records:
+                date_records[local_date] = []
+            date_records[local_date].append(record)
+        
+        # Process each day's records
+        for date, day_records in date_records.items():
+            if len(day_records) >= 2:
+                # If there are multiple check-ins on the same day
+                # Set the first one as check-in and any additional ones as check-out
+                first_record = day_records[0]
+                
+                for record_idx in range(1, len(day_records)):
+                    current_record = day_records[record_idx]
+                    
+                    # Try to identify if this is a break check-in/out or a shift end
+                    # For simplicity, we'll use a minimum time difference (e.g. 30 minutes)
+                    time_diff = current_record.check_in - first_record.check_in
+                    min_break_time = timedelta(minutes=30)
+                    
+                    if time_diff >= min_break_time:
+                        # This is likely a genuine check-out or return from break
+                        # If the previous record doesn't have a check-out time, set it
+                        if not first_record.check_out:
+                            first_record.check_out = current_record.check_in
+                            first_record.save()
+                            
+                            # Log this change
+                            print(f"Updated record {first_record.id} with check-out time from record {current_record.id} for employee {employee_id} on {date}")
+                        
+                        # Keep the current record as a potential next check-in
+                        first_record = current_record
     
     def paginate_queryset(self, queryset):
         """Override to handle pagination properly"""
@@ -296,6 +364,10 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     ])
                     records_created += len(no_show_records)
                 
+                # Process same-day check-ins to link check-in/check-out pairs
+                print("Processing same-day check-ins to detect check-out events...")
+                self.process_same_day_checkins()
+                
                 import_log.records_imported = records_created
                 import_log.success = True
                 import_log.save()
@@ -314,6 +386,24 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             import_log.error_message = str(e)
             import_log.save()
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def process_same_day_records(self, request):
+        """
+        Manually process existing records to detect and link same-day check-ins.
+        This is useful for processing historical data that wasn't processed at import time.
+        """
+        try:
+            print("Processing existing records for same-day check-ins...")
+            self.process_same_day_checkins()
+            return Response({
+                'message': 'Successfully processed records for same-day check-ins'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error processing same-day records: {str(e)}")
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
     """

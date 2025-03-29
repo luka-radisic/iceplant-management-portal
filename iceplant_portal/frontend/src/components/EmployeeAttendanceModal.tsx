@@ -170,7 +170,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   };
 
   // Function to determine shift type and validate time
-  const getShiftType = (checkInTime: Date): string => {
+  const getShiftType = (checkInTime: Date, checkOutTime: Date | null): string => {
     const timeStr = formatTZ(checkInTime, 'HH:mm', { timeZone: 'Asia/Manila' });
     const manilaDate = new Date(formatTZ(checkInTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'Asia/Manila' }));
     const shiftStartTime = parse(shiftConfig.shift_start, 'HH:mm', manilaDate);
@@ -179,6 +179,35 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     // Add 1 hour grace period for check-in
     const graceEndTime = addHours(shiftStartTime, 1);
 
+    // For records with check-out times, calculate shift duration to help determine type
+    if (checkOutTime) {
+      const checkInHour = checkInTime.getHours();
+      const duration = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60); // hours
+      
+      // If duration is long enough (>8 hours), it's likely a full shift
+      if (duration >= 8) {
+        // Check for 12-hour shift
+        if (shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 && duration >= 10) {
+          // Morning 12-hour shift typically starts around 6-8 AM
+          if (checkInHour >= 5 && checkInHour <= 9) {
+            return '12-Hour Day Shift';
+          } 
+          // Night 12-hour shift typically starts around 6-8 PM
+          else if (checkInHour >= 17 && checkInHour <= 21) {
+            return '12-Hour Night Shift';
+          }
+        }
+        // Check for regular night shift
+        else if (shiftConfig.is_night_shift || (checkInHour >= 18 || checkInHour <= 6)) {
+          return 'Night Shift';
+        }
+        // Default to morning shift for longer durations
+        else {
+          return 'Morning Shift';
+        }
+      }
+    }
+    
     // Check for 12-hour shift
     if (shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12) {
       // For morning shift in rotating 12-hour pattern (typically 6am-6pm)
@@ -272,7 +301,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       const recordsWithShifts = allRecords.map(record => ({
         ...record,
         checkInTime: new Date(record.check_in),
-        shiftType: getShiftType(new Date(record.check_in)),
+        checkOutTime: record.check_out ? new Date(record.check_out) : null,
+        shiftType: getShiftType(new Date(record.check_in), record.check_out ? new Date(record.check_out) : null),
       }));
 
       // Calculate statistics
@@ -923,10 +953,26 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                       </TableRow>
                     ) : (
                       records.map((record, index) => (
-                        <TableRow key={index}>
+                        <TableRow key={index} sx={{ 
+                          bgcolor: record.check_out ? 'rgba(76, 175, 80, 0.08)' : 'inherit' 
+                        }}>
                           <TableCell>{formatDateStr(record.check_in)}</TableCell>
                           <TableCell>{formatTime(record.check_in)}</TableCell>
-                          <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
+                          <TableCell>
+                            {record.check_out ? (
+                              <Typography 
+                                component="span" 
+                                sx={{ 
+                                  fontWeight: 'bold', 
+                                  color: 'success.main'
+                                }}
+                              >
+                                {formatTime(record.check_out)}
+                              </Typography>
+                            ) : (
+                              '-'
+                            )}
+                          </TableCell>
                           {trackShifts && (
                             <TableCell>
                               {record.shiftType.includes('12-Hour') ? (
@@ -950,7 +996,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                             ) : !record.check_out ? (
                               <Typography component="span" color="warning.main">Missing Checkout</Typography>
                             ) : (
-                              <Typography component="span" color="success.main">Present</Typography>
+                              <Typography component="span" color="success.main">Complete</Typography>
                             )}
                           </TableCell>
                           <TableCell>{record.department}</TableCell>

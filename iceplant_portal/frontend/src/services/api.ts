@@ -190,6 +190,13 @@ export const apiService = {
   async getDepartments() {
     return this.get(endpoints.employeeProfileDepartments);
   },
+
+  // Attendance Endpoints
+  async processSameDayCheckIns() {
+    return this.post('/api/attendance/attendance/process_same_day_records/');
+  },
+
+  // ImportLog
 };
 
 export default apiService; 

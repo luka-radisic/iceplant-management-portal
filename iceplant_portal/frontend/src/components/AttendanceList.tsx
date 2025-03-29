@@ -27,6 +27,7 @@ export default function AttendanceList() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
+  const [processingCheckIns, setProcessingCheckIns] = useState(false);
   const [filters, setFilters] = useState({
     start_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
     end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
@@ -61,6 +62,21 @@ export default function AttendanceList() {
       console.error('Error fetching records:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const processSameDayCheckIns = async () => {
+    setProcessingCheckIns(true);
+    try {
+      await apiService.processSameDayCheckIns();
+      // Refresh records to show changes
+      await fetchRecords();
+      alert('Successfully processed same-day check-ins!');
+    } catch (error) {
+      console.error('Error processing same-day check-ins:', error);
+      alert('Failed to process same-day check-ins. Please check console for details.');
+    } finally {
+      setProcessingCheckIns(false);
     }
   };
 
@@ -158,6 +174,17 @@ export default function AttendanceList() {
                 </MenuItem>
               ))}
             </TextField>
+          </Grid>
+          <Grid item xs={3}>
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              onClick={processSameDayCheckIns}
+              disabled={processingCheckIns}
+            >
+              {processingCheckIns ? <CircularProgress size={20} /> : 'Process Same-Day Check-Ins'}
+            </Button>
           </Grid>
         </Grid>
       </Box>
