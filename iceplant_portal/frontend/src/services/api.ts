@@ -232,6 +232,17 @@ export const apiService = {
     return this.post('/api/attendance/attendance/cleanup-short-duration/', {});
   },
 
+  async getAttendanceStats(params: any) {
+    // Remove empty params before sending
+    const filteredParams = Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== '' && value !== null && value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+    return this.get('/api/attendance/attendance/stats', filteredParams);
+  },
+
   // Tools Endpoints
   async backupFullDatabase() {
     return this.getFile('/api/tools/tools/backup/full/');

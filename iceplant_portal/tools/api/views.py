@@ -82,13 +82,13 @@ class ToolsViewSet(viewsets.ViewSet):
                         queryset = model.objects.filter(department=department_name)
                         # Serialize queryset
                         from django.core.serializers import serialize
-                        serialized_data = serialize('json', queryset)
+                        serialized_data = serialize(format='json', queryset=queryset)
                         # Load the serialized string into a Python list/dict
                         backup_data[f'{app_label}_{model_name}'] = json.loads(serialized_data)
                     elif model_name == 'EmployeeProfile': # Special case for EmployeeProfile if needed
                          queryset = model.objects.filter(department=department_name)
                          from django.core.serializers import serialize
-                         serialized_data = serialize('json', queryset)
+                         serialized_data = serialize(format='json', queryset=queryset)
                          backup_data[f'{app_label}_{model_name}'] = json.loads(serialized_data)
                          
                 except Exception as model_error:

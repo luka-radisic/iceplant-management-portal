@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.authtoken.views import obtain_auth_token
@@ -32,10 +32,11 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     
-    # Catch-all for serving the React app
+    # Frontend routes - Catch all non-API URLs and serve index.html
+    # Use re_path to ensure API routes are not caught by this
+    re_path(r'^(?!api/).*$', TemplateView.as_view(template_name='index.html'), name='react-app'),
+    # Keep the root path explicitly for home
     path('', TemplateView.as_view(template_name='index.html'), name='home'),
-    # Add a catch-all for react-router paths to also serve index.html
-    path('<path:resource>', TemplateView.as_view(template_name='index.html'))
 ]
 
 # Serve media and static files in development

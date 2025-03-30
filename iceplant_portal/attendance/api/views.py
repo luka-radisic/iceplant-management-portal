@@ -12,8 +12,8 @@ from rest_framework.viewsets import ModelViewSet
 import os
 from django.http import Http404
 from rest_framework.pagination import PageNumberPagination
-from django.db.models import F, ExpressionWrapper, DurationField
-from django.db.models.functions import Extract
+from django.db.models import F, ExpressionWrapper, DurationField, Count, Q, Func
+from django.db.models.functions import Extract, TruncDate
 
 from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 from .serializers import (
@@ -37,6 +37,46 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     max_page_size = 500  # Maximum allowed page size
     filter_backends = []
     
+    def _get_filtered_queryset(self, params):
+        """ Helper function to get base queryset based on filters """
+        queryset = Attendance.objects.all()
+        
+        employee_id = params.get('employee_id')
+        start_date = params.get('start_date')
+        end_date = params.get('end_date')
+        department = params.get('department')
+        status_filter = params.get('status')
+        
+        if employee_id:
+            queryset = queryset.filter(employee_id=employee_id)
+        
+        if start_date:
+            try:
+                start_datetime = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
+                queryset = queryset.filter(check_in__gte=start_datetime)
+            except ValueError:
+                pass 
+                
+        if end_date:
+            try:
+                end_datetime = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1))
+                queryset = queryset.filter(check_in__lt=end_datetime)
+            except ValueError:
+                pass 
+        
+        if department:
+            queryset = queryset.filter(department=department)
+            
+        # Apply status filters directly here for consistency
+        if status_filter == 'present':
+            queryset = queryset.exclude(department='NO SHOW')
+        elif status_filter == 'no-show':
+            queryset = queryset.filter(department='NO SHOW')
+        elif status_filter == 'missing-checkout':
+            queryset = queryset.filter(check_out__isnull=True).exclude(department='NO SHOW')
+            
+        return queryset
+
     def get_queryset(self):
         queryset = super().get_queryset()
         
@@ -459,6 +499,72 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             message = "No records found with duration less than 5 minutes."
             
         return Response({'message': message, 'deleted_count': count, 'deleted_ids': deleted_ids}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='stats')
+    def get_attendance_stats(self, request):
+        """
+        Calculates and returns aggregated attendance statistics based on filters.
+        """
+        try:
+            # Use the helper to get the base filtered queryset
+            base_queryset = self._get_filtered_queryset(request.query_params)
+            
+            # 1. Overall Status Distribution
+            status_distribution = base_queryset.aggregate(
+                complete=Count('id', filter=Q(check_out__isnull=False) & ~Q(department='NO SHOW')),
+                missing_checkout=Count('id', filter=Q(check_out__isnull=True) & ~Q(department='NO SHOW')),
+                no_show=Count('id', filter=Q(department='NO SHOW'))
+            )
+            # Add short duration calculation (optional, could be intensive)
+            threshold = timedelta(minutes=5)
+            status_distribution['short_duration'] = base_queryset.annotate(
+                duration_calc=ExpressionWrapper(F('check_out') - F('check_in'), output_field=DurationField())
+            ).filter(
+                ~Q(department='NO SHOW'),
+                check_out__isnull=False,
+                duration_calc__lt=threshold
+            ).count()
+            # Adjust complete count
+            status_distribution['complete'] -= status_distribution['short_duration']
+            
+            # Format for pie chart
+            pie_chart_data = [
+                {'name': 'Complete', 'value': status_distribution.get('complete', 0)},
+                {'name': 'Missing Check-Out', 'value': status_distribution.get('missing_checkout', 0)},
+                {'name': 'No Show', 'value': status_distribution.get('no_show', 0)},
+                {'name': 'Short Duration (<5min)', 'value': status_distribution.get('short_duration', 0)},
+            ]
+
+            # 2. Attendance by Department (Present only)
+            department_stats = base_queryset.exclude(department='NO SHOW') \
+                                      .values('department') \
+                                      .annotate(count=Count('id')) \
+                                      .order_by('-count')
+            bar_chart_data = list(department_stats)
+
+            # 3. Daily Attendance Trend (Present only)
+            # Group by date and count
+            daily_trend = base_queryset.exclude(department='NO SHOW') \
+                                  .annotate(date=TruncDate('check_in')) \
+                                  .values('date') \
+                                  .annotate(count=Count('id')) \
+                                  .order_by('date')
+            
+            # Format for line chart
+            line_chart_data = [
+                {'date': item['date'].strftime('%Y-%m-%d'), 'count': item['count']} 
+                for item in daily_trend
+            ]
+
+            return Response({
+                'status_distribution': pie_chart_data,
+                'department_summary': bar_chart_data,
+                'daily_trend': line_chart_data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            print(f"Error calculating attendance stats: {str(e)}")
+            return Response({'error': f'Failed to calculate stats: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
