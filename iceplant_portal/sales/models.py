@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
+from buyers.models import Buyer  # Import the Buyer model
 
 class Sale(models.Model):
     STATUS_CHOICES = [
@@ -20,7 +21,16 @@ class Sale(models.Model):
         help_text="The current status of the sale record"
     )
     
-    # Customer and PO
+    # Customer and PO - Add buyer FK reference
+    buyer = models.ForeignKey(
+        Buyer, 
+        on_delete=models.PROTECT, 
+        null=True, 
+        blank=True, 
+        related_name='sales',
+        help_text="Reference to buyer record"
+    )
+    # Keep existing fields for backward compatibility
     buyer_name = models.CharField(max_length=100)
     buyer_contact = models.CharField(max_length=100, blank=True, null=True)
     po_number = models.CharField(max_length=50, blank=True, null=True)
@@ -52,6 +62,12 @@ class Sale(models.Model):
     
     def __str__(self):
         return f"SI {self.si_number} - {self.buyer_name} - {self.sale_date}"
+    
+    def save(self, *args, **kwargs):
+        # If there's a buyer reference, ensure buyer_name is in sync
+        if self.buyer and not self.buyer_name:
+            self.buyer_name = self.buyer.name
+        super().save(*args, **kwargs)
     
     @property
     def total_quantity(self):

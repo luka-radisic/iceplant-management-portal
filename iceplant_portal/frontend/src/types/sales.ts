@@ -1,4 +1,5 @@
 // Define the Sale type based on the serializer fields
+import { BuyerLight } from './buyers';
 
 export interface Sale {
     id: number;
@@ -6,6 +7,7 @@ export interface Sale {
     sale_date: string; // Keep as string for simplicity, format if needed
     sale_time: string; // Keep as string
     status: 'active' | 'canceled' | 'error'; // Add status field with literal types
+    buyer?: BuyerLight;  // Reference to buyer (optional for backward compatibility)
     buyer_name: string;
     buyer_contact?: string | null;
     po_number?: string | null;

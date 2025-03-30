@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/inventory/', include('inventory.api.urls')),
     path('api/expenses/', include('expenses.api.urls')),
     path('api/tools/', include('tools.api.urls')),
+    path('api/buyers/', include('buyers.api.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('api-token-auth/', CustomAuthToken.as_view(), name='api_token_auth'),
     

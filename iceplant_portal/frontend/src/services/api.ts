@@ -92,6 +92,11 @@ export const endpoints = {
   sales: '/api/sales/sales/',
   salesSummary: '/api/sales/sales/summary/',
 
+  // Buyers
+  buyers: '/api/buyers/buyers/',
+  buyersActive: '/api/buyers/buyers/active/',
+  buyersSearchOrCreate: '/api/buyers/buyers/search_or_create/',
+
   // Inventory
   inventory: '/api/inventory/inventory/',
   inventoryAdjustments: '/api/inventory/inventory-adjustments/',
@@ -340,6 +345,31 @@ export const apiService = {
   updateSaleStatus: async (saleId: number, status: 'active' | 'canceled' | 'error') => {
     const endpoint = `${endpoints.sales}${saleId}/`; // Construct URL like /api/sales/sales/1/
     return apiService.patch(endpoint, { status });
+  },
+
+  // Buyer management methods
+  getBuyers: async (params?: any) => {
+    return apiService.get(endpoints.buyers, params);
+  },
+
+  getActiveBuyers: async () => {
+    return apiService.get(endpoints.buyersActive);
+  },
+
+  getBuyerById: async (buyerId: string) => {
+    return apiService.get(`${endpoints.buyers}${buyerId}/`);
+  },
+
+  createBuyer: async (buyerData: any) => {
+    return apiService.post(endpoints.buyers, buyerData);
+  },
+
+  updateBuyer: async (buyerId: string, buyerData: any) => {
+    return apiService.put(`${endpoints.buyers}${buyerId}/`, buyerData);
+  },
+
+  searchOrCreateBuyer: async (name: string) => {
+    return apiService.get(`${endpoints.buyersSearchOrCreate}?name=${encodeURIComponent(name)}`);
   },
 };
 

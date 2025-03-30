@@ -1,11 +1,17 @@
 from rest_framework import serializers
 from sales.models import Sale
 from decimal import Decimal, InvalidOperation # Import Decimal and InvalidOperation
+from buyers.models import Buyer
+from buyers.api.serializers import BuyerLightSerializer
 
 class SaleSerializer(serializers.ModelSerializer):
     # Add new properties as read-only fields
     total_quantity = serializers.IntegerField(read_only=True)
     payment_status = serializers.CharField(read_only=True)
+    
+    # Include buyer details
+    buyer = BuyerLightSerializer(read_only=True)
+    buyer_id = serializers.UUIDField(write_only=True, required=False)
     
     # Use SerializerMethodField for potentially problematic decimals
     total_cost = serializers.SerializerMethodField()
@@ -23,6 +29,8 @@ class SaleSerializer(serializers.ModelSerializer):
             'sale_date',
             'sale_time',
             'status',
+            'buyer',       # Add related buyer object (read-only)
+            'buyer_id',    # Add buyer ID field (write-only)
             'buyer_name',
             'buyer_contact',
             'po_number',
@@ -41,7 +49,7 @@ class SaleSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ('created_at', 'updated_at', 'total_quantity', 'total_cost', 'total_payment', 'payment_status')
+        read_only_fields = ('created_at', 'updated_at', 'total_quantity', 'total_cost', 'total_payment', 'payment_status', 'buyer')
         
     def get_total_cost(self, obj: Sale) -> Decimal:
         """Safely calculate and format total_cost."""
@@ -64,5 +72,64 @@ class SaleSerializer(serializers.ModelSerializer):
         except (InvalidOperation, TypeError, ValueError):
             # Return a default Decimal value if any error occurs
             return Decimal('0.00')
+        
+    def create(self, validated_data):
+        """
+        Override create method to handle buyer creation/lookup.
+        """
+        # Extract buyer_id from validated data if present
+        buyer_id = validated_data.pop('buyer_id', None)
+        buyer_name = validated_data.get('buyer_name', '')
+        
+        buyer = None
+        
+        # Case 1: buyer_id is provided - use it directly
+        if buyer_id:
+            try:
+                buyer = Buyer.objects.get(id=buyer_id)
+            except Buyer.DoesNotExist:
+                # If the ID doesn't exist, we'll proceed without a buyer
+                pass
+                
+        # Case 2: No buyer_id, but have buyer_name - look up or create
+        elif buyer_name:
+            # Try to find a matching buyer by name (case insensitive)
+            buyer = Buyer.objects.filter(name__iexact=buyer_name).first()
+            
+            # If no buyer found, create a new one
+            if not buyer:
+                buyer = Buyer.objects.create(name=buyer_name)
+        
+        # Create the sale object with the remaining data
+        sale = Sale.objects.create(**validated_data)
+        
+        # Associate the buyer if one was found or created
+        if buyer:
+            sale.buyer = buyer
+            sale.save()
+            
+        return sale
+        
+    def update(self, instance, validated_data):
+        """
+        Override update method to handle buyer updates.
+        """
+        # Extract buyer_id from validated data if present
+        buyer_id = validated_data.pop('buyer_id', None)
+        
+        # Update the buyer reference if buyer_id is provided
+        if buyer_id:
+            try:
+                buyer = Buyer.objects.get(id=buyer_id)
+                instance.buyer = buyer
+            except Buyer.DoesNotExist:
+                pass
+        
+        # Update all other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+            
+        instance.save()
+        return instance
         
     # Removed get_total_weight and get_brine_level_display methods 

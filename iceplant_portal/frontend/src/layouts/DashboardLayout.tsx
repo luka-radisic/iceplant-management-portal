@@ -9,6 +9,7 @@ import {
   ShoppingCart as SalesIcon,
   Build as ToolsIcon,
   AdminPanelSettings as AdminIcon,
+  Business as BusinessIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -57,6 +58,7 @@ const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { text: 'Attendance', icon: <PeopleIcon />, path: '/attendance' },
   { text: 'Sales', icon: <SalesIcon />, path: '/sales' },
+  { text: 'Buyers', icon: <BusinessIcon />, path: '/buyers' },
   { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
   { text: 'Expenses', icon: <ExpensesIcon />, path: '/expenses' },
   { text: 'Tools', icon: <ToolsIcon />, path: '/tools' },

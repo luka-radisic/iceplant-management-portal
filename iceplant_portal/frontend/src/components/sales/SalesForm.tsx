@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
   Button,
   Grid,
   CircularProgress,
+  Autocomplete,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { apiService, endpoints } from '../../services/api';
+import { BuyerLight } from '../../types/buyers';
 
 // Define props interface to include the callback
 interface SalesFormProps {
@@ -19,6 +21,7 @@ interface SaleFormData {
   si_number: string;
   sale_date: string; // Use string for date input, convert later
   sale_time: string; // Use string for time input, convert later
+  buyer_id?: string;  // Add buyer_id for linking to Buyer
   buyer_name: string;
   buyer_contact?: string;
   po_number?: string;
@@ -35,6 +38,11 @@ interface SaleFormData {
 const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // State for buyers list
+  const [buyers, setBuyers] = useState<BuyerLight[]>([]);
+  const [loadingBuyers, setLoadingBuyers] = useState(false);
+  const [selectedBuyer, setSelectedBuyer] = useState<BuyerLight | null>(null);
   
   const initialFormData: SaleFormData = {
     si_number: '',
@@ -54,6 +62,24 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   };
 
   const [formData, setFormData] = useState<SaleFormData>(initialFormData);
+
+  // Load active buyers on component mount
+  useEffect(() => {
+    const fetchBuyers = async () => {
+      setLoadingBuyers(true);
+      try {
+        const response = await apiService.getActiveBuyers();
+        setBuyers(response);
+      } catch (error) {
+        console.error("Failed to load buyers:", error);
+        enqueueSnackbar("Failed to load buyers list", { variant: 'error' });
+      } finally {
+        setLoadingBuyers(false);
+      }
+    };
+    
+    fetchBuyers();
+  }, [enqueueSnackbar]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -80,6 +106,35 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     setFormData(prev => ({
       ...prev,
       [name]: processedValue,
+    }));
+  };
+
+  // Handle buyer selection from autocomplete
+  const handleBuyerChange = (event: React.SyntheticEvent, newValue: BuyerLight | null) => {
+    setSelectedBuyer(newValue);
+    
+    if (newValue) {
+      // Update form with selected buyer's info
+      setFormData(prev => ({
+        ...prev,
+        buyer_id: newValue.id,
+        buyer_name: newValue.name,
+        buyer_contact: newValue.phone || '',
+      }));
+    } else {
+      // Clear buyer-related fields
+      setFormData(prev => ({
+        ...prev,
+        buyer_id: undefined,
+      }));
+    }
+  };
+
+  // Handle buyer input change (when typing in autocomplete)
+  const handleBuyerInputChange = (event: React.SyntheticEvent, newInputValue: string) => {
+    setFormData(prev => ({
+      ...prev,
+      buyer_name: newInputValue
     }));
   };
 
@@ -118,9 +173,28 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     console.log('Submitting Data:', dataToSend);
 
     try {
+      // If no buyer_id is present but we have a buyer_name, try to find or create a buyer
+      if (!formData.buyer_id && formData.buyer_name) {
+        try {
+          const buyerResponse = await apiService.searchOrCreateBuyer(formData.buyer_name);
+          if (buyerResponse && buyerResponse.id) {
+            dataToSend.buyer_id = buyerResponse.id;
+            
+            // Update the buyers list with the new buyer
+            if (!buyers.some(b => b.id === buyerResponse.id)) {
+              setBuyers(prev => [...prev, buyerResponse]);
+            }
+          }
+        } catch (err) {
+          console.error("Error finding/creating buyer:", err);
+          // Continue with the sale even if buyer creation fails
+        }
+      }
+
       await apiService.post(endpoints.sales, dataToSend);
       enqueueSnackbar('Sale recorded successfully!', { variant: 'success' });
       setFormData(initialFormData);
+      setSelectedBuyer(null);
       onSaleAdded();
     } catch (error: any) {
       console.error('Failed to submit sale:', error);
@@ -197,14 +271,33 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
 
         {/* Row 2: Customer, Contact, PO */}
         <Grid item xs={12} sm={4}>
-          <TextField
-            required
-            fullWidth
-            label="Customer Name"
-            name="buyer_name"
-            value={formData.buyer_name}
-            onChange={handleChange}
-            disabled={isSubmitting}
+          <Autocomplete
+            options={buyers}
+            getOptionLabel={(option) => option.name}
+            value={selectedBuyer}
+            onChange={handleBuyerChange}
+            inputValue={formData.buyer_name}
+            onInputChange={handleBuyerInputChange}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                required
+                fullWidth
+                label="Customer Name"
+                name="buyer_name"
+                disabled={isSubmitting}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingBuyers ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
