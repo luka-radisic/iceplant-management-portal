@@ -147,16 +147,18 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   const formatCurrency = (value: number | string): string => {
     if (value === '' || value === null || value === undefined) return '';
     
-    // Convert to number and format with Philippine Peso symbol
+    // Convert to number
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(numValue)) return '';
     
-    return new Intl.NumberFormat('en-PH', { 
-      style: 'currency', 
-      currency: 'PHP',
+    // Format the number with thousand separators and 2 decimal places
+    const formattedNumber = numValue.toLocaleString('en-PH', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(numValue);
+    });
+    
+    // Explicitly prepend the Philippine Peso symbol
+    return `₱${formattedNumber}`;
   };
 
   // Function to format number without currency symbol
