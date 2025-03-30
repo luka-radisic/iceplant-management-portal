@@ -91,7 +91,6 @@ const CompanySettingsPage: React.FC = () => {
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    console.log(`Updating field: ${name} with value: ${value}`);
     setSettings((prev) => ({
       ...prev,
       [name]: value
@@ -156,9 +155,7 @@ const CompanySettingsPage: React.FC = () => {
     
     try {
       setSaving(true);
-      console.log('Submitting settings:', settings);
       const response = await apiService.updateCompanySettings(settings);
-      console.log('Settings update response:', response);
       setSettings(response);
       enqueueSnackbar('Company settings saved successfully', { variant: 'success' });
     } catch (err) {
@@ -361,16 +358,24 @@ const CompanySettingsPage: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Card sx={{ maxWidth: 345, mb: 2 }}>
                   {logoPreview ? (
-                    <CardMedia
-                      component="img"
-                      sx={{ 
-                        height: 200, 
-                        objectFit: 'contain',
-                        bgcolor: '#f5f5f5'
-                      }}
-                      image={logoPreview}
-                      alt="Company Logo"
-                    />
+                    <>
+                      {console.log("Logo Preview URL:", logoPreview)}
+                      <CardMedia
+                        component="img"
+                        sx={{ 
+                          height: 200, 
+                          objectFit: 'contain',
+                          bgcolor: '#f5f5f5',
+                          border: '1px solid #eee'
+                        }}
+                        image={logoPreview}
+                        alt="Company Logo"
+                        onError={(e) => {
+                          console.error("Error loading logo image in settings:", e);
+                          e.currentTarget.src = '/placeholder-logo.png';
+                        }}
+                      />
+                    </>
                   ) : (
                     <Box 
                       sx={{ 

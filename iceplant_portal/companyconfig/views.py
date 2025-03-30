@@ -24,22 +24,93 @@ class CompanySettingsViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         # Override list to just return the single instance
         instance = CompanySettings.get_settings()
-        serializer = self.get_serializer(instance)
+        serializer = self.get_serializer(instance, context={'request': request})
         return Response(serializer.data)
     
     def retrieve(self, request, *args, **kwargs):
         # Override retrieve to get the settings regardless of the ID provided
         instance = CompanySettings.get_settings()
-        serializer = self.get_serializer(instance)
+        serializer = self.get_serializer(instance, context={'request': request})
         return Response(serializer.data)
     
     def update(self, request, *args, **kwargs):
         # Override update to update the settings regardless of the ID provided
         instance = CompanySettings.get_settings()
-        serializer = self.get_serializer(instance, data=request.data, partial=kwargs.get('partial', False))
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
+        
+        # Print request data for debugging
+        print("Request data:", request.data)
+        
+        # Create a copy of the data without logo fields to avoid validation errors
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        
+        # Remove problematic fields
+        if 'company_logo' in data and isinstance(data['company_logo'], str):
+            data.pop('company_logo')
+        if 'logo_url' in data:
+            data.pop('logo_url')
+        
+        # Try to directly update fields
+        try:
+            # Only update text and number fields
+            if 'company_name' in data:
+                instance.company_name = data['company_name']
+            if 'company_address_line1' in data:
+                instance.company_address_line1 = data['company_address_line1']
+            if 'company_address_line2' in data:
+                instance.company_address_line2 = data['company_address_line2']
+            if 'company_city' in data:
+                instance.company_city = data['company_city']
+            if 'company_state' in data:
+                instance.company_state = data['company_state']
+            if 'company_postal_code' in data:
+                instance.company_postal_code = data['company_postal_code']
+            if 'company_country' in data:
+                instance.company_country = data['company_country']
+            if 'phone_number' in data:
+                instance.phone_number = data['phone_number']
+            if 'alternate_phone' in data:
+                instance.alternate_phone = data['alternate_phone']
+            if 'email' in data:
+                instance.email = data['email']
+            if 'website' in data:
+                instance.website = data['website']
+            if 'tax_id' in data:
+                instance.tax_id = data['tax_id']
+            if 'business_registration' in data:
+                instance.business_registration = data['business_registration']
+            if 'ice_block_weight' in data:
+                # Convert to decimal if string
+                instance.ice_block_weight = float(data['ice_block_weight'])
+            if 'production_capacity' in data:
+                instance.production_capacity = int(data['production_capacity'])
+            if 'invoice_footer_text' in data:
+                instance.invoice_footer_text = data['invoice_footer_text']
+            
+            # Save the instance
+            instance.save()
+            
+            # Return the serialized data
+            serializer = self.get_serializer(instance, context={'request': request})
+            return Response(serializer.data)
+            
+        except Exception as e:
+            print("Error updating company settings:", str(e))
+            return Response({"error": str(e)}, status=400)
+            
+        # If we get here, try the serializer approach as a fallback
+        serializer = self.get_serializer(instance, data=data, partial=True, context={'request': request})
+        
+        try:
+            serializer.is_valid(raise_exception=False)
+            if serializer.errors:
+                print("Validation errors:", serializer.errors)
+                return Response(serializer.errors, status=400)
+            
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        except Exception as e:
+            print("Error in serializer update:", str(e))
+            return Response({"error": str(e)}, status=400)
     
     def create(self, request, *args, **kwargs):
         # Prevent creating multiple instances
@@ -56,7 +127,7 @@ class CompanySettingsViewSet(viewsets.ModelViewSet):
         Get the company settings. Creates default settings if none exist.
         """
         settings = CompanySettings.get_settings()
-        serializer = self.get_serializer(settings)
+        serializer = self.get_serializer(settings, context={'request': request})
         return Response(serializer.data)
     
     @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser])

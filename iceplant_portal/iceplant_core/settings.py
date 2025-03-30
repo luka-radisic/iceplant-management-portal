@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'tools',
     'user_management',
     'buyers',
+    'companyconfig',
 ]
 
 MIDDLEWARE = [

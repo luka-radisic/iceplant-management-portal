@@ -34,8 +34,8 @@ class SaleViewSet(viewsets.ModelViewSet):
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
         
-        # Base queryset - Filter for active sales only for summaries/charts
-        queryset = Sale.objects.filter(status='active').order_by('sale_date')
+        # Base queryset - Filter for processed sales only for summaries/charts
+        queryset = Sale.objects.filter(status='processed').order_by('sale_date')
         
         # Apply date filtering if provided
         if start_date_str:

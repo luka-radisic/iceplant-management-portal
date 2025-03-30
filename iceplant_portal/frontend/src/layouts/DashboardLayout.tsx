@@ -32,7 +32,6 @@ import { styled } from '@mui/material/styles';
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import AppBarLogo from '../components/layout/AppBarLogo';
 
 const drawerWidth = 240;
 
@@ -95,11 +94,9 @@ export default function DashboardLayout() {
           >
             {open ? <ChevronLeftIcon /> : <MenuIcon />}
           </IconButton>
-          
-          <AppBarLogo />
-          
-          <Box sx={{ flexGrow: 1 }} />
-          
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            Ice Plant Management Portal
+          </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {isAdmin && (

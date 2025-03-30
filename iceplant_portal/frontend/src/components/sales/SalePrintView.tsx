@@ -25,7 +25,6 @@ const SalePrintView: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [companySettings, setCompanySettings] = useState<CompanySettings>(defaultCompanySettings);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // Load company settings
@@ -33,9 +32,6 @@ const SalePrintView: React.FC = () => {
       try {
         const response = await apiService.getCompanySettings();
         setCompanySettings(response);
-        if (response && response.logo_url) {
-          setLogoUrl(response.logo_url);
-        }
       } catch (err) {
         console.error("Error fetching company settings:", err);
         // Use defaults if settings can't be loaded
@@ -157,17 +153,39 @@ const SalePrintView: React.FC = () => {
         <Grid container spacing={2}>
           {/* Logo */}
           <Grid item xs={4}>
-            {logoUrl && (
+            {companySettings.logo_url ? (
+              <>
+                {console.log("Logo URL in Print View:", companySettings.logo_url)}
+                <Box 
+                  component="img" 
+                  src={companySettings.logo_url}
+                  alt={companySettings.company_name}
+                  sx={{ 
+                    height: 100, 
+                    maxWidth: 200, 
+                    objectFit: 'contain',
+                    border: '1px solid #eee' // Added border to make it visible
+                  }}
+                  onError={(e) => {
+                    console.error("Error loading logo image:", e);
+                    // Fallback to a placeholder on error
+                    e.currentTarget.src = '/placeholder-logo.png';
+                  }}
+                />
+              </>
+            ) : (
               <Box 
-                component="img" 
-                src={logoUrl}
-                alt={companySettings.company_name}
                 sx={{ 
-                  height: 100, 
-                  maxWidth: 200, 
-                  objectFit: 'contain' 
+                  height: '100px', 
+                  width: '200px', 
+                  border: '1px dashed #ccc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
-              />
+              >
+                <Typography color="textSecondary">Logo</Typography>
+              </Box>
             )}
           </Grid>
           

@@ -9,4 +9,4 @@ router.register(r'settings', CompanySettingsViewSet, basename='company-settings'
 # The API URLs are determined automatically by the router
 urlpatterns = [
     path('', include(router.urls)),
-] 
+]

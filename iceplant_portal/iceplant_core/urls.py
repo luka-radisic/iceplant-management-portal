@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from user_management.views import register_user, CustomAuthToken
+from django.views.static import serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,12 +31,17 @@ urlpatterns = [
     path('api/expenses/', include('expenses.api.urls')),
     path('api/tools/', include('tools.api.urls')),
     path('api/buyers/', include('buyers.api.urls')),
+    path('api/company/', include('companyconfig.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('api-token-auth/', CustomAuthToken.as_view(), name='api_token_auth'),
     
     # User management endpoints
     path('api/register/', register_user, name='register'),
     path('api/users/', include('user_management.urls')),
+
+    # Serve media files directly
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     
     # Frontend routes - Catch all non-API URLs and serve index.html
     # Use re_path to ensure API routes are not caught by this
