@@ -46,6 +46,7 @@ import SalesForm from '../components/sales/SalesForm';
 import { apiService, endpoints } from '../services/api';
 import { Sale } from '../types/sales';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface SaleSummary {
   totalSales: number;
@@ -63,6 +64,7 @@ const SalesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   // Menu state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -344,6 +346,12 @@ const SalesPage: React.FC = () => {
     setShowSummary(!showSummary);
   };
 
+  // Edit in Admin handler
+  const handleEditInAdmin = (saleId: number) => {
+    handleMenuClose();
+    navigate(`/admin/sales/sale/${saleId}/change`);
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -592,11 +600,7 @@ const SalesPage: React.FC = () => {
              )}
              {/* Edit option only for admin users */}
              {isAdmin && selectedSale && (
-                <MenuItem 
-                  component="a" 
-                  href={`/admin/sales/sale/${selectedSale.id}/change/`}
-                  target="_blank"
-                >
+                <MenuItem onClick={() => handleEditInAdmin(selectedSale.id)}>
                   <ListItemIcon>
                     <EditIcon fontSize="small" color="primary"/>
                   </ListItemIcon>

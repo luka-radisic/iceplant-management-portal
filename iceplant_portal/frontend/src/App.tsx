@@ -57,6 +57,13 @@ function App() {
                     
                     {/* Admin-only routes */}
                     <Route path="/admin" element={<AdminRoute><UserManagement /></AdminRoute>} />
+                    
+                    {/* Admin edit routes */}
+                    <Route path="/admin/sales/sale/:id/change" element={
+                      <AdminRoute>
+                        <Navigate to="/sales" replace />
+                      </AdminRoute>
+                    } />
                   </Route>
 
                   {/* Catch all route */}
