@@ -91,6 +91,7 @@ const CompanySettingsPage: React.FC = () => {
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    console.log(`Updating field: ${name} with value: ${value}`);
     setSettings((prev) => ({
       ...prev,
       [name]: value
@@ -155,7 +156,9 @@ const CompanySettingsPage: React.FC = () => {
     
     try {
       setSaving(true);
+      console.log('Submitting settings:', settings);
       const response = await apiService.updateCompanySettings(settings);
+      console.log('Settings update response:', response);
       setSettings(response);
       enqueueSnackbar('Company settings saved successfully', { variant: 'success' });
     } catch (err) {
