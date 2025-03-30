@@ -61,7 +61,7 @@ function App() {
                     {/* Admin edit routes */}
                     <Route path="/admin/sales/sale/:id/change" element={
                       <AdminRoute>
-                        <Navigate to="/sales" replace />
+                        <SalesPage />
                       </AdminRoute>
                     } />
                   </Route>

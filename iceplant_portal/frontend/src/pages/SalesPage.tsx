@@ -46,7 +46,7 @@ import SalesForm from '../components/sales/SalesForm';
 import { apiService, endpoints } from '../services/api';
 import { Sale } from '../types/sales';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 
 interface SaleSummary {
   totalSales: number;
@@ -65,6 +65,8 @@ const SalesPage: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
 
   // Menu state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -89,6 +91,10 @@ const SalesPage: React.FC = () => {
   // Summary state
   const [summaryData, setSummaryData] = useState<SaleSummary | null>(null);
   const [showSummary, setShowSummary] = useState<boolean>(false);
+
+  // For edit dialog
+  const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
+  const [editableSale, setEditableSale] = useState<Sale | null>(null);
 
   // Handle menu open
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, sale: Sale) => {
@@ -352,6 +358,66 @@ const SalesPage: React.FC = () => {
     navigate(`/admin/sales/sale/${saleId}/change`);
   };
 
+  // Check if we're coming from an admin edit route
+  useEffect(() => {
+    const checkForAdminEdit = async () => {
+      // Check if we have a sale ID in the URL params (from redirect)
+      const saleIdFromPath = location.pathname.match(/\/admin\/sales\/sale\/(\d+)\/change/);
+      const saleId = saleIdFromPath ? parseInt(saleIdFromPath[1]) : null;
+      
+      if (saleId) {
+        try {
+          setLoading(true);
+          // Fetch the specific sale details
+          const response = await apiService.get(`${endpoints.sales}${saleId}/`);
+          if (response) {
+            setEditableSale(response);
+            setEditDialogOpen(true);
+          }
+        } catch (err) {
+          console.error("Error fetching sale for editing:", err);
+          enqueueSnackbar("Could not load sale details for editing", { variant: 'error' });
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    checkForAdminEdit();
+  }, [location.pathname, enqueueSnackbar]);
+
+  // Handle editing a sale
+  const handleEditSale = async (updatedSale: Partial<Sale>) => {
+    if (!editableSale) return;
+    
+    try {
+      await apiService.put(`${endpoints.sales}${editableSale.id}/`, updatedSale);
+      enqueueSnackbar(`Sale ${editableSale.si_number} updated successfully`, { variant: 'success' });
+      fetchSales(); // Refresh sales list
+      handleCloseEditDialog();
+    } catch (err) {
+      console.error("Error updating sale:", err);
+      enqueueSnackbar("Failed to update sale", { variant: 'error' });
+    }
+  };
+  
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setEditableSale(null);
+    
+    // If we came from admin route, update URL to remove /admin/sales/sale/:id/change
+    if (location.pathname.includes('/admin/sales/sale/')) {
+      navigate('/sales', { replace: true });
+    }
+  };
+
+  // Add these just before the return statement
+  const handleOpenEditDialog = (sale: Sale) => {
+    setEditableSale(sale);
+    setEditDialogOpen(true);
+    handleMenuClose();
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -600,11 +666,11 @@ const SalesPage: React.FC = () => {
              )}
              {/* Edit option only for admin users */}
              {isAdmin && selectedSale && (
-                <MenuItem onClick={() => handleEditInAdmin(selectedSale.id)}>
+                <MenuItem onClick={() => handleOpenEditDialog(selectedSale)}>
                   <ListItemIcon>
                     <EditIcon fontSize="small" color="primary"/>
                   </ListItemIcon>
-                  <ListItemText>Edit in Admin</ListItemText>
+                  <ListItemText>Edit Sale</ListItemText>
                 </MenuItem>
              )}
          </Menu>
@@ -660,6 +726,89 @@ const SalesPage: React.FC = () => {
            </DialogContent>
            <DialogActions>
              <Button onClick={toggleSummaryDialog}>Close</Button>
+           </DialogActions>
+         </Dialog>
+         
+         {/* Edit Sale Dialog */}
+         <Dialog open={editDialogOpen} onClose={handleCloseEditDialog} maxWidth="md" fullWidth>
+           <DialogTitle>
+             Edit Sale {editableSale?.si_number}
+           </DialogTitle>
+           <DialogContent>
+             {editableSale ? (
+               <Grid container spacing={2} sx={{ mt: 1 }}>
+                 <Grid item xs={12} md={6}>
+                   <TextField
+                     label="SI Number"
+                     fullWidth
+                     value={editableSale.si_number}
+                     onChange={(e) => setEditableSale({ ...editableSale, si_number: e.target.value })}
+                     margin="normal"
+                   />
+                   <TextField
+                     label="Buyer Name"
+                     fullWidth
+                     value={editableSale.buyer_name}
+                     onChange={(e) => setEditableSale({ ...editableSale, buyer_name: e.target.value })}
+                     margin="normal"
+                   />
+                   <TextField
+                     label="Sale Date"
+                     type="date"
+                     fullWidth
+                     value={editableSale.sale_date}
+                     onChange={(e) => setEditableSale({ ...editableSale, sale_date: e.target.value })}
+                     margin="normal"
+                     InputLabelProps={{ shrink: true }}
+                   />
+                 </Grid>
+                 <Grid item xs={12} md={6}>
+                   <TextField
+                     label="Total Quantity"
+                     fullWidth
+                     value={editableSale.total_quantity}
+                     margin="normal"
+                     disabled
+                     helperText="This is calculated automatically"
+                   />
+                   <TextField
+                     label="Total Cost"
+                     fullWidth
+                     value={editableSale.total_cost}
+                     margin="normal"
+                     disabled
+                     helperText="This is calculated automatically"
+                   />
+                   <FormControl fullWidth margin="normal">
+                     <InputLabel>Status</InputLabel>
+                     <Select
+                       value={editableSale.status}
+                       label="Status"
+                       onChange={(e) => setEditableSale({ ...editableSale, status: e.target.value as 'active' | 'canceled' | 'error' })}
+                     >
+                       <MenuItem value="active">Active</MenuItem>
+                       <MenuItem value="canceled">Canceled</MenuItem>
+                       <MenuItem value="error">Error</MenuItem>
+                     </Select>
+                   </FormControl>
+                 </Grid>
+               </Grid>
+             ) : (
+               <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                 <CircularProgress />
+               </Box>
+             )}
+           </DialogContent>
+           <DialogActions>
+             <Button onClick={handleCloseEditDialog}>Cancel</Button>
+             <Button 
+               onClick={() => handleEditSale(editableSale as Sale)} 
+               variant="contained" 
+               color="primary"
+               disabled={!editableSale}
+             >
+               Save Changes
+             </Button>
            </DialogActions>
          </Dialog>
       </Paper>
