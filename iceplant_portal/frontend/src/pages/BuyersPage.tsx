@@ -115,11 +115,16 @@ const BuyersPage: React.FC = () => {
     // Apply search query filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
+      // Check if the query might be a UUID (approximately)
+      const mightBeUuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(searchQuery);
+      
       filtered = filtered.filter(buyer => 
         buyer.name.toLowerCase().includes(query) ||
         (buyer.company_name && buyer.company_name.toLowerCase().includes(query)) ||
         (buyer.email && buyer.email.toLowerCase().includes(query)) ||
-        (buyer.phone && buyer.phone.toLowerCase().includes(query))
+        (buyer.phone && buyer.phone.toLowerCase().includes(query)) ||
+        // If search looks like a UUID, also search by ID
+        (mightBeUuid && buyer.id.toLowerCase().includes(query))
       );
     }
     
@@ -267,6 +272,7 @@ const BuyersPage: React.FC = () => {
                 <TableCell>Contact</TableCell>
                 <TableCell>Location</TableCell>
                 <TableCell>Status</TableCell>
+                {isAdmin && <TableCell>Buyer ID</TableCell>}
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -291,6 +297,13 @@ const BuyersPage: React.FC = () => {
                       size="small" 
                     />
                   </TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                        {buyer.id}
+                      </Typography>
+                    </TableCell>
+                  )}
                   <TableCell>
                     <IconButton size="small" color="primary" onClick={() => handleOpenEdit(buyer)}>
                       <EditIcon fontSize="small" />
@@ -494,6 +507,19 @@ const BuyersPage: React.FC = () => {
         <DialogTitle>Edit Buyer</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            {isAdmin && (
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Buyer ID (System Generated)"
+                  value={currentBuyer?.id || ''}
+                  InputProps={{ readOnly: true }}
+                  margin="normal"
+                  helperText="This unique identifier is used by the system to distinguish between buyers with the same name"
+                  sx={{ fontFamily: 'monospace' }}
+                />
+              </Grid>
+            )}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth

@@ -211,7 +211,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       // If no buyer_id is present but we have a buyer_name, try to find or create a buyer
       if (!formData.buyer_id && formData.buyer_name) {
         try {
-          const buyerResponse = await apiService.searchOrCreateBuyer(formData.buyer_name);
+          // Use the enhanced search method that also checks for UUID format
+          const buyerResponse = await apiService.searchOrCreateBuyerWithId(formData.buyer_name);
           if (buyerResponse && buyerResponse.id) {
             dataToSend.buyer_id = buyerResponse.id;
             
@@ -347,7 +348,7 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
                 }}
                 fullWidth
                 error={!!errors.buyer_name}
-                helperText={errors.buyer_name}
+                helperText={errors.buyer_name || "Enter buyer name or paste buyer ID for exact match"}
               />
             )}
           />

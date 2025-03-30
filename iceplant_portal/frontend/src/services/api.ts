@@ -96,6 +96,7 @@ export const endpoints = {
   buyers: '/api/buyers/buyers/',
   buyersActive: '/api/buyers/buyers/active/',
   buyersSearchOrCreate: '/api/buyers/buyers/search_or_create/',
+  buyersById: '/api/buyers/buyers/search_by_id/',
 
   // Inventory
   inventory: '/api/inventory/inventory/',
@@ -352,24 +353,47 @@ export const apiService = {
     return apiService.get(endpoints.buyers, params);
   },
 
+  getBuyerById: async (id: string) => {
+    return apiService.get(`${endpoints.buyersById}?id=${encodeURIComponent(id)}`);
+  },
+
   getActiveBuyers: async () => {
     return apiService.get(endpoints.buyersActive);
   },
-
-  getBuyerById: async (buyerId: string) => {
-    return apiService.get(`${endpoints.buyers}${buyerId}/`);
-  },
-
+  
   createBuyer: async (buyerData: any) => {
     return apiService.post(endpoints.buyers, buyerData);
   },
-
+  
   updateBuyer: async (buyerId: string, buyerData: any) => {
     return apiService.put(`${endpoints.buyers}${buyerId}/`, buyerData);
   },
-
+  
   searchOrCreateBuyer: async (name: string) => {
     return apiService.get(`${endpoints.buyersSearchOrCreate}?name=${encodeURIComponent(name)}`);
+  },
+
+  searchOrCreateBuyerWithId: async (nameOrId: string) => {
+    // Check if the input might be a UUID
+    const mightBeUuid = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(nameOrId);
+    
+    // If it looks like a UUID, try to find by ID first
+    if (mightBeUuid) {
+      try {
+        const buyer = await apiService.getBuyerById(nameOrId);
+        return buyer;
+      } catch (error) {
+        // If no buyer found by ID, continue to search by name
+        console.log('No buyer found with ID, will try by name:', nameOrId);
+      }
+    }
+    
+    // Search by name (or create if not found)
+    return apiService.searchOrCreateBuyer(nameOrId);
+  },
+
+  getBuyersById: async (buyerId: string) => {
+    return apiService.get(`${endpoints.buyersById}${buyerId}/`);
   },
 };
 
