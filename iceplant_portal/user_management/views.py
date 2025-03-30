@@ -6,7 +6,29 @@ from django.conf import settings
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.views import APIView
 from .serializers import UserSerializer, UserCreateSerializer
+
+# Custom token auth view that returns more user details
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user': {
+                'id': user.pk,
+                'username': user.username,
+                'email': user.email,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser
+            }
+        })
 
 # Custom permission that only allows admins to access
 class IsAdminUser(permissions.BasePermission):
@@ -41,6 +63,14 @@ class UserViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def register_user(request):
+    # Check if username already exists
+    username = request.data.get('username')
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {"detail": f"User with username '{username}' already exists"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
     serializer = UserCreateSerializer(data=request.data)
     if serializer.is_valid():
         # Check if admin code is provided and valid
@@ -64,11 +94,21 @@ def register_user(request):
             if is_admin:
                 user.is_staff = True
                 user.save()
+            
+            # Create token for the new user
+            token, _ = Token.objects.get_or_create(user=user)
                 
-            return Response(
-                {"detail": "User registered successfully"}, 
-                status=status.HTTP_201_CREATED
-            )
+            return Response({
+                "detail": "User registered successfully",
+                "token": token.key,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "is_staff": user.is_staff,
+                    "is_superuser": user.is_superuser
+                }
+            }, status=status.HTTP_201_CREATED)
         except ValidationError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     

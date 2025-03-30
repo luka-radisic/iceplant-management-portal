@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'sales',
     'inventory',
     'expenses',
+    'tools',
+    'user_management',
 ]
 
 MIDDLEWARE = [
@@ -199,3 +201,6 @@ REST_FRAMEWORK = {
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Special code required for admin registration
+ADMIN_REGISTRATION_CODE = 'iceplant-admin-2023'

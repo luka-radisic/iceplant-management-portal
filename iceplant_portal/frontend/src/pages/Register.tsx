@@ -20,10 +20,12 @@ import { useSnackbar } from 'notistack';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { apiService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Register() {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
+  const { login: authLogin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -94,25 +96,42 @@ export default function Register() {
 
     try {
       // Register user
-      await apiService.register({
+      const response = await apiService.register({
         username: formData.username,
         email: formData.email,
         password: formData.password,
         admin_code: formData.adminCode,
       });
       
-      enqueueSnackbar('Registration successful! Please login.', { variant: 'success' });
-      navigate('/login', { replace: true });
+      console.log('Registration response:', response);
+      
+      // If the API returns token and user info, we can auto-login
+      if (response.token && response.user) {
+        authLogin({
+          token: response.token,
+          user: response.user
+        });
+        enqueueSnackbar('Registration successful! You are now logged in.', { variant: 'success' });
+        navigate('/', { replace: true });
+      } else {
+        // Otherwise just redirect to login
+        enqueueSnackbar('Registration successful! Please login.', { variant: 'success' });
+        navigate('/login', { replace: true });
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       if (error.response?.data) {
         // Handle specific API error messages
         const errorData = error.response.data;
         if (typeof errorData === 'object') {
-          // Django REST Framework error format
-          const firstErrorKey = Object.keys(errorData)[0];
-          const firstError = errorData[firstErrorKey];
-          setError(Array.isArray(firstError) ? firstError[0] : String(firstError));
+          if (errorData.detail) {
+            setError(errorData.detail);
+          } else {
+            // Django REST Framework error format
+            const firstErrorKey = Object.keys(errorData)[0];
+            const firstError = errorData[firstErrorKey];
+            setError(Array.isArray(firstError) ? firstError[0] : String(firstError));
+          }
         } else {
           setError(String(errorData));
         }

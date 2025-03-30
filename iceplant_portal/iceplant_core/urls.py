@@ -18,8 +18,8 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework.authtoken.views import obtain_auth_token
 from django.views.generic import TemplateView
+from user_management.views import register_user, CustomAuthToken
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,7 +30,11 @@ urlpatterns = [
     path('api/expenses/', include('expenses.api.urls')),
     path('api/tools/', include('tools.api.urls')),
     path('api-auth/', include('rest_framework.urls')),
-    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    path('api-token-auth/', CustomAuthToken.as_view(), name='api_token_auth'),
+    
+    # User management endpoints
+    path('api/register/', register_user, name='register'),
+    path('api/users/', include('user_management.urls')),
     
     # Frontend routes - Catch all non-API URLs and serve index.html
     # Use re_path to ensure API routes are not caught by this

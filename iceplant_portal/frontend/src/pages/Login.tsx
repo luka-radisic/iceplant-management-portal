@@ -40,14 +40,16 @@ export default function Login() {
 
     try {
       const response = await apiService.login(formData.username, formData.password);
+      console.log('Login response:', response);
+      
       authLogin({
         token: response.token,
         user: {
-          id: response.user_id || 0,
-          username: formData.username,
-          email: response.email || '',
-          is_staff: response.is_staff || false,
-          is_superuser: response.is_superuser || false,
+          id: response.user?.id || 0,
+          username: response.user?.username || formData.username,
+          email: response.user?.email || '',
+          is_staff: response.user?.is_staff || false,
+          is_superuser: response.user?.is_superuser || false,
         },
       });
       enqueueSnackbar('Login successful', { variant: 'success' });
