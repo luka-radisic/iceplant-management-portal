@@ -28,11 +28,14 @@ urlpatterns = [
     path('api/sales/', include('sales.api.urls')),
     path('api/inventory/', include('inventory.api.urls')),
     path('api/expenses/', include('expenses.api.urls')),
+    path('api/tools/', include('tools.api.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     
     # Catch-all for serving the React app
     path('', TemplateView.as_view(template_name='index.html'), name='home'),
+    # Add a catch-all for react-router paths to also serve index.html
+    path('<path:resource>', TemplateView.as_view(template_name='index.html'))
 ]
 
 # Serve media and static files in development

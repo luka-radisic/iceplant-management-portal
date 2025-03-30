@@ -103,6 +103,18 @@ export const endpoints = {
   employeeProfileDepartments: '/api/attendance/employee-profile/departments/',
 };
 
+// Helper function to trigger file download from blob
+const triggerFileDownload = (blob: Blob, filename: string) => {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode?.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};
+
 // Generic API functions
 export const apiService = {
   // Auth
@@ -216,7 +228,57 @@ export const apiService = {
     return this.post('/api/attendance/attendance/process_same_day_records/');
   },
 
+  async cleanupShortDurationAttendance() {
+    return this.post('/api/attendance/attendance/cleanup-short-duration/', {});
+  },
+
+  // Tools Endpoints
+  async backupFullDatabase() {
+    return this.getFile('/api/tools/tools/backup/full/');
+  },
+  async backupDepartmentDatabase(department: string) {
+    return this.getFile('/api/tools/tools/backup/department/', { department });
+  },
+
   // ImportLog
+
+  // Generic GET request for file downloads
+  getFile: async (endpoint: string, params?: any) => {
+    try {
+      const response = await api.get(endpoint, { 
+        params, 
+        responseType: 'blob' // Important: request blob data
+      });
+      
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'download.json'; // Default filename
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (filenameMatch && filenameMatch.length > 1) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      triggerFileDownload(response.data, filename);
+
+    } catch (error) {
+      console.error('GET file request failed:', error);
+      // Handle specific error responses if needed
+      if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+        // Try to read error message from blob
+        const errorText = await error.response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.error || 'Failed to download file.');
+        } catch (parseError) {
+          throw new Error(errorText || 'Failed to download file.');
+        }
+      } else {
+         throw error; // Re-throw other errors
+      }
+    }
+  },
 };
 
 export default apiService; 

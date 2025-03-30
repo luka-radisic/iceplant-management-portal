@@ -13,6 +13,7 @@ import os
 from django.http import Http404
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import F, ExpressionWrapper, DurationField
+from django.db.models.functions import Extract
 
 from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 from .serializers import (
@@ -428,6 +429,36 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             return Response({
                 'error': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='cleanup-short-duration')
+    def cleanup_short_duration_records(self, request):
+        """
+        Find and delete attendance records where the duration between check-in
+        and check-out is less than 5 minutes.
+        """
+        threshold = timedelta(minutes=5)
+        
+        # Annotate queryset with duration
+        queryset = Attendance.objects.annotate(
+            duration_calc=ExpressionWrapper(F('check_out') - F('check_in'), output_field=DurationField())
+        ).filter(
+            check_out__isnull=False,  # Ensure check_out exists
+            duration_calc__lt=threshold # Filter by duration less than threshold
+        )
+        
+        count = queryset.count()
+        deleted_ids = list(queryset.values_list('id', flat=True))
+        
+        if count > 0:
+            print(f"Cleanup: Found {count} records with duration less than {threshold}.")
+            print(f"Cleanup: Deleting records with IDs: {deleted_ids}")
+            queryset.delete()
+            message = f"Successfully deleted {count} records with duration less than 5 minutes."
+        else:
+            print("Cleanup: No records found with duration less than 5 minutes.")
+            message = "No records found with duration less than 5 minutes."
+            
+        return Response({'message': message, 'deleted_count': count, 'deleted_ids': deleted_ids}, status=status.HTTP_200_OK)
 
 class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
