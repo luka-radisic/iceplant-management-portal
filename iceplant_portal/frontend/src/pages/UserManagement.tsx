@@ -75,37 +75,97 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await apiService.get('/api/users/');
-      
-      // Handle different response structures
-      // The backend might return either an array directly or an object with results
-      // For DRF, it's common to get {count, next, previous, results}
-      let userArray = [];
-      
-      if (Array.isArray(response)) {
-        userArray = response;
-      } else if (response && typeof response === 'object') {
-        // If response is an object, look for common pagination patterns
-        if (Array.isArray(response.results)) {
-          userArray = response.results; // DRF pagination format
-        } else if (response.users && Array.isArray(response.users)) {
-          userArray = response.users; // Custom format
-        } else {
-          // If we have an object but no recognized array property,
-          // try to convert the object values to an array if they look like user objects
-          const possibleUsers = Object.values(response).filter(
-            (item) => item && typeof item === 'object' && 'username' in item
-          );
-          if (possibleUsers.length > 0) {
-            userArray = possibleUsers;
-          }
-        }
+      console.log('Fetching users...');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        setError('You must be logged in to view users. Please log in again.');
+        setLoading(false);
+        return;
       }
       
-      setUsers(userArray);
-    } catch (err) {
+      // First request to the main users endpoint
+      const response = await apiService.get('/api/users/');
+      console.log('Raw API response:', response);
+      
+      // Check if the response is a URL pointer instead of actual user data
+      if (response && typeof response === 'object' && response.users && typeof response.users === 'string' && response.users.includes('/api/users/users/')) {
+        console.log('Following users URL:', response.users);
+        
+        // Make a second request to the actual users endpoint
+        const usersResponse = await apiService.get('/api/users/users/');
+        console.log('Users endpoint response:', usersResponse);
+        
+        // Process the users response
+        if (Array.isArray(usersResponse)) {
+          console.log('Users response is an array with length:', usersResponse.length);
+          setUsers(usersResponse);
+        } else if (usersResponse && typeof usersResponse === 'object') {
+          if (Array.isArray(usersResponse.results)) {
+            console.log('Found results array with length:', usersResponse.results.length);
+            setUsers(usersResponse.results);
+          } else {
+            // Try to extract user objects
+            const possibleUsers = Object.values(usersResponse).filter(
+              (item) => item && typeof item === 'object' && 'username' in item
+            );
+            console.log('Extracted possible users from users response:', possibleUsers.length);
+            setUsers(possibleUsers.length > 0 ? possibleUsers : []);
+          }
+        } else {
+          console.error('Unexpected users response format:', usersResponse);
+          setError('Unexpected API response format for users.');
+        }
+      } else {
+        // Handle standard response structures as before
+        let userArray = [];
+        
+        if (Array.isArray(response)) {
+          console.log('Response is an array with length:', response.length);
+          userArray = response;
+        } else if (response && typeof response === 'object') {
+          console.log('Response is an object with keys:', Object.keys(response));
+          
+          // Check for authentication error
+          if (response.detail && (
+              response.detail.includes('Authentication') || 
+              response.detail.includes('credentials') ||
+              response.detail.includes('permission')
+          )) {
+            throw new Error('Authentication error: ' + response.detail);
+          }
+          
+          // If response is an object, look for common pagination patterns
+          if (Array.isArray(response.results)) {
+            console.log('Found results array with length:', response.results.length);
+            userArray = response.results; // DRF pagination format
+          } else if (response.users && Array.isArray(response.users)) {
+            console.log('Found users array with length:', response.users.length);
+            userArray = response.users; // Custom format
+          } else {
+            // If we have an object but no recognized array property,
+            // try to convert the object values to an array if they look like user objects
+            const possibleUsers = Object.values(response).filter(
+              (item) => item && typeof item === 'object' && 'username' in item
+            );
+            console.log('Extracted possible users from object values:', possibleUsers.length);
+            if (possibleUsers.length > 0) {
+              userArray = possibleUsers;
+            }
+          }
+        }
+        
+        console.log('Final processed user array:', userArray);
+        setUsers(userArray);
+      }
+    } catch (err: any) {
       console.error('Error fetching users:', err);
-      setError('Failed to load users.');
+      if (err.response?.status === 401 || err.response?.status === 403 || 
+          (err.message && err.message.includes('Authentication'))) {
+        setError('Authentication error: You do not have permission to view users or your session has expired. Please log in again.');
+      } else {
+        setError('Failed to load users. ' + (err.message || ''));
+      }
     } finally {
       setLoading(false);
     }
