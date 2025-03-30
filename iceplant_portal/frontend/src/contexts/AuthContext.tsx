@@ -5,6 +5,7 @@ import { loggerService } from '../utils/logger';
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  isAdmin: boolean;
   user: LoginResponse['user'] | null;
   login: (userData: LoginResponse) => void;
   logout: () => void;
@@ -12,6 +13,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
+  isAdmin: false,
   user: null,
   login: () => { },
   logout: () => { },
@@ -21,6 +23,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<LoginResponse['user'] | null>(null);
   const navigate = useNavigate();
 
@@ -34,7 +37,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userData = JSON.parse(storedUser);
         setIsAuthenticated(true);
         setUser(userData);
-        loggerService.info('User session restored', { username: userData.username });
+        
+        // Check if user is an admin
+        setIsAdmin(userData.is_staff === true || userData.is_superuser === true);
+        
+        loggerService.info('User session restored', { 
+          username: userData.username,
+          isAdmin: userData.is_staff || userData.is_superuser 
+        });
       } catch (error) {
         loggerService.error('Error restoring user session', error);
         localStorage.removeItem('token');
@@ -46,12 +56,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (userData: LoginResponse) => {
     loggerService.info('User logged in', {
       username: userData.user.username,
+      isAdmin: userData.user.is_staff || userData.user.is_superuser,
       timestamp: new Date().toISOString()
     });
     localStorage.setItem('token', userData.token);
     localStorage.setItem('user', JSON.stringify(userData.user));
     setIsAuthenticated(true);
     setUser(userData.user);
+    
+    // Set admin status based on Django's staff or superuser flag
+    setIsAdmin(userData.user.is_staff === true || userData.user.is_superuser === true);
   };
 
   const logout = () => {
@@ -63,12 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsAuthenticated(false);
+    setIsAdmin(false); // Reset admin status
     setUser(null);
     navigate('/login', { replace: true });
   };
 
   const value = {
     isAuthenticated,
+    isAdmin,
     user,
     login,
     logout,

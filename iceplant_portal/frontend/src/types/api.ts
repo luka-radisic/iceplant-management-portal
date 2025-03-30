@@ -5,6 +5,8 @@ export interface LoginResponse {
     id: number;
     username: string;
     email: string;
+    is_staff?: boolean; // Django's staff flag
+    is_superuser?: boolean; // Django's superuser flag
   };
 }
 
