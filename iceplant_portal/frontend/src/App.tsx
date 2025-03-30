@@ -15,9 +15,10 @@ import Attendance from './pages/Attendance';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import ToolsPage from './pages/ToolsPage';
+import SalesPage from './pages/SalesPage';
 
-// Placeholder components for other routes
-const Sales = () => <div>Sales Page (Coming Soon)</div>;
+// Remove placeholder components
+// const Sales = () => <div>Sales Page (Coming Soon)</div>;
 const Inventory = () => <div>Inventory Page (Coming Soon)</div>;
 const Expenses = () => <div>Expenses Page (Coming Soon)</div>;
 
@@ -45,7 +46,7 @@ function App() {
                   >
                     <Route index element={<Dashboard />} />
                     <Route path="/attendance" element={<Attendance />} />
-                    <Route path="/sales" element={<Sales />} />
+                    <Route path="/sales" element={<SalesPage />} />
                     <Route path="/inventory" element={<Inventory />} />
                     <Route path="/expenses" element={<Expenses />} />
                     <Route path="/tools" element={<ToolsPage />} />
