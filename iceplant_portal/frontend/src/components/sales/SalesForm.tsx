@@ -362,15 +362,44 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             getOptionLabel={(option) => option.name}
             filterOptions={(options, state) => {
               const inputValue = state.inputValue.toLowerCase().trim();
-              if (!inputValue) return options;
+              // Don't show any options if the user hasn't typed anything
+              if (!inputValue) return [];
               
               // Split input to handle both first and last name searches
               const terms = inputValue.split(/\s+/);
               
               return options.filter(option => {
-                const nameLower = option.name.toLowerCase();
-                // Check if any term is found in the name
-                return terms.some(term => nameLower.includes(term));
+                const fullName = option.name.toLowerCase();
+                const nameParts = fullName.split(/\s+/); // Split into words (first/last name)
+                
+                // Handle multi-word searches (e.g., "John S" should match "John Smith")
+                if (terms.length > 1 && terms.length <= nameParts.length) {
+                  // Check if consecutive terms match beginnings of consecutive name parts
+                  let matchesAllTerms = true;
+                  
+                  for (let i = 0; i < terms.length; i++) {
+                    // For each term, check if any name part starts with it
+                    const term = terms[i];
+                    const matchesAnyPart = nameParts.some((part, index) => {
+                      // If it's not the first term, we should prefer matching later name parts
+                      // For first term, check all parts. For later terms, prioritize matching later parts
+                      if (i === 0 || index >= i) {
+                        return part.startsWith(term);
+                      }
+                      return false;
+                    });
+                    
+                    if (!matchesAnyPart) {
+                      matchesAllTerms = false;
+                      break;
+                    }
+                  }
+                  
+                  return matchesAllTerms;
+                }
+                
+                // Single word search: match if any name part starts with the input
+                return nameParts.some(part => part.startsWith(inputValue));
               });
             }}
             renderOption={(props, option) => (
@@ -388,7 +417,6 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             )}
             freeSolo
             autoHighlight
-            openOnFocus
             clearOnEscape
             isOptionEqualToValue={(option, value) => option.id === value.id}
             loading={loadingBuyers}
@@ -407,7 +435,7 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
                 }}
                 fullWidth
                 error={!!errors.buyer_name}
-                helperText={errors.buyer_name || "Type a few letters of buyer name to search or paste buyer ID"}
+                helperText={errors.buyer_name || "Start typing to search for buyers by name or ID"}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
