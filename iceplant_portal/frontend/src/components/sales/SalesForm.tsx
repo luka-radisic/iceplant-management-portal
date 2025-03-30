@@ -91,11 +91,11 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     fetchBuyers();
   }, [enqueueSnackbar]);
 
+  // Regular change handler for text fields
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value, type } = e.target;
-    let processedValue: string | number | '' = value;
+    const { name, value } = e.target;
     
     // Clear error for this field
     if (errors[name]) {
@@ -106,26 +106,89 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       });
     }
     
-    if (type === 'number') {
-      // Use Number() which correctly handles empty string (as 0), unlike parseFloat (NaN)
-      // However, we want to store empty string in state if the input is cleared
-      if (value === '') {
-          processedValue = ''; // Store empty string if cleared
-      } else {
-          const numValue = Number(value);
-          // Check if the conversion resulted in NaN (e.g., for invalid input like "abc")
-          if (isNaN(numValue)) {
-              processedValue = ''; // Keep it as empty string in state if invalid
-          } else if (name !== 'notes' && numValue < 0) {
-             processedValue = 0; // Prevent negative numbers, store 0
-          } else {
-             processedValue = numValue; // Store the valid number
-          }
-      }
-    }
     setFormData(prev => ({
       ...prev,
-      [name]: processedValue,
+      [name]: value,
+    }));
+  };
+
+  // Handle change for numeric inputs with currency formatting
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
+    // Remove any non-digit characters except decimal point
+    const cleanValue = value.replace(/[^\d.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = cleanValue.split('.');
+    const formattedValue = parts.length > 1 
+      ? `${parts[0]}.${parts.slice(1).join('')}`
+      : cleanValue;
+    
+    // Store numeric value in state
+    const numericValue = formattedValue === '' ? '' : Number(formattedValue);
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: numericValue,
+    }));
+  };
+
+  // Function to format currency for display
+  const formatCurrency = (value: number | string): string => {
+    if (value === '' || value === null || value === undefined) return '';
+    
+    // Convert to number and format with Philippine Peso symbol
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return '';
+    
+    return new Intl.NumberFormat('en-PH', { 
+      style: 'currency', 
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numValue);
+  };
+
+  // Function to format number without currency symbol
+  const formatNumber = (value: number | string): string => {
+    if (value === '' || value === null || value === undefined) return '';
+    
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return '';
+    
+    return numValue.toLocaleString('en-PH');
+  };
+
+  // Handle numeric input for quantities
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
+    // Allow only whole numbers (integers)
+    const cleanValue = value.replace(/[^\d]/g, '');
+    const numericValue = cleanValue === '' ? '' : parseInt(cleanValue, 10);
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: numericValue,
     }));
   };
 
@@ -185,6 +248,37 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     }));
   };
 
+  // Function to format the display of a field while keeping the numeric value
+  const CurrencyDisplay = ({ value, ...props }: { value: number | string; [key: string]: any }) => {
+    const formattedValue = formatCurrency(value);
+    return (
+      <Box sx={{ position: 'relative' }}>
+        <TextField
+          {...props}
+          InputProps={{
+            ...props.InputProps,
+            inputProps: {
+              ...props.InputProps?.inputProps,
+              inputMode: 'decimal',
+            },
+          }}
+        />
+        {value !== '' && (
+          <Box sx={{ 
+            position: 'absolute', 
+            top: '15px', 
+            right: '14px',
+            pointerEvents: 'none',
+            color: 'text.secondary',
+            fontSize: '0.9rem',
+          }}>
+            {formattedValue}
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -218,11 +312,13 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     
     const dataToSend = {
       ...formData,
+      // Ensure all numeric fields are sent as numbers
       pickup_quantity: Number(formData.pickup_quantity || 0),
       delivery_quantity: Number(formData.delivery_quantity || 0),
       price_per_block: Number(formData.price_per_block || 0),
       cash_amount: Number(formData.cash_amount || 0),
       po_amount: Number(formData.po_amount || 0),
+      // Keep optional fields as null if empty
       buyer_contact: formData.buyer_contact || null,
       po_number: formData.po_number || null,
       brine1_identifier: formData.brine1_identifier || null,
@@ -479,6 +575,11 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             name="po_number"
             value={formData.po_number}
             onChange={handleChange}
+            inputProps={{ 
+              pattern: '[A-Za-z0-9-]*',
+              title: 'Alphanumeric characters only' 
+            }}
+            placeholder="e.g., PO-12345"
             disabled={isSubmitting}
           />
         </Grid>
@@ -490,10 +591,13 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             fullWidth
             label="Pickup Quantity"
             name="pickup_quantity"
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={formData.pickup_quantity}
-            onChange={handleChange}
-            inputProps={{ min: 0, step: 1 }}
+            onChange={handleQuantityChange}
+            InputProps={{
+              endAdornment: <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>blocks</Box>,
+            }}
             disabled={isSubmitting}
             error={!!errors.pickup_quantity}
             helperText={errors.pickup_quantity}
@@ -505,25 +609,28 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             fullWidth
             label="Delivery Quantity"
             name="delivery_quantity"
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={formData.delivery_quantity}
-            onChange={handleChange}
-            inputProps={{ min: 0, step: 1 }}
+            onChange={handleQuantityChange}
+            InputProps={{
+              endAdornment: <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>blocks</Box>,
+            }}
             disabled={isSubmitting}
             error={!!errors.delivery_quantity}
             helperText={errors.delivery_quantity}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
-          <TextField
+          <CurrencyDisplay
             required
             fullWidth
             label="Price Per Block"
             name="price_per_block"
-            type="number"
             value={formData.price_per_block}
-            onChange={handleChange}
-            inputProps={{ min: 0, step: 0.01 }}
+            onChange={handleCurrencyChange}
+            type="text"
+            inputMode="decimal"
             disabled={isSubmitting}
             error={!!errors.price_per_block}
             helperText={errors.price_per_block}
@@ -538,6 +645,7 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             name="brine1_identifier"
             value={formData.brine1_identifier}
             onChange={handleChange}
+            placeholder="Enter brine batch number"
             disabled={isSubmitting}
           />
         </Grid>
@@ -548,36 +656,37 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             name="brine2_identifier"
             value={formData.brine2_identifier}
             onChange={handleChange}
+            placeholder="Enter brine batch number"
             disabled={isSubmitting}
           />
         </Grid>
 
         {/* Row 5: Cash Amount, PO Amount */}
         <Grid item xs={12} sm={6}>
-          <TextField
+          <CurrencyDisplay
             required
             fullWidth
             label="Cash Amount Paid"
             name="cash_amount"
-            type="number"
             value={formData.cash_amount}
-            onChange={handleChange}
-            inputProps={{ min: 0, step: 0.01 }}
+            onChange={handleCurrencyChange}
+            type="text"
+            inputMode="decimal"
             disabled={isSubmitting}
             error={!!errors.cash_amount}
             helperText={errors.cash_amount}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField
+          <CurrencyDisplay
             required
             fullWidth
             label="PO Amount Paid"
             name="po_amount"
-            type="number"
             value={formData.po_amount}
-            onChange={handleChange}
-            inputProps={{ min: 0, step: 0.01 }}
+            onChange={handleCurrencyChange}
+            type="text"
+            inputMode="decimal"
             disabled={isSubmitting}
             error={!!errors.po_amount}
             helperText={errors.po_amount}
