@@ -21,7 +21,7 @@ class Sale(models.Model):
         help_text="The current status of the sale record"
     )
     
-    # Customer and PO - Add buyer FK reference
+    # Buyer and PO reference
     buyer = models.ForeignKey(
         Buyer, 
         on_delete=models.PROTECT, 

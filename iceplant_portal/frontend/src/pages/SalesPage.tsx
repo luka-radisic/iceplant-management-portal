@@ -80,7 +80,7 @@ const SalesPage: React.FC = () => {
   
   // Filtering state
   const [filterStatus, setFilterStatus] = useState<string>('');
-  const [filterCustomer, setFilterCustomer] = useState<string>('');
+  const [filterBuyer, setFilterBuyer] = useState<string>('');
   const [filterDateFrom, setFilterDateFrom] = useState<string>('');
   const [filterDateTo, setFilterDateTo] = useState<string>('');
   
@@ -152,7 +152,7 @@ const SalesPage: React.FC = () => {
       // Add filter parameters if they exist
       const filterParams = new URLSearchParams();
       if (filterStatus) filterParams.append('status', filterStatus);
-      if (filterCustomer) filterParams.append('buyer_name__icontains', filterCustomer);
+      if (filterBuyer) filterParams.append('buyer_name__icontains', filterBuyer);
       if (filterDateFrom) filterParams.append('sale_date__gte', filterDateFrom);
       if (filterDateTo) filterParams.append('sale_date__lte', filterDateTo);
       
@@ -186,7 +186,7 @@ const SalesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, filterStatus, filterCustomer, filterDateFrom, filterDateTo]);
+  }, [page, pageSize, filterStatus, filterBuyer, filterDateFrom, filterDateTo]);
 
   useEffect(() => {
     fetchSales();
@@ -249,9 +249,9 @@ const SalesPage: React.FC = () => {
       filtered = filtered.filter(sale => sale.status === filterStatus);
     }
     
-    if (filterCustomer) {
+    if (filterBuyer) {
       filtered = filtered.filter(sale => 
-        sale.buyer_name.toLowerCase().includes(filterCustomer.toLowerCase())
+        sale.buyer_name.toLowerCase().includes(filterBuyer.toLowerCase())
       );
     }
     
@@ -280,10 +280,10 @@ const SalesPage: React.FC = () => {
   // Reset filters
   const resetFilters = () => {
     setFilterStatus('');
-    setFilterCustomer('');
+    setFilterBuyer('');
     setFilterDateFrom('');
     setFilterDateTo('');
-    setFilteredSales(sales);
+    setPage(1);
   };
 
   // Handle page change
@@ -293,11 +293,11 @@ const SalesPage: React.FC = () => {
 
   // Handle filter changes
   const handleStatusFilterChange = (event: SelectChangeEvent) => {
-    setFilterStatus(event.target.value);
+    setFilterStatus(event.target.value as string);
   };
 
-  const handleCustomerFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilterCustomer(event.target.value);
+  const handleBuyerFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFilterBuyer(event.target.value);
   };
 
   const handleDateFromChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,7 +311,7 @@ const SalesPage: React.FC = () => {
   // Apply filters when filter values change
   useEffect(() => {
     applyFilters();
-  }, [filterStatus, filterCustomer, filterDateFrom, filterDateTo, sales, sortField, sortDirection]);
+  }, [filterStatus, filterBuyer, filterDateFrom, filterDateTo, sales, sortField, sortDirection]);
 
   const handleSaleAdded = () => {
     fetchSales();
@@ -476,9 +476,11 @@ const SalesPage: React.FC = () => {
               <TextField
                 fullWidth
                 size="small"
-                label="Customer Name"
-                value={filterCustomer}
-                onChange={handleCustomerFilterChange}
+                label="Buyer Name"
+                value={filterBuyer}
+                onChange={handleBuyerFilterChange}
+                margin="normal"
+                variant="outlined"
               />
             </Grid>
             
@@ -556,7 +558,7 @@ const SalesPage: React.FC = () => {
                         direction={sortField === 'buyer_name' ? sortDirection : 'asc'}
                         onClick={() => handleSort('buyer_name')}
                       >
-                        Customer
+                        Buyer
                       </TableSortLabel>
                     </TableCell>
                     <TableCell align="right">Total Qty</TableCell>

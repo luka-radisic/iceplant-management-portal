@@ -269,45 +269,39 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
           />
         </Grid>
 
-        {/* Row 2: Customer, Contact, PO */}
-        <Grid item xs={12} sm={4}>
+        {/* Row 2: Buyer, Contact, PO */}
+        <Grid item xs={12} md={4}>
           <Autocomplete
-            options={buyers}
-            getOptionLabel={(option) => option.name}
+            id="buyer-autocomplete"
             value={selectedBuyer}
             onChange={handleBuyerChange}
-            inputValue={formData.buyer_name}
-            onInputChange={handleBuyerInputChange}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
+            options={buyers}
+            getOptionLabel={(option) => option.name}
+            freeSolo
             renderInput={(params) => (
               <TextField
                 {...params}
+                label="Buyer Name"
                 required
-                fullWidth
-                label="Customer Name"
-                name="buyer_name"
-                disabled={isSubmitting}
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {loadingBuyers ? <CircularProgress color="inherit" size={20} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
+                value={formData.buyer_name}
+                onChange={(e) => {
+                  setFormData({...formData, buyer_name: e.target.value});
+                  setSelectedBuyer(null);
                 }}
+                fullWidth
+                error={!!errors.buyer_name}
+                helperText={errors.buyer_name}
               />
             )}
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} md={4}>
           <TextField
             fullWidth
-            label="Customer Contact"
-            name="buyer_contact"
-            value={formData.buyer_contact}
-            onChange={handleChange}
-            disabled={isSubmitting}
+            label="Buyer Contact"
+            value={formData.buyer_contact || ''}
+            onChange={(e) => setFormData({...formData, buyer_contact: e.target.value})}
+            placeholder="Phone or email"
           />
         </Grid>
         <Grid item xs={12} sm={4}>

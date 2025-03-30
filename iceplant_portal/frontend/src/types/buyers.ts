@@ -1,5 +1,5 @@
 /**
- * Buyer model representing a customer in the system
+ * Buyer model representing a business entity or individual that purchases ice blocks
  */
 export interface Buyer {
   id: string;
