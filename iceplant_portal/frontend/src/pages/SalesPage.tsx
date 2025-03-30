@@ -32,7 +32,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button
+  Button,
+  Autocomplete
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -45,6 +46,7 @@ import { useSnackbar } from 'notistack';
 import SalesForm from '../components/sales/SalesForm';
 import { apiService, endpoints } from '../services/api';
 import { Sale } from '../types/sales';
+import { BuyerLight } from '../types/buyers';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 
@@ -95,6 +97,11 @@ const SalesPage: React.FC = () => {
   // For edit dialog
   const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
   const [editableSale, setEditableSale] = useState<Sale | null>(null);
+  
+  // For buyer autocomplete in edit dialog
+  const [buyers, setBuyers] = useState<BuyerLight[]>([]);
+  const [loadingBuyers, setLoadingBuyers] = useState<boolean>(false);
+  const [selectedEditBuyer, setSelectedEditBuyer] = useState<BuyerLight | null>(null);
 
   // Handle menu open
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, sale: Sale) => {
@@ -115,29 +122,42 @@ const SalesPage: React.FC = () => {
     const originalStatus = selectedSale.status;
     const saleIdToUpdate = selectedSale.id;
 
-    // Optimistic update
+    // Optimistic update for both sales and filteredSales
     setSales(prevSales => 
         prevSales.map(s => 
             s.id === saleIdToUpdate ? { ...s, status: newStatus } : s
         )
     );
+    
+    // Update filteredSales directly too
+    setFilteredSales(prevFilteredSales => 
+        prevFilteredSales.map(s => 
+            s.id === saleIdToUpdate ? { ...s, status: newStatus } : s
+        )
+    );
+    
     handleMenuClose();
 
     try {
         await apiService.updateSaleStatus(saleIdToUpdate, newStatus);
         enqueueSnackbar(`Sale ${selectedSale.si_number} status updated to ${newStatus}.`, { variant: 'success' });
-        applyFilters(); // Refresh filtered data
+        // Force refresh of filtered data
+        await fetchSales();
     } catch (err) {
         console.error("Error updating sale status:", err);
         enqueueSnackbar(`Failed to update status for sale ${selectedSale.si_number}. Reverting change.`, { variant: 'error' });
         
-        // Revert the change in case of error
+        // Revert the change in case of error - update both states
         setSales(prevSales => 
             prevSales.map(s => 
                 s.id === saleIdToUpdate ? { ...s, status: originalStatus } : s
             )
         );
-        applyFilters(); // Refresh filtered data
+        setFilteredSales(prevFilteredSales => 
+            prevFilteredSales.map(s => 
+                s.id === saleIdToUpdate ? { ...s, status: originalStatus } : s
+            )
+        );
     }
   };
 
@@ -391,7 +411,28 @@ const SalesPage: React.FC = () => {
     if (!editableSale) return;
     
     try {
-      await apiService.put(`${endpoints.sales}${editableSale.id}/`, updatedSale);
+      const dataToSend = { ...updatedSale };
+      
+      // If no buyer_id is present but we have a buyer_name, try to find or create a buyer
+      if (!updatedSale.buyer_id && updatedSale.buyer_name) {
+        try {
+          // Use the enhanced search method that also checks for UUID format
+          const buyerResponse = await apiService.searchOrCreateBuyerWithId(updatedSale.buyer_name);
+          if (buyerResponse && buyerResponse.id) {
+            dataToSend.buyer_id = buyerResponse.id;
+            
+            // Update the buyers list with the new buyer
+            if (!buyers.some(b => b.id === buyerResponse.id)) {
+              setBuyers(prev => [...prev, buyerResponse]);
+            }
+          }
+        } catch (err) {
+          console.error("Error finding/creating buyer:", err);
+          // Continue with the sale update even if buyer creation fails
+        }
+      }
+      
+      await apiService.put(`${endpoints.sales}${editableSale.id}/`, dataToSend);
       enqueueSnackbar(`Sale ${editableSale.si_number} updated successfully`, { variant: 'success' });
       fetchSales(); // Refresh sales list
       handleCloseEditDialog();
@@ -404,6 +445,7 @@ const SalesPage: React.FC = () => {
   const handleCloseEditDialog = () => {
     setEditDialogOpen(false);
     setEditableSale(null);
+    setSelectedEditBuyer(null);
     
     // If we came from admin route, update URL to remove /admin/sales/sale/:id/change
     if (location.pathname.includes('/admin/sales/sale/')) {
@@ -411,11 +453,42 @@ const SalesPage: React.FC = () => {
     }
   };
 
-  // Add these just before the return statement
+  // Fetch buyers for autocomplete
+  const fetchBuyers = async () => {
+    setLoadingBuyers(true);
+    try {
+      const response = await apiService.getActiveBuyers();
+      console.log("Loaded buyers for autocomplete:", response);
+      
+      // Sort buyers alphabetically by name for better usability
+      const sortedBuyers = [...response].sort((a, b) => {
+        return a.name.localeCompare(b.name);
+      });
+      
+      setBuyers(sortedBuyers);
+    } catch (error) {
+      console.error("Failed to load buyers:", error);
+      enqueueSnackbar("Failed to load buyers list", { variant: 'error' });
+    } finally {
+      setLoadingBuyers(false);
+    }
+  };
+
+  // Modify handleOpenEditDialog to load buyers
   const handleOpenEditDialog = (sale: Sale) => {
     setEditableSale(sale);
     setEditDialogOpen(true);
     handleMenuClose();
+    
+    // Fetch buyers for autocomplete
+    fetchBuyers();
+    
+    // If the sale has a buyer, find and set the selected buyer
+    if (sale.buyer) {
+      setSelectedEditBuyer(sale.buyer);
+    } else {
+      setSelectedEditBuyer(null);
+    }
   };
 
   // Function to format currency in Philippine Peso
@@ -442,6 +515,34 @@ const SalesPage: React.FC = () => {
     localStorage.setItem('printSale', JSON.stringify(sale));
     // Open the print view in a new window/tab
     window.open(`/sales/print/${sale.id}`, '_blank');
+  };
+
+  // Handle buyer selection from autocomplete in edit dialog
+  const handleEditBuyerChange = (_event: React.SyntheticEvent, newValue: BuyerLight | null) => {
+    setSelectedEditBuyer(newValue);
+    
+    if (newValue && editableSale) {
+      // Update form with selected buyer's info
+      setEditableSale({
+        ...editableSale,
+        buyer: newValue,
+        buyer_id: newValue.id,
+        buyer_name: newValue.name,
+        buyer_contact: newValue.phone || newValue.email || editableSale.buyer_contact || '',
+      });
+      
+      enqueueSnackbar(`Buyer "${newValue.name}" selected`, { 
+        variant: 'success',
+        autoHideDuration: 2000 
+      });
+    } else if (editableSale) {
+      // Clear buyer reference but keep the name (user might be typing)
+      setEditableSale({
+        ...editableSale,
+        buyer: null,
+        buyer_id: undefined,
+      });
+    }
   };
 
   return (
@@ -783,12 +884,91 @@ const SalesPage: React.FC = () => {
                      onChange={(e) => setEditableSale({ ...editableSale, si_number: e.target.value })}
                      margin="normal"
                    />
-                   <TextField
-                     label="Buyer Name"
-                     fullWidth
-                     value={editableSale.buyer_name}
-                     onChange={(e) => setEditableSale({ ...editableSale, buyer_name: e.target.value })}
-                     margin="normal"
+                   <Autocomplete
+                     id="edit-buyer-autocomplete"
+                     value={selectedEditBuyer}
+                     onChange={handleEditBuyerChange}
+                     options={buyers}
+                     getOptionLabel={(option) => option.name}
+                     filterOptions={(options, state) => {
+                       const inputValue = state.inputValue.toLowerCase().trim();
+                       if (!inputValue) return [];
+                       
+                       const terms = inputValue.split(/\s+/);
+                       
+                       return options.filter(option => {
+                         const fullName = option.name.toLowerCase();
+                         const nameParts = fullName.split(/\s+/);
+                         
+                         if (terms.length > 1 && terms.length <= nameParts.length) {
+                           let matchesAllTerms = true;
+                           
+                           for (let i = 0; i < terms.length; i++) {
+                             const term = terms[i];
+                             const matchesAnyPart = nameParts.some((part, index) => {
+                               if (i === 0 || index >= i) {
+                                 return part.startsWith(term);
+                               }
+                               return false;
+                             });
+                             
+                             if (!matchesAnyPart) {
+                               matchesAllTerms = false;
+                               break;
+                             }
+                           }
+                           
+                           return matchesAllTerms;
+                         }
+                         
+                         return nameParts.some(part => part.startsWith(inputValue));
+                       });
+                     }}
+                     renderOption={(props, option) => (
+                       <li {...props} style={{ padding: '8px 16px' }}>
+                         <div>
+                           <div style={{ fontWeight: 'bold' }}>{option.name}</div>
+                           {option.company_name && (
+                             <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.company_name}</div>
+                           )}
+                           {option.phone && (
+                             <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.phone}</div>
+                           )}
+                         </div>
+                       </li>
+                     )}
+                     freeSolo
+                     autoHighlight
+                     clearOnEscape
+                     loading={loadingBuyers}
+                     noOptionsText="No matching buyers found"
+                     loadingText="Loading buyers..."
+                     renderInput={(params) => (
+                       <TextField
+                         {...params}
+                         label="Buyer Name"
+                         required
+                         fullWidth
+                         margin="normal"
+                         onChange={(e) => {
+                           setEditableSale({...editableSale, buyer_name: e.target.value});
+                           if (e.target.value === '') {
+                             setSelectedEditBuyer(null);
+                           }
+                         }}
+                         value={editableSale.buyer_name}
+                         helperText="Start typing to search for buyers by name or ID"
+                         InputProps={{
+                           ...params.InputProps,
+                           endAdornment: (
+                             <>
+                               {loadingBuyers ? <CircularProgress color="inherit" size={20} /> : null}
+                               {params.InputProps.endAdornment}
+                             </>
+                           ),
+                         }}
+                       />
+                     )}
                    />
                    <TextField
                      label="Sale Date"
@@ -798,6 +978,27 @@ const SalesPage: React.FC = () => {
                      onChange={(e) => setEditableSale({ ...editableSale, sale_date: e.target.value })}
                      margin="normal"
                      InputLabelProps={{ shrink: true }}
+                   />
+                   <TextField
+                     fullWidth
+                     label="Buyer Contact"
+                     value={editableSale.buyer_contact || ''}
+                     onChange={(e) => setEditableSale({...editableSale, buyer_contact: e.target.value})}
+                     margin="normal"
+                     placeholder="Phone or email"
+                     InputProps={{
+                       startAdornment: selectedEditBuyer && (
+                         <Box component="span" sx={{ 
+                           color: 'success.main', 
+                           fontSize: '0.8rem',
+                           position: 'absolute',
+                           top: '-20px',
+                           left: '0'
+                         }}>
+                           {selectedEditBuyer.company_name ? `${selectedEditBuyer.company_name}` : ''}
+                         </Box>
+                       ),
+                     }}
                    />
                  </Grid>
                  <Grid item xs={12} md={6}>
