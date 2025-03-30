@@ -39,6 +39,9 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // State for validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
   // State for buyers list
   const [buyers, setBuyers] = useState<BuyerLight[]>([]);
   const [loadingBuyers, setLoadingBuyers] = useState(false);
@@ -86,6 +89,16 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   ) => {
     const { name, value, type } = e.target;
     let processedValue: string | number | '' = value;
+    
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
     if (type === 'number') {
       // Use Number() which correctly handles empty string (as 0), unlike parseFloat (NaN)
       // However, we want to store empty string in state if the input is cleared
@@ -112,6 +125,15 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   // Handle buyer selection from autocomplete
   const handleBuyerChange = (event: React.SyntheticEvent, newValue: BuyerLight | null) => {
     setSelectedBuyer(newValue);
+    
+    // Clear buyer_name error if it exists
+    if (errors.buyer_name) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.buyer_name;
+        return newErrors;
+      });
+    }
     
     if (newValue) {
       // Update form with selected buyer's info
@@ -141,6 +163,13 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    
+    // Clear previous errors
+    setErrors({});
+
+    // Validate form
+    let hasErrors = false;
+    const newErrors: Record<string, string> = {};
 
     const requiredFields: (keyof SaleFormData)[] = [
       'si_number', 'sale_date', 'sale_time', 'buyer_name', 
@@ -148,10 +177,16 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       'cash_amount', 'po_amount'
     ];
     
-    const missingField = requiredFields.find(field => formData[field] === '' || formData[field] === null);
+    for (const field of requiredFields) {
+      if (formData[field] === '' || formData[field] === null) {
+        newErrors[field] = `${field.replace(/_/g, ' ')} is required`;
+        hasErrors = true;
+      }
+    }
 
-    if (missingField) {
-      enqueueSnackbar(`Error: Field "${missingField.replace('_', ' ')}" is required.`, { variant: 'error' });
+    if (hasErrors) {
+      setErrors(newErrors);
+      enqueueSnackbar(`Please fix the errors in the form.`, { variant: 'error' });
       setIsSubmitting(false);
       return;
     }
@@ -199,17 +234,33 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     } catch (error: any) {
       console.error('Failed to submit sale:', error);
       let errorMessage = 'Failed to record sale. Please check console for details.';
+      
+      // Clear previous field errors
+      setErrors({});
+      
       // Try to get more specific error from backend response
       if (error.response && error.response.data) {
           const errors = error.response.data;
           // Format Django Rest Framework validation errors (check if it's an object)
           if (typeof errors === 'object' && errors !== null) {
-            const formattedErrors = Object.entries(errors).map(([field, messages]) => {
+            // Set field-specific errors
+            const fieldErrors: Record<string, string> = {};
+            
+            Object.entries(errors).forEach(([field, messages]) => {
               // Ensure messages is an array before joining
+              const messageString = Array.isArray(messages) ? messages.join(', ') : String(messages);
+              fieldErrors[field] = messageString;
+            });
+            
+            setErrors(fieldErrors);
+            
+            // Format a general error message
+            const formattedErrors = Object.entries(errors).map(([field, messages]) => {
               const messageString = Array.isArray(messages) ? messages.join(', ') : String(messages);
               return `${field}: ${messageString}`;
             }).join('; ');
-            if (formattedErrors) { // Use formatted errors only if parsing was successful
+            
+            if (formattedErrors) {
                  errorMessage = formattedErrors;
             }
           } else if (typeof errors === 'string') {
@@ -236,6 +287,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             value={formData.si_number}
             onChange={handleChange}
             disabled={isSubmitting}
+            error={!!errors.si_number}
+            helperText={errors.si_number}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
@@ -251,6 +304,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
               shrink: true,
             }}
             disabled={isSubmitting}
+            error={!!errors.sale_date}
+            helperText={errors.sale_date}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
@@ -266,6 +321,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
               shrink: true,
             }}
             disabled={isSubmitting}
+            error={!!errors.sale_time}
+            helperText={errors.sale_time}
           />
         </Grid>
 
@@ -327,6 +384,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             onChange={handleChange}
             inputProps={{ min: 0, step: 1 }}
             disabled={isSubmitting}
+            error={!!errors.pickup_quantity}
+            helperText={errors.pickup_quantity}
           />
         </Grid>
          <Grid item xs={12} sm={4}>
@@ -340,6 +399,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             onChange={handleChange}
             inputProps={{ min: 0, step: 1 }}
             disabled={isSubmitting}
+            error={!!errors.delivery_quantity}
+            helperText={errors.delivery_quantity}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
@@ -353,6 +414,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             onChange={handleChange}
             inputProps={{ min: 0, step: 0.01 }}
             disabled={isSubmitting}
+            error={!!errors.price_per_block}
+            helperText={errors.price_per_block}
           />
         </Grid>
         
@@ -390,6 +453,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             onChange={handleChange}
             inputProps={{ min: 0, step: 0.01 }}
             disabled={isSubmitting}
+            error={!!errors.cash_amount}
+            helperText={errors.cash_amount}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -403,6 +468,8 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             onChange={handleChange}
             inputProps={{ min: 0, step: 0.01 }}
             disabled={isSubmitting}
+            error={!!errors.po_amount}
+            helperText={errors.po_amount}
           />
         </Grid>
         
