@@ -243,7 +243,17 @@ export default function AttendanceList() {
                     </TableCell>
                     <TableCell>{record.department}</TableCell>
                     <TableCell>{formatDate(record.check_in)}</TableCell>
-                    <TableCell>{formatTime(record.check_in)}</TableCell>
+                    <TableCell>
+                      <Typography 
+                        component="span" 
+                        sx={{ 
+                          fontWeight: 'bold', 
+                          color: 'success.main'
+                        }}
+                      >
+                        {formatTime(record.check_in)}
+                      </Typography>
+                    </TableCell>
                     <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
                     <TableCell>{record.duration || '-'}</TableCell>
                   </TableRow>

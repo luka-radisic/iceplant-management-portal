@@ -137,19 +137,17 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             print(f"Error processing same-day check-ins: {str(e)}")
     
     def _process_employee_checkins(self, employee_id):
-        """Process check-ins for a specific employee"""
+        """Process check-ins for a specific employee, consolidating same-day records."""
         # Get all check-ins for the employee ordered by time
         records = Attendance.objects.filter(
             employee_id=employee_id
-        ).exclude(department='NO SHOW').order_by('check_in')
+        ).order_by('check_in')
         
-        # Group records by date
+        # Group records by date (using Manila timezone)
         date_records = {}
+        manila_tz = pytz.timezone('Asia/Manila')
         for record in records:
-            # Get local date (Manila time)
-            manila_tz = pytz.timezone('Asia/Manila')
             local_date = record.check_in.astimezone(manila_tz).date()
-            
             if local_date not in date_records:
                 date_records[local_date] = []
             date_records[local_date].append(record)
@@ -158,29 +156,39 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         for date, day_records in date_records.items():
             if len(day_records) >= 2:
                 # If there are multiple check-ins on the same day
-                # Set the first one as check-in and any additional ones as check-out
-                first_record = day_records[0]
+                earliest_record = day_records[0]
+                latest_record = day_records[-1]
+                records_to_delete = day_records[1:] # All records except the first
+
+                # Update the earliest record's check_out time to the latest check_in time
+                # only if it makes sense (latest is after earliest)
+                if latest_record.check_in > earliest_record.check_in:
+                    # Check if check_out needs updating (is null or earlier than latest check_in)
+                    should_update = False
+                    if earliest_record.check_out is None:
+                        should_update = True
+                    else:
+                        # Make check_out aware for comparison if it exists
+                        aware_checkout = timezone.make_aware(earliest_record.check_out, manila_tz) if timezone.is_naive(earliest_record.check_out) else earliest_record.check_out.astimezone(manila_tz)
+                        if aware_checkout < latest_record.check_in.astimezone(manila_tz):
+                            should_update = True
+                    
+                    if should_update:
+                        original_checkout = earliest_record.check_out
+                        earliest_record.check_out = latest_record.check_in
+                        earliest_record.save()
+                        print(f"Consolidated records for employee {employee_id} on {date}: Updated record {earliest_record.id} check-out from {original_checkout} to {earliest_record.check_out}")
+                    else:
+                         print(f"Consolidated records for employee {employee_id} on {date}: Record {earliest_record.id} check-out {earliest_record.check_out} is already later than or equal to latest check-in {latest_record.check_in}. No update needed.")
+
+                # Delete the subsequent records for that day
+                deleted_ids = []
+                for record_to_delete in records_to_delete:
+                    deleted_ids.append(record_to_delete.id)
+                    record_to_delete.delete()
                 
-                for record_idx in range(1, len(day_records)):
-                    current_record = day_records[record_idx]
-                    
-                    # Try to identify if this is a break check-in/out or a shift end
-                    # For simplicity, we'll use a minimum time difference (e.g. 30 minutes)
-                    time_diff = current_record.check_in - first_record.check_in
-                    min_break_time = timedelta(minutes=30)
-                    
-                    if time_diff >= min_break_time:
-                        # This is likely a genuine check-out or return from break
-                        # If the previous record doesn't have a check-out time, set it
-                        if not first_record.check_out:
-                            first_record.check_out = current_record.check_in
-                            first_record.save()
-                            
-                            # Log this change
-                            print(f"Updated record {first_record.id} with check-out time from record {current_record.id} for employee {employee_id} on {date}")
-                        
-                        # Keep the current record as a potential next check-in
-                        first_record = current_record
+                if deleted_ids:
+                    print(f"Consolidated records for employee {employee_id} on {date}: Deleted redundant records: {deleted_ids}")
     
     def paginate_queryset(self, queryset):
         """Override to handle pagination properly"""

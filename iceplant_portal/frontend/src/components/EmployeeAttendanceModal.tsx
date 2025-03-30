@@ -939,6 +939,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                   <TableHead>
                     <TableRow>
                       <TableCell>Date</TableCell>
+                      <TableCell>Day</TableCell>
                       <TableCell>Check In</TableCell>
                       <TableCell>Check Out</TableCell>
                       {trackShifts && <TableCell>Shift Type</TableCell>}
@@ -949,15 +950,30 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                   <TableBody>
                     {records.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={trackShifts ? 6 : 5} align="center">No records found</TableCell>
+                        <TableCell colSpan={trackShifts ? 7 : 6} align="center">No records found</TableCell>
                       </TableRow>
                     ) : (
                       records.map((record, index) => (
                         <TableRow key={index} sx={{ 
-                          bgcolor: record.check_out ? 'rgba(76, 175, 80, 0.08)' : 'inherit' 
+                          bgcolor: record.department === 'NO SHOW' 
+                            ? 'warning.lighter' 
+                            : record.check_out 
+                              ? 'inherit' 
+                              : 'action.hover',
                         }}>
                           <TableCell>{formatDateStr(record.check_in)}</TableCell>
-                          <TableCell>{formatTime(record.check_in)}</TableCell>
+                          <TableCell>{formatTZ(new Date(record.check_in), 'EEE', { timeZone: 'Asia/Manila' })}</TableCell>
+                          <TableCell>
+                            <Typography 
+                              component="span" 
+                              sx={{ 
+                                fontWeight: 'bold', 
+                                color: 'success.main'
+                              }}
+                            >
+                              {formatTime(record.check_in)}
+                            </Typography>
+                          </TableCell>
                           <TableCell>
                             {record.check_out ? (
                               <Typography 
