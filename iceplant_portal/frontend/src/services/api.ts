@@ -92,7 +92,7 @@ export const endpoints = {
   // Sales
   sales: '/api/sales/sales/',
   salesByDate: '/api/sales/by-date/',
-  salesSummary: '/api/sales/summary/',
+  salesSummary: '/api/sales/sales/summary/',
 
   // Buyers
   buyers: '/api/buyers/buyers/',
@@ -198,9 +198,9 @@ export const apiService = {
   },
 
   // PUT requests
-  put: async (endpoint: string, data: any) => {
+  put: async (endpoint: string, data: any, config?: any) => {
     try {
-      const response = await api.put(endpoint, data);
+      const response = await api.put(endpoint, data, config);
       return response.data;
     } catch (error) {
       console.error('PUT request failed:', error);
@@ -414,10 +414,26 @@ export const apiService = {
   updateCompanySettings: async (settings: any) => {
     // If we have an ID, update the existing settings
     if (settings.id) {
-      return apiService.put(`${endpoints.company}${settings.id}/`, settings);
+      return apiService.put(
+        `${endpoints.company}${settings.id}/`, 
+        settings,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     }
     // Otherwise create new settings
-    return apiService.post(endpoints.company, settings);
+    return apiService.post(
+      endpoints.company,
+      settings,
+      {
+        headers: {
+          'Content-Type': 'application/json', 
+        },
+      }
+    );
   },
   
   uploadCompanyLogo: async (logoFile: File) => {

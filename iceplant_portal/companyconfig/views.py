@@ -1,8 +1,8 @@
 from django.shortcuts import render
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import CompanySettings
 from .serializers import CompanySettingsSerializer
 
@@ -15,7 +15,7 @@ class CompanySettingsViewSet(viewsets.ModelViewSet):
     """
     queryset = CompanySettings.objects.all()
     serializer_class = CompanySettingsSerializer
-    parser_classes = (MultiPartParser, FormParser)  # Enable file uploads
+    parser_classes = (JSONParser, MultiPartParser, FormParser)  # Enable file uploads and JSON
     
     def get_queryset(self):
         # Ensure we only see the settings instance
@@ -25,6 +25,20 @@ class CompanySettingsViewSet(viewsets.ModelViewSet):
         # Override list to just return the single instance
         instance = CompanySettings.get_settings()
         serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+    
+    def retrieve(self, request, *args, **kwargs):
+        # Override retrieve to get the settings regardless of the ID provided
+        instance = CompanySettings.get_settings()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+    
+    def update(self, request, *args, **kwargs):
+        # Override update to update the settings regardless of the ID provided
+        instance = CompanySettings.get_settings()
+        serializer = self.get_serializer(instance, data=request.data, partial=kwargs.get('partial', False))
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
         return Response(serializer.data)
     
     def create(self, request, *args, **kwargs):
