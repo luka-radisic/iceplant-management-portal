@@ -7,6 +7,7 @@ import {
   Menu as MenuIcon,
   People as PeopleIcon,
   ShoppingCart as SalesIcon,
+  Build as ToolsIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -55,6 +56,7 @@ const menuItems = [
   { text: 'Sales', icon: <SalesIcon />, path: '/sales' },
   { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
   { text: 'Expenses', icon: <ExpensesIcon />, path: '/expenses' },
+  { text: 'Tools', icon: <ToolsIcon />, path: '/tools' },
 ];
 
 export default function DashboardLayout() {

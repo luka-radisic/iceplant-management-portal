@@ -16,7 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import { format } from 'date-fns';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import apiService from '../services/api';
 import EmployeeAttendanceModal from './EmployeeAttendanceModal';
 
@@ -27,7 +27,6 @@ export default function AttendanceList() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
-  const [processingCheckIns, setProcessingCheckIns] = useState(false);
   const [filters, setFilters] = useState({
     start_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
     end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
@@ -45,7 +44,7 @@ export default function AttendanceList() {
     }
   };
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
       console.log('Fetching attendance records with params:', {
@@ -89,31 +88,7 @@ export default function AttendanceList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const processSameDayCheckIns = async () => {
-    setProcessingCheckIns(true);
-    try {
-      // First, explicitly call the API with process_checkins=true
-      await apiService.get('/api/attendance/attendance/', {
-        process_checkins: 'true',
-        page: 1,
-        page_size: 10
-      });
-      
-      // Then call the backend process endpoint
-      await apiService.processSameDayCheckIns();
-      
-      // Refresh records to show changes
-      await fetchRecords();
-      alert('Successfully processed same-day check-ins!');
-    } catch (error) {
-      console.error('Error processing same-day check-ins:', error);
-      alert('Failed to process same-day check-ins. Please check console for details.');
-    } finally {
-      setProcessingCheckIns(false);
-    }
-  };
+  }, [page, rowsPerPage, filters]);
 
   useEffect(() => {
     fetchDepartments();
@@ -121,7 +96,7 @@ export default function AttendanceList() {
 
   useEffect(() => {
     fetchRecords();
-  }, [page, rowsPerPage, filters]);
+  }, [fetchRecords]);
 
   const formatTime = (dateString: string) => {
     try {
@@ -139,68 +114,65 @@ export default function AttendanceList() {
     }
   };
 
+  const handleFilterChange = (filterName: string, value: string) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+    setPage(0);
+  };
+
   return (
     <Box>
       {/* Filters */}
       <Box mb={3}>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} alignItems="center">
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom>
               Attendance Records
             </Typography>
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               label="Start Date"
               type="date"
               value={filters.start_date}
-              onChange={(e) => {
-                setFilters(prev => ({ ...prev, start_date: e.target.value }));
-                setPage(0);
-              }}
+              onChange={(e) => handleFilterChange('start_date', e.target.value)}
               InputLabelProps={{ shrink: true }}
+              size="small"
             />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               label="End Date"
               type="date"
               value={filters.end_date}
-              onChange={(e) => {
-                setFilters(prev => ({ ...prev, end_date: e.target.value }));
-                setPage(0);
-              }}
+              onChange={(e) => handleFilterChange('end_date', e.target.value)}
               InputLabelProps={{ shrink: true }}
+              size="small"
             />
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               select
               fullWidth
               label="Status"
               value={filters.status}
-              onChange={(e) => {
-                setFilters(prev => ({ ...prev, status: e.target.value }));
-                setPage(0);
-              }}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+              size="small"
             >
               <MenuItem value="all">All Records</MenuItem>
               <MenuItem value="present">Present</MenuItem>
               <MenuItem value="no-show">No Shows</MenuItem>
             </TextField>
           </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               select
               fullWidth
               label="Department"
               value={filters.department}
-              onChange={(e) => {
-                setFilters(prev => ({ ...prev, department: e.target.value }));
-                setPage(0);
-              }}
+              onChange={(e) => handleFilterChange('department', e.target.value)}
+              size="small"
             >
               <MenuItem value="">All Departments</MenuItem>
               {departments.map((dept) => (
@@ -209,28 +181,6 @@ export default function AttendanceList() {
                 </MenuItem>
               ))}
             </TextField>
-          </Grid>
-          <Grid item xs={3}>
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={processSameDayCheckIns}
-              disabled={processingCheckIns}
-            >
-              {processingCheckIns ? <CircularProgress size={20} /> : 'Process Check-Ins'}
-            </Button>
-          </Grid>
-          <Grid item xs={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              color="primary"
-              onClick={fetchRecords}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={20} /> : 'Refresh Data'}
-            </Button>
           </Grid>
         </Grid>
       </Box>
@@ -242,7 +192,7 @@ export default function AttendanceList() {
         </Box>
       ) : (
         <TableContainer component={Paper}>
-          <Table>
+          <Table size="small">
             <TableHead>
               <TableRow>
                 <TableCell>Employee ID</TableCell>
@@ -255,38 +205,50 @@ export default function AttendanceList() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {records.map((record) => (
-                <TableRow
-                  key={record.id}
-                  sx={{
-                    bgcolor: record.department === 'NO SHOW' ? '#fff3e0' : 'inherit',
-                  }}
-                >
-                  <TableCell>{record.employee_id}</TableCell>
-                  <TableCell>
-                    <Button
-                      sx={{
-                        textTransform: 'none',
-                        padding: 0,
-                        minWidth: 'auto',
-                        textAlign: 'left',
-                        fontWeight: 'normal',
-                      }}
-                      onClick={() => setSelectedEmployee({
-                        id: record.employee_id,
-                        name: record.employee_name,
-                      })}
-                    >
-                      {record.employee_name}
-                    </Button>
-                  </TableCell>
-                  <TableCell>{record.department}</TableCell>
-                  <TableCell>{formatDate(record.check_in)}</TableCell>
-                  <TableCell>{formatTime(record.check_in)}</TableCell>
-                  <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
-                  <TableCell>{record.duration || '-'}</TableCell>
+              {records.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">No records found for the selected criteria.</TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                records.map((record) => (
+                  <TableRow
+                    key={record.id}
+                    hover
+                    sx={{
+                      bgcolor: record.department === 'NO SHOW' ? 'warning.lighter' : 'inherit',
+                      '&:hover': {
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell>{record.employee_id}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="text"
+                        size="small"
+                        sx={{
+                          textTransform: 'none',
+                          padding: 0,
+                          minWidth: 'auto',
+                          textAlign: 'left',
+                          fontWeight: 'normal',
+                        }}
+                        onClick={() => setSelectedEmployee({
+                          id: record.employee_id,
+                          name: record.employee_name,
+                        })}
+                      >
+                        {record.employee_name}
+                      </Button>
+                    </TableCell>
+                    <TableCell>{record.department}</TableCell>
+                    <TableCell>{formatDate(record.check_in)}</TableCell>
+                    <TableCell>{formatTime(record.check_in)}</TableCell>
+                    <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
+                    <TableCell>{record.duration || '-'}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
           <TablePagination
