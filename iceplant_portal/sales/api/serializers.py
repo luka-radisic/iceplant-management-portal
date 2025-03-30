@@ -133,3 +133,15 @@ class SaleSerializer(serializers.ModelSerializer):
         return instance
         
     # Removed get_total_weight and get_brine_level_display methods 
+
+    def to_representation(self, instance):
+        """
+        Override to_representation to ensure buyer_name is always in sync with the buyer.
+        """
+        representation = super().to_representation(instance)
+        
+        # If there's a buyer object, always use its name for buyer_name field
+        if instance.buyer:
+            representation['buyer_name'] = instance.buyer.name
+            
+        return representation 

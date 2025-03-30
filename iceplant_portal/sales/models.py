@@ -64,8 +64,8 @@ class Sale(models.Model):
         return f"SI {self.si_number} - {self.buyer_name} - {self.sale_date}"
     
     def save(self, *args, **kwargs):
-        # If there's a buyer reference, ensure buyer_name is in sync
-        if self.buyer and not self.buyer_name:
+        # Always sync buyer_name from the buyer reference if available
+        if self.buyer:
             self.buyer_name = self.buyer.name
         super().save(*args, **kwargs)
     

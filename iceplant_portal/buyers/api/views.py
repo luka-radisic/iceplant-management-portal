@@ -17,7 +17,7 @@ class BuyerViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at', 'updated_at']
     
     @action(detail=False, methods=['get'])
-    def active(self):
+    def active(self, request):
         """
         Returns only active buyers.
         """
