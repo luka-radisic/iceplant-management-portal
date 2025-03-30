@@ -7,17 +7,19 @@ import {
   Typography,
   Container,
   CircularProgress,
+  Alert,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../contexts/AuthContext';
-import apiService from '../services/api';
+import { apiService } from '../services/api';
 
 export default function Login() {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { login: authLogin } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -34,6 +36,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       const response = await apiService.login(formData.username, formData.password);
@@ -43,13 +46,19 @@ export default function Login() {
           id: response.user_id || 0,
           username: formData.username,
           email: response.email || '',
+          is_staff: response.is_staff || false,
+          is_superuser: response.is_superuser || false,
         },
       });
       enqueueSnackbar('Login successful', { variant: 'success' });
       navigate('/', { replace: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      enqueueSnackbar('Invalid username or password', { variant: 'error' });
+      if (error.response?.status === 400) {
+        setError('Invalid username or password');
+      } else {
+        setError('Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -81,6 +90,13 @@ export default function Login() {
           <Typography component="h2" variant="h6" color="textSecondary" gutterBottom>
             Sign In
           </Typography>
+          
+          {error && (
+            <Alert severity="error" sx={{ width: '100%', mt: 2, mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField
               margin="normal"
@@ -117,6 +133,15 @@ export default function Login() {
             >
               {loading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
+            
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Typography variant="body2">
+                Don't have an account?{' '}
+                <RouterLink to="/register" style={{ textDecoration: 'none' }}>
+                  Create one
+                </RouterLink>
+              </Typography>
+            </Box>
           </Box>
         </Paper>
       </Box>

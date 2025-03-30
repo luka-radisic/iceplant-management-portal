@@ -8,6 +8,7 @@ import {
   People as PeopleIcon,
   ShoppingCart as SalesIcon,
   Build as ToolsIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -23,6 +24,7 @@ import {
   ListItemText,
   Toolbar,
   Typography,
+  Chip,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useState } from 'react';
@@ -50,6 +52,7 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
   }),
 }));
 
+// Regular menu items for all users
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { text: 'Attendance', icon: <PeopleIcon />, path: '/attendance' },
@@ -59,11 +62,16 @@ const menuItems = [
   { text: 'Tools', icon: <ToolsIcon />, path: '/tools' },
 ];
 
+// Admin-only menu items
+const adminMenuItems = [
+  { text: 'User Management', icon: <AdminIcon />, path: '/admin' },
+];
+
 export default function DashboardLayout() {
   const [open, setOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
 
   const handleDrawerToggle = () => {
     setOpen(!open);
@@ -86,9 +94,19 @@ export default function DashboardLayout() {
             Ice Plant Management Portal
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body1" noWrap>
-              {user?.username}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {isAdmin && (
+                <Chip 
+                  size="small"
+                  label="Admin"
+                  color="warning"
+                  sx={{ mr: 1 }}
+                />
+              )}
+              <Typography variant="body1" noWrap>
+                {user?.username}
+              </Typography>
+            </Box>
             <Button
               color="inherit"
               onClick={logout}
@@ -127,6 +145,31 @@ export default function DashboardLayout() {
               </ListItem>
             ))}
           </List>
+          
+          {isAdmin && (
+            <>
+              <Divider />
+              <List>
+                <ListItem>
+                  <Typography variant="overline" color="text.secondary">
+                    Administration
+                  </Typography>
+                </ListItem>
+                {adminMenuItems.map((item) => (
+                  <ListItem key={item.text} disablePadding>
+                    <ListItemButton
+                      selected={location.pathname === item.path}
+                      onClick={() => navigate(item.path)}
+                    >
+                      <ListItemIcon>{item.icon}</ListItemIcon>
+                      <ListItemText primary={item.text} />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+          
           <Divider />
         </Box>
       </Drawer>

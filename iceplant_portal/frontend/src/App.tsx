@@ -9,13 +9,16 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { LogProvider } from './components/LogProvider';
 import { LogViewer } from './components/LogViewer';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import Attendance from './pages/Attendance';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import ToolsPage from './pages/ToolsPage';
 import SalesPage from './pages/SalesPage';
+import UserManagement from './pages/UserManagement';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
@@ -36,6 +39,7 @@ function App() {
               <AuthProvider>
                 <Routes>
                   <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
 
                   <Route
                     element={
@@ -50,6 +54,9 @@ function App() {
                     <Route path="/inventory" element={<Inventory />} />
                     <Route path="/expenses" element={<Expenses />} />
                     <Route path="/tools" element={<ToolsPage />} />
+                    
+                    {/* Admin-only routes */}
+                    <Route path="/admin" element={<AdminRoute><UserManagement /></AdminRoute>} />
                   </Route>
 
                   {/* Catch all route */}
