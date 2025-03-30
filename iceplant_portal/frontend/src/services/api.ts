@@ -290,6 +290,23 @@ export const apiService = {
       }
     }
   },
+
+  // PATCH requests (useful for partial updates)
+  patch: async (endpoint: string, data: any) => {
+    try {
+      const response = await api.patch(endpoint, data);
+      return response.data;
+    } catch (error) {
+      console.error('PATCH request failed:', error);
+      throw error;
+    }
+  },
+
+  // Specific method for updating sale status
+  updateSaleStatus: async (saleId: number, status: 'active' | 'canceled' | 'error') => {
+    const endpoint = `${endpoints.sales}${saleId}/`; // Construct URL like /api/sales/sales/1/
+    return apiService.patch(endpoint, { status });
+  },
 };
 
 export default apiService; 

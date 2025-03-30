@@ -9,6 +9,11 @@ import {
 import { useSnackbar } from 'notistack';
 import { apiService, endpoints } from '../../services/api';
 
+// Define props interface to include the callback
+interface SalesFormProps {
+  onSaleAdded: () => void; // Callback function prop
+}
+
 // Define an interface for the form data based on the model
 interface SaleFormData {
   si_number: string;
@@ -27,7 +32,7 @@ interface SaleFormData {
   notes?: string;
 }
 
-const SalesForm: React.FC = () => {
+const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -116,6 +121,7 @@ const SalesForm: React.FC = () => {
       await apiService.post(endpoints.sales, dataToSend);
       enqueueSnackbar('Sale recorded successfully!', { variant: 'success' });
       setFormData(initialFormData);
+      onSaleAdded();
     } catch (error: any) {
       console.error('Failed to submit sale:', error);
       let errorMessage = 'Failed to record sale. Please check console for details.';

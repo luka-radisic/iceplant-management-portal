@@ -13,15 +13,16 @@ export interface Sale {
     delivery_quantity: number;
     brine1_identifier?: string | null;
     brine2_identifier?: string | null;
-    price_per_block: number; // Should be number from API
-    cash_amount: number; // Should be number
-    po_amount: number; // Should be number
+    // Expect strings for fields serialized from DecimalField
+    price_per_block: string;
+    cash_amount: string;
+    po_amount: string;
     notes?: string | null;
-    // Read-only calculated properties from serializer
-    total_quantity: number;
-    total_cost: number; 
-    total_payment: number;
-    payment_status: string; 
+    // Calculated properties might also be strings depending on serializer
+    total_quantity: number; // Keep as number, likely safe
+    total_cost: string | number; // Expect string or number, parse before use
+    total_payment: string | number; // Expect string or number
+    payment_status: string;
     // Timestamps
     created_at: string; // Dates are typically strings in JSON
     updated_at: string;
