@@ -76,7 +76,33 @@ export default function UserManagement() {
     setLoading(true);
     try {
       const response = await apiService.get('/api/users/');
-      setUsers(response);
+      
+      // Handle different response structures
+      // The backend might return either an array directly or an object with results
+      // For DRF, it's common to get {count, next, previous, results}
+      let userArray = [];
+      
+      if (Array.isArray(response)) {
+        userArray = response;
+      } else if (response && typeof response === 'object') {
+        // If response is an object, look for common pagination patterns
+        if (Array.isArray(response.results)) {
+          userArray = response.results; // DRF pagination format
+        } else if (response.users && Array.isArray(response.users)) {
+          userArray = response.users; // Custom format
+        } else {
+          // If we have an object but no recognized array property,
+          // try to convert the object values to an array if they look like user objects
+          const possibleUsers = Object.values(response).filter(
+            (item) => item && typeof item === 'object' && 'username' in item
+          );
+          if (possibleUsers.length > 0) {
+            userArray = possibleUsers;
+          }
+        }
+      }
+      
+      setUsers(userArray);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Failed to load users.');
