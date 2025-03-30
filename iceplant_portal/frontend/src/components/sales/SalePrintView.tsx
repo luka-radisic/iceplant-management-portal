@@ -177,11 +177,21 @@ const SalePrintView: React.FC = () => {
           <Grid item xs={6}>
             <Typography variant="subtitle2">Buyer Information:</Typography>
             <Typography variant="body1" fontWeight="bold">{sale.buyer_name}</Typography>
-            {sale.buyer_contact && (
-              <Typography variant="body2">{sale.buyer_contact}</Typography>
+            {sale.buyer && (
+              <>
+                {sale.buyer.company_name && (
+                  <Typography variant="body2">Company: {sale.buyer.company_name}</Typography>
+                )}
+                {sale.buyer.phone && (
+                  <Typography variant="body2">Phone: {sale.buyer.phone}</Typography>
+                )}
+                {sale.buyer.email && (
+                  <Typography variant="body2">Email: {sale.buyer.email}</Typography>
+                )}
+              </>
             )}
-            {sale.buyer && sale.buyer.company_name && (
-              <Typography variant="body2">{sale.buyer.company_name}</Typography>
+            {(!sale.buyer || (!sale.buyer.phone && !sale.buyer.email)) && sale.buyer_contact && (
+              <Typography variant="body2">Contact: {sale.buyer_contact}</Typography>
             )}
           </Grid>
           
@@ -221,19 +231,6 @@ const SalePrintView: React.FC = () => {
                   <TableCell align="right">{sale.delivery_quantity}</TableCell>
                   <TableCell align="right">{formatCurrency(sale.price_per_block)}</TableCell>
                   <TableCell align="right">{formatCurrency(sale.delivery_quantity * parseFloat(String(sale.price_per_block)))}</TableCell>
-                </TableRow>
-              )}
-              
-              {/* Brine Identifiers */}
-              {(sale.brine1_identifier || sale.brine2_identifier) && (
-                <TableRow>
-                  <TableCell colSpan={4} sx={{ pt: 2 }}>
-                    <Typography variant="caption">
-                      Brine Identifiers: 
-                      {sale.brine1_identifier && ` Brine 1: ${sale.brine1_identifier}`} 
-                      {sale.brine2_identifier && ` Brine 2: ${sale.brine2_identifier}`}
-                    </Typography>
-                  </TableCell>
                 </TableRow>
               )}
               
