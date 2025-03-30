@@ -85,18 +85,20 @@ export const endpoints = {
 
   // Attendance
   attendance: '/api/attendance/attendance/',
+  attendanceSummary: '/api/attendance/summary/',
   importAttendance: '/api/attendance/attendance/import_xlsx/',
   importLogs: '/api/attendance/import-logs/',
 
   // Sales
   sales: '/api/sales/sales/',
-  salesSummary: '/api/sales/sales/summary/',
+  salesByDate: '/api/sales/by-date/',
+  salesSummary: '/api/sales/summary/',
 
   // Buyers
   buyers: '/api/buyers/buyers/',
   buyersActive: '/api/buyers/buyers/active/',
   buyersSearchOrCreate: '/api/buyers/buyers/search_or_create/',
-  buyersById: '/api/buyers/buyers/search_by_id/',
+  buyersById: '/api/buyers/buyers/',
 
   // Inventory
   inventory: '/api/inventory/inventory/',
@@ -105,10 +107,18 @@ export const endpoints = {
 
   // Expenses
   expenses: '/api/expenses/expenses/',
+  expenseCategories: '/api/expenses/categories/',
   expensesSummary: '/api/expenses/expenses/summary/',
 
   // Employee Profile
   employeeProfileDepartments: '/api/attendance/employee-profile/departments/',
+
+  // Company
+  company: '/api/company/settings/',
+  companyLogo: '/api/company/settings/upload_logo/',
+
+  // Tools
+  tools: '/api/tools/',
 };
 
 // Helper function to trigger file download from blob
@@ -394,6 +404,41 @@ export const apiService = {
 
   getBuyersById: async (buyerId: string) => {
     return apiService.get(`${endpoints.buyersById}${buyerId}/`);
+  },
+
+  // Company methods
+  getCompanySettings: async () => {
+    return apiService.get(endpoints.company);
+  },
+  
+  updateCompanySettings: async (settings: any) => {
+    // If we have an ID, update the existing settings
+    if (settings.id) {
+      return apiService.put(`${endpoints.company}${settings.id}/`, settings);
+    }
+    // Otherwise create new settings
+    return apiService.post(endpoints.company, settings);
+  },
+  
+  uploadCompanyLogo: async (logoFile: File) => {
+    const formData = new FormData();
+    formData.append('company_logo', logoFile);
+    
+    try {
+      const response = await api.post(
+        endpoints.companyLogo,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      throw error;
+    }
   },
 };
 

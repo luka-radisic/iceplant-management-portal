@@ -20,6 +20,7 @@ import ToolsPage from './pages/ToolsPage';
 import SalesPage from './pages/SalesPage';
 import UserManagement from './pages/UserManagement';
 import BuyersPage from './pages/BuyersPage';
+import CompanySettingsPage from './pages/CompanySettingsPage';
 import SalePrintView from './components/sales/SalePrintView';
 
 // Remove placeholder components
@@ -63,6 +64,7 @@ function App() {
                     
                     {/* Admin-only routes */}
                     <Route path="/admin" element={<AdminRoute><UserManagement /></AdminRoute>} />
+                    <Route path="/company-settings" element={<AdminRoute><CompanySettingsPage /></AdminRoute>} />
                     
                     {/* Admin edit routes */}
                     <Route path="/admin/sales/sale/:id/change" element={

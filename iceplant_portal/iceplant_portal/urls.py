@@ -18,6 +18,8 @@ urlpatterns = [
     path('api/inventory/', include('inventory.api.urls')),
     path('api/expenses/', include('expenses.api.urls')),
     path('api/tools/', include('tools.api.urls')),
+    path('api/buyers/', include('buyers.api.urls')),
+    path('api/company/', include('companyconfig.urls')),  # Company settings endpoints
 ]
 
 # Serve media files in development

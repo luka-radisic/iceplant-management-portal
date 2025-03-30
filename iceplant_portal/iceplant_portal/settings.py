@@ -34,6 +34,8 @@ INSTALLED_APPS = [
     'expenses',
     'tools',
     'user_management',  # Add the new user management app
+    'buyers',
+    'companyconfig',  # Add company settings app
 ]
 
 # Special code required for admin registration

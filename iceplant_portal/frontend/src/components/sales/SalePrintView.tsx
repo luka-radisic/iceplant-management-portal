@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { Sale } from '../../types/sales';
+import { CompanySettings, defaultCompanySettings } from '../../types/company';
 import { apiService, endpoints } from '../../services/api';
 import PrintIcon from '@mui/icons-material/Print';
 
@@ -23,8 +24,22 @@ const SalePrintView: React.FC = () => {
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings>(defaultCompanySettings);
 
   useEffect(() => {
+    // Load company settings
+    const fetchCompanySettings = async () => {
+      try {
+        const response = await apiService.getCompanySettings();
+        setCompanySettings(response);
+      } catch (err) {
+        console.error("Error fetching company settings:", err);
+        // Use defaults if settings can't be loaded
+      }
+    };
+    
+    fetchCompanySettings();
+    
     // First try to get the sale from localStorage (set when clicking from the table)
     const storedSale = localStorage.getItem('printSale');
     if (storedSale) {
@@ -136,29 +151,56 @@ const SalePrintView: React.FC = () => {
       }}>
         {/* Header */}
         <Grid container spacing={2}>
-          {/* Logo Placeholder */}
+          {/* Logo */}
           <Grid item xs={4}>
-            <Box 
-              sx={{ 
-                height: '100px', 
-                width: '200px', 
-                border: '1px dashed #ccc',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Typography color="textSecondary">Logo</Typography>
-            </Box>
+            {companySettings.logo_url ? (
+              <Box 
+                component="img" 
+                src={companySettings.logo_url}
+                alt={companySettings.company_name}
+                sx={{ 
+                  height: 100, 
+                  maxWidth: 200, 
+                  objectFit: 'contain' 
+                }}
+              />
+            ) : (
+              <Box 
+                sx={{ 
+                  height: '100px', 
+                  width: '200px', 
+                  border: '1px dashed #ccc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Typography color="textSecondary">Logo</Typography>
+              </Box>
+            )}
           </Grid>
           
           {/* Company Info */}
           <Grid item xs={8} sx={{ textAlign: 'right' }}>
-            <Typography variant="h5">ICE PLANT</Typography>
-            <Typography>123 Freezing Road, Cooltown</Typography>
-            <Typography>Manila, Philippines</Typography>
-            <Typography>Tel: (123) 456-7890</Typography>
-            <Typography>Email: info@iceplant.com</Typography>
+            <Typography variant="h5">{companySettings.company_name}</Typography>
+            {companySettings.company_address_line1 && (
+              <Typography>{companySettings.company_address_line1}</Typography>
+            )}
+            {companySettings.company_address_line2 && (
+              <Typography>{companySettings.company_address_line2}</Typography>
+            )}
+            <Typography>
+              {companySettings.company_city && `${companySettings.company_city}, `}
+              {companySettings.company_state && `${companySettings.company_state} `}
+              {companySettings.company_postal_code && companySettings.company_postal_code}
+            </Typography>
+            <Typography>{companySettings.company_country}</Typography>
+            {companySettings.phone_number && (
+              <Typography>Tel: {companySettings.phone_number}</Typography>
+            )}
+            {companySettings.email && (
+              <Typography>Email: {companySettings.email}</Typography>
+            )}
           </Grid>
         </Grid>
         
@@ -296,12 +338,25 @@ const SalePrintView: React.FC = () => {
         {/* Footer */}
         <Divider sx={{ my: 3 }} />
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="body2" color="textSecondary">
-            Thank you for your business!
-          </Typography>
-          <Typography variant="caption" color="textSecondary">
-            This is a computer-generated document. No signature is required.
-          </Typography>
+          {companySettings.invoice_footer_text ? (
+            <Typography variant="body2" color="textSecondary">
+              {companySettings.invoice_footer_text}
+            </Typography>
+          ) : (
+            <>
+              <Typography variant="body2" color="textSecondary">
+                Thank you for your business!
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                This is a computer-generated document. No signature is required.
+              </Typography>
+            </>
+          )}
+          {companySettings.tax_id && (
+            <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+              Tax ID: {companySettings.tax_id}
+            </Typography>
+          )}
         </Box>
       </Paper>
     </Box>
