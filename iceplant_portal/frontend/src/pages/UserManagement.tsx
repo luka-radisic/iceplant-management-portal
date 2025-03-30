@@ -233,7 +233,7 @@ export default function UserManagement() {
     if (!selectedUser) return;
 
     try {
-      await apiService.delete(`/api/users/${selectedUser.id}/`);
+      await apiService.delete(`/api/users/users/${selectedUser.id}/`);
       enqueueSnackbar(`User ${selectedUser.username} deleted successfully`, { variant: 'success' });
       fetchUsers();
     } catch (err) {
@@ -248,7 +248,7 @@ export default function UserManagement() {
     if (!selectedUser) return;
 
     try {
-      await apiService.put(`/api/users/${selectedUser.id}/`, editUserData);
+      await apiService.put(`/api/users/users/${selectedUser.id}/`, editUserData);
       enqueueSnackbar(`User ${selectedUser.username} updated successfully`, { variant: 'success' });
       fetchUsers();
     } catch (err) {
@@ -266,7 +266,7 @@ export default function UserManagement() {
     }
 
     try {
-      await apiService.post('/api/users/', editUserData);
+      await apiService.post('/api/users/users/', editUserData);
       enqueueSnackbar(`User ${editUserData.username} created successfully`, { variant: 'success' });
       fetchUsers();
     } catch (err) {
