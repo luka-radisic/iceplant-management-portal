@@ -20,6 +20,7 @@ import ToolsPage from './pages/ToolsPage';
 import SalesPage from './pages/SalesPage';
 import UserManagement from './pages/UserManagement';
 import BuyersPage from './pages/BuyersPage';
+import SalePrintView from './components/sales/SalePrintView';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
@@ -41,6 +42,9 @@ function App() {
                 <Routes>
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  
+                  {/* Print view route - doesn't need dashboard layout or auth */}
+                  <Route path="/sales/print/:id" element={<SalePrintView />} />
 
                   <Route
                     element={

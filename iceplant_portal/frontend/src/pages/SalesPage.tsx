@@ -418,6 +418,32 @@ const SalesPage: React.FC = () => {
     handleMenuClose();
   };
 
+  // Function to format currency in Philippine Peso
+  const formatCurrency = (value: number | string): string => {
+    if (value === null || value === undefined || value === '') return 'N/A';
+    
+    // Convert to number
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return 'N/A';
+    
+    // Format the number with thousand separators and 2 decimal places
+    const formattedNumber = numValue.toLocaleString('en-PH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    
+    // Explicitly prepend the Philippine Peso symbol
+    return `₱${formattedNumber}`;
+  };
+
+  // Handle print view for a sale
+  const handlePrintSale = (sale: Sale) => {
+    // Store the selected sale in localStorage for the print view to access
+    localStorage.setItem('printSale', JSON.stringify(sale));
+    // Open the print view in a new window/tab
+    window.open(`/sales/print/${sale.id}`, '_blank');
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -582,17 +608,27 @@ const SalesPage: React.FC = () => {
                       console.log('[SalesPage] Mapping sale:', JSON.stringify(sale)); 
                       return (
                         <TableRow key={sale.id}>
-                          <TableCell>{sale.si_number}</TableCell>
+                          <TableCell>
+                            <Button 
+                              color="primary" 
+                              onClick={() => handlePrintSale(sale)}
+                              sx={{ 
+                                textDecoration: 'none', 
+                                p: 0, 
+                                minWidth: 'auto',
+                                textAlign: 'left',
+                                fontWeight: 'inherit',
+                                fontSize: 'inherit'
+                              }}
+                            >
+                              {sale.si_number}
+                            </Button>
+                          </TableCell>
                           <TableCell>{sale.sale_date}</TableCell>
                           <TableCell>{sale.sale_time}</TableCell>
                           <TableCell>{sale.buyer_name}</TableCell>
                           <TableCell align="right">{sale.total_quantity}</TableCell>
-                          <TableCell align="right">
-                            {(() => {
-                              const cost = parseFloat(String(sale.total_cost));
-                              return !isNaN(cost) ? cost.toFixed(2) : 'N/A';
-                            })()}
-                          </TableCell>
+                          <TableCell align="right">{formatCurrency(sale.total_cost)}</TableCell>
                           <TableCell>{sale.payment_status}</TableCell>
                           <TableCell>{renderStatus(sale.status)}</TableCell>
                           <TableCell padding="none">
