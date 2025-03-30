@@ -72,7 +72,14 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       setLoadingBuyers(true);
       try {
         const response = await apiService.getActiveBuyers();
-        setBuyers(response);
+        console.log("Loaded buyers for autocomplete:", response);
+        
+        // Sort buyers alphabetically by name for better usability
+        const sortedBuyers = [...response].sort((a, b) => {
+          return a.name.localeCompare(b.name);
+        });
+        
+        setBuyers(sortedBuyers);
       } catch (error) {
         console.error("Failed to load buyers:", error);
         enqueueSnackbar("Failed to load buyers list", { variant: 'error' });
@@ -137,17 +144,35 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     
     if (newValue) {
       // Update form with selected buyer's info
-      setFormData(prev => ({
-        ...prev,
-        buyer_id: newValue.id,
-        buyer_name: newValue.name,
-        buyer_contact: newValue.phone || '',
-      }));
+      setFormData(prev => {
+        // Prepare contact info - use phone as default, fallback to email
+        const contactInfo = newValue.phone || newValue.email || prev.buyer_contact || '';
+        
+        // If this is a repeat customer, try to use their previous PO number if we don't have one yet
+        const poNumber = prev.po_number || '';
+        
+        return {
+          ...prev,
+          buyer_id: newValue.id,
+          buyer_name: newValue.name,
+          buyer_contact: contactInfo,
+          // No need to override PO number if it's already set
+          po_number: poNumber,
+        };
+      });
+      
+      // Show a notification that buyer info was loaded
+      enqueueSnackbar(`Buyer "${newValue.name}" selected`, { 
+        variant: 'success',
+        autoHideDuration: 2000 
+      });
     } else {
-      // Clear buyer-related fields
+      // Clear buyer-related fields if selection is cleared
       setFormData(prev => ({
         ...prev,
         buyer_id: undefined,
+        // Don't clear buyer name if user is typing
+        // buyer_name: '',
       }));
     }
   };
@@ -335,20 +360,63 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             onChange={handleBuyerChange}
             options={buyers}
             getOptionLabel={(option) => option.name}
+            filterOptions={(options, state) => {
+              const inputValue = state.inputValue.toLowerCase().trim();
+              if (!inputValue) return options;
+              
+              // Split input to handle both first and last name searches
+              const terms = inputValue.split(/\s+/);
+              
+              return options.filter(option => {
+                const nameLower = option.name.toLowerCase();
+                // Check if any term is found in the name
+                return terms.some(term => nameLower.includes(term));
+              });
+            }}
+            renderOption={(props, option) => (
+              <li {...props} style={{ padding: '8px 16px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold' }}>{option.name}</div>
+                  {option.company_name && (
+                    <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.company_name}</div>
+                  )}
+                  {option.phone && (
+                    <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.phone}</div>
+                  )}
+                </div>
+              </li>
+            )}
             freeSolo
+            autoHighlight
+            openOnFocus
+            clearOnEscape
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            loading={loadingBuyers}
+            noOptionsText="No matching buyers found"
+            loadingText="Loading buyers..."
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Buyer Name"
                 required
-                value={formData.buyer_name}
                 onChange={(e) => {
                   setFormData({...formData, buyer_name: e.target.value});
-                  setSelectedBuyer(null);
+                  if (e.target.value === '') {
+                    setSelectedBuyer(null);
+                  }
                 }}
                 fullWidth
                 error={!!errors.buyer_name}
-                helperText={errors.buyer_name || "Enter buyer name or paste buyer ID for exact match"}
+                helperText={errors.buyer_name || "Type a few letters of buyer name to search or paste buyer ID"}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingBuyers ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
               />
             )}
           />
@@ -357,9 +425,23 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
           <TextField
             fullWidth
             label="Buyer Contact"
+            name="buyer_contact"
             value={formData.buyer_contact || ''}
             onChange={(e) => setFormData({...formData, buyer_contact: e.target.value})}
             placeholder="Phone or email"
+            InputProps={{
+              startAdornment: selectedBuyer && (
+                <Box component="span" sx={{ 
+                  color: 'success.main', 
+                  fontSize: '0.8rem',
+                  position: 'absolute',
+                  top: '-20px',
+                  left: '0'
+                }}>
+                  {selectedBuyer.company_name ? `${selectedBuyer.company_name}` : ''}
+                </Box>
+              ),
+            }}
           />
         </Grid>
         <Grid item xs={12} sm={4}>
