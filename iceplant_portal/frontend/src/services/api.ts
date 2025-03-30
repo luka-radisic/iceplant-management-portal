@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { loggerService } from '../utils/logger';
 
-// Change from static URL to a dynamic URL that will work in all environments
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
 const api = axios.create({
@@ -9,8 +8,6 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Add timeout and withCredentials settings
-  timeout: 60000, // 60 seconds timeout - the huge data might need more time
 });
 
 // Request interceptor for adding auth token
@@ -21,12 +18,6 @@ api.interceptors.request.use(
     if (token && !config.url?.includes('/api-token-auth/')) {
       config.headers.Authorization = `Token ${token}`;
     }
-    // Log the request for debugging
-    console.log('API Request:', {
-      url: config.url,
-      method: config.method,
-      params: config.params,
-    });
     loggerService.info('API Request', {
       url: config.url,
       method: config.method,
@@ -47,11 +38,6 @@ api.interceptors.request.use(
 // Response interceptor for handling errors
 api.interceptors.response.use(
   (response) => {
-    // Log successful response
-    console.log('API Response:', {
-      url: response.config.url,
-      status: response.status,
-    });
     loggerService.info('API Response', {
       url: response.config.url,
       status: response.status,
@@ -60,12 +46,6 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Log error response
-    console.error('API Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.message
-    });
     loggerService.error('API Error', {
       url: error.config?.url,
       status: error.response?.status,

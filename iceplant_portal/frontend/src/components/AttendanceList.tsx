@@ -48,7 +48,7 @@ export default function AttendanceList() {
   const fetchRecords = async () => {
     setLoading(true);
     try {
-      console.log('Fetching attendance records with params:', {
+      const response = await apiService.get('/api/attendance/attendance/', {
         page: page + 1,
         page_size: rowsPerPage,
         start_date: filters.start_date,
@@ -56,36 +56,10 @@ export default function AttendanceList() {
         status: filters.status,
         department: filters.department,
       });
-      
-      // Set a timeout to handle slow responses
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timed out')), 60000)
-      );
-      
-      const fetchPromise = apiService.get('/api/attendance/attendance/', {
-        page: page + 1,
-        page_size: rowsPerPage,
-        start_date: filters.start_date,
-        end_date: filters.end_date,
-        status: filters.status,
-        department: filters.department,
-        // Don't process check-ins on every request - this causes performance issues
-        process_checkins: 'false'
-      });
-      
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
-      
-      if (!response) {
-        throw new Error('No response from server');
-      }
-      
-      console.log('Received response:', response);
       setRecords(response.results || []);
       setTotalCount(response.count || 0);
     } catch (error) {
       console.error('Error fetching records:', error);
-      setRecords([]);
-      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -94,16 +68,7 @@ export default function AttendanceList() {
   const processSameDayCheckIns = async () => {
     setProcessingCheckIns(true);
     try {
-      // First, explicitly call the API with process_checkins=true
-      await apiService.get('/api/attendance/attendance/', {
-        process_checkins: 'true',
-        page: 1,
-        page_size: 10
-      });
-      
-      // Then call the backend process endpoint
       await apiService.processSameDayCheckIns();
-      
       // Refresh records to show changes
       await fetchRecords();
       alert('Successfully processed same-day check-ins!');
@@ -218,18 +183,7 @@ export default function AttendanceList() {
               onClick={processSameDayCheckIns}
               disabled={processingCheckIns}
             >
-              {processingCheckIns ? <CircularProgress size={20} /> : 'Process Check-Ins'}
-            </Button>
-          </Grid>
-          <Grid item xs={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              color="primary"
-              onClick={fetchRecords}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={20} /> : 'Refresh Data'}
+              {processingCheckIns ? <CircularProgress size={20} /> : 'Process Same-Day Check-Ins'}
             </Button>
           </Grid>
         </Grid>

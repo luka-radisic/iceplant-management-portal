@@ -39,10 +39,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Don't process same-day check-ins on every request - this is causing performance issues
-        # Only process if explicitly requested using a query parameter
-        if self.request.query_params.get('process_checkins') == 'true':
-            self.process_same_day_checkins()
+        # Process same-day check-ins to set check-out times
+        self.process_same_day_checkins()
             
         # Extract request parameters
         employee_id = self.request.query_params.get('employee_id')
@@ -51,27 +49,17 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         department = self.request.query_params.get('department')
         status = self.request.query_params.get('status')
         
-        # Use select_related to optimize queries
-        queryset = queryset.select_related()
-        
         # Apply employee filter if provided
         if employee_id:
             queryset = queryset.filter(employee_id=employee_id)
         
         # Apply date range filters if provided
         if start_date:
-            try:
-                start_datetime = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
-                queryset = queryset.filter(check_in__gte=start_datetime)
-            except ValueError:
-                pass  # Invalid date format, ignore filter
-                
+            start_datetime = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
+            queryset = queryset.filter(check_in__gte=start_datetime)
         if end_date:
-            try:
-                end_datetime = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1))
-                queryset = queryset.filter(check_in__lt=end_datetime)
-            except ValueError:
-                pass  # Invalid date format, ignore filter
+            end_datetime = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1))
+            queryset = queryset.filter(check_in__lt=end_datetime)
         
         # Apply department filter if provided
         if department:
@@ -111,10 +99,6 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     ).exclude(department='NO SHOW')
                 except EmployeeShift.DoesNotExist:
                     pass
-        
-        # Add index hints if supported by the database backend
-        if hasattr(queryset, 'using_index'):
-            queryset = queryset.using_index('check_in_idx')
             
         return queryset.order_by('-check_in')
     
