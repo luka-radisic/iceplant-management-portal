@@ -343,7 +343,7 @@ export const apiService = {
   },
 
   // Specific method for updating sale status
-  updateSaleStatus: async (saleId: number, status: 'active' | 'canceled' | 'error') => {
+  updateSaleStatus: async (saleId: number, status: 'processed' | 'canceled' | 'error') => {
     const endpoint = `${endpoints.sales}${saleId}/`; // Construct URL like /api/sales/sales/1/
     return apiService.patch(endpoint, { status });
   },

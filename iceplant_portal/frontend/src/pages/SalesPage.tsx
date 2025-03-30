@@ -109,7 +109,7 @@ const SalesPage: React.FC = () => {
   };
 
   // Handle status update
-  const handleStatusUpdate = async (newStatus: 'active' | 'canceled' | 'error') => {
+  const handleStatusUpdate = async (newStatus: 'processed' | 'canceled' | 'error') => {
     if (!selectedSale) return;
 
     const originalStatus = selectedSale.status;
@@ -199,13 +199,13 @@ const SalesPage: React.FC = () => {
       return;
     }
     
-    const activeCount = salesData.filter(s => s.status === 'active').length;
+    const processedCount = salesData.filter(s => s.status === 'processed').length;
     const canceledCount = salesData.filter(s => s.status === 'canceled').length;
     const errorCount = salesData.filter(s => s.status === 'error').length;
     
     // Convert total_cost strings to numbers for calculation
     const totalRevenue = salesData
-      .filter(s => s.status === 'active')
+      .filter(s => s.status === 'processed')
       .reduce((sum, sale) => {
         const cost = typeof sale.total_cost === 'string' 
           ? parseFloat(sale.total_cost) 
@@ -216,8 +216,8 @@ const SalesPage: React.FC = () => {
     const summary: SaleSummary = {
       totalSales: salesData.length,
       totalRevenue,
-      averageSaleValue: activeCount > 0 ? totalRevenue / activeCount : 0,
-      activeCount,
+      averageSaleValue: processedCount > 0 ? totalRevenue / processedCount : 0,
+      activeCount: processedCount,
       canceledCount,
       errorCount
     };
@@ -323,7 +323,7 @@ const SalesPage: React.FC = () => {
     let icon = null;
     
     switch(status) {
-      case 'active':
+      case 'processed':
         color = 'success';
         icon = <CheckCircleIcon fontSize="small" />;
         break;
@@ -491,7 +491,7 @@ const SalesPage: React.FC = () => {
                   onChange={handleStatusFilterChange}
                 >
                   <MenuItem value="">All</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="processed">Processed</MenuItem>
                   <MenuItem value="canceled">Canceled</MenuItem>
                   <MenuItem value="error">Error</MenuItem>
                 </Select>
@@ -694,12 +694,12 @@ const SalesPage: React.FC = () => {
                      <ListItemText>Mark as Error</ListItemText>
                  </MenuItem>
              )}
-             {selectedSale?.status !== 'active' && (
-                 <MenuItem onClick={() => handleStatusUpdate('active')}>
+             {selectedSale?.status !== 'processed' && (
+                 <MenuItem onClick={() => handleStatusUpdate('processed')}>
                      <ListItemIcon>
                          <CheckCircleIcon fontSize="small" color="success"/>
                      </ListItemIcon>
-                     <ListItemText>Reactivate Sale</ListItemText>
+                     <ListItemText>Mark as Processed</ListItemText>
                  </MenuItem>
              )}
              {/* Edit option only for admin users */}
@@ -746,7 +746,7 @@ const SalesPage: React.FC = () => {
                          Status Breakdown
                        </Typography>
                        <Typography variant="subtitle1" color="success.main">
-                         Active: {summaryData.activeCount} ({((summaryData.activeCount / summaryData.totalSales) * 100).toFixed(1)}%)
+                         Processed: {summaryData.activeCount} ({((summaryData.activeCount / summaryData.totalSales) * 100).toFixed(1)}%)
                        </Typography>
                        <Typography variant="subtitle1" color="warning.main">
                          Canceled: {summaryData.canceledCount} ({((summaryData.canceledCount / summaryData.totalSales) * 100).toFixed(1)}%)
@@ -822,9 +822,9 @@ const SalesPage: React.FC = () => {
                      <Select
                        value={editableSale.status}
                        label="Status"
-                       onChange={(e) => setEditableSale({ ...editableSale, status: e.target.value as 'active' | 'canceled' | 'error' })}
+                       onChange={(e) => setEditableSale({ ...editableSale, status: e.target.value as 'processed' | 'canceled' | 'error' })}
                      >
-                       <MenuItem value="active">Active</MenuItem>
+                       <MenuItem value="processed">Processed</MenuItem>
                        <MenuItem value="canceled">Canceled</MenuItem>
                        <MenuItem value="error">Error</MenuItem>
                      </Select>

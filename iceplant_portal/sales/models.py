@@ -5,7 +5,7 @@ from buyers.models import Buyer  # Import the Buyer model
 
 class Sale(models.Model):
     STATUS_CHOICES = [
-        ('active', 'Active'),
+        ('processed', 'Processed'),
         ('canceled', 'Canceled'),
         ('error', 'Error/Mistake'),
     ]
@@ -17,7 +17,7 @@ class Sale(models.Model):
     status = models.CharField(
         max_length=10, 
         choices=STATUS_CHOICES, 
-        default='active', 
+        default='processed', 
         help_text="The current status of the sale record"
     )
     

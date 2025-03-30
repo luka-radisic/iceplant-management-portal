@@ -288,7 +288,7 @@ const SalePrintView: React.FC = () => {
             <Typography variant="subtitle2">Sale Status:</Typography>
             <Typography 
               fontWeight="bold" 
-              color={sale.status === 'active' ? 'success.main' : 
+              color={sale.status === 'processed' ? 'success.main' : 
                     sale.status === 'canceled' ? 'error.main' : 'warning.main'}
             >
               {sale.status.toUpperCase()}

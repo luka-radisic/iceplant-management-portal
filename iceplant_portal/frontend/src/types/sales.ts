@@ -6,7 +6,7 @@ export interface Sale {
     si_number: string;
     sale_date: string; // Keep as string for simplicity, format if needed
     sale_time: string; // Keep as string
-    status: 'active' | 'canceled' | 'error'; // Add status field with literal types
+    status: 'processed' | 'canceled' | 'error'; // Status field with literal types
     buyer?: BuyerLight;  // Reference to buyer (optional for backward compatibility)
     buyer_name: string;
     buyer_contact?: string | null;
