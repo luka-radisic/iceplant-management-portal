@@ -23,13 +23,19 @@ import {
   Chip,
   TextField,
   Snackbar,
+  Tooltip,
+  Card,
+  CardContent,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import SecurityIcon from '@mui/icons-material/Security';
+import InfoIcon from '@mui/icons-material/Info';
 import { apiService } from '../services/api';
 import { useSnackbar } from 'notistack';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface User {
   id: number;
@@ -56,6 +62,7 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
 
   // Dialog states
   const [openDelete, setOpenDelete] = useState(false);
@@ -236,9 +243,19 @@ export default function UserManagement() {
       await apiService.delete(`/api/users/users/${selectedUser.id}/`);
       enqueueSnackbar(`User ${selectedUser.username} deleted successfully`, { variant: 'success' });
       fetchUsers();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting user:', err);
-      enqueueSnackbar('Failed to delete user', { variant: 'error' });
+      // Display more detailed error message if available
+      if (err.response?.data) {
+        const errorMessage = typeof err.response.data === 'string' 
+          ? err.response.data 
+          : Object.entries(err.response.data)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(', ');
+        enqueueSnackbar(`Failed to delete user: ${errorMessage}`, { variant: 'error' });
+      } else {
+        enqueueSnackbar('Failed to delete user', { variant: 'error' });
+      }
     } finally {
       handleCloseDelete();
     }
@@ -248,12 +265,43 @@ export default function UserManagement() {
     if (!selectedUser) return;
 
     try {
-      await apiService.put(`/api/users/users/${selectedUser.id}/`, editUserData);
+      // Create a payload that only includes fields that changed
+      const updateData: Record<string, any> = {};
+      
+      if (editUserData.username !== selectedUser.username) {
+        updateData.username = editUserData.username;
+      }
+      
+      if (editUserData.email !== selectedUser.email) {
+        updateData.email = editUserData.email;
+      }
+      
+      // Only include password if it was entered (not empty)
+      if (editUserData.password) {
+        updateData.password = editUserData.password;
+      }
+      
+      updateData.is_active = editUserData.is_active;
+      updateData.is_staff = editUserData.is_staff;
+      updateData.is_superuser = editUserData.is_superuser;
+      
+      // Use PATCH instead of PUT to only update provided fields
+      await apiService.patch(`/api/users/users/${selectedUser.id}/`, updateData);
       enqueueSnackbar(`User ${selectedUser.username} updated successfully`, { variant: 'success' });
       fetchUsers();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating user:', err);
-      enqueueSnackbar('Failed to update user', { variant: 'error' });
+      // Display more detailed error message if available
+      if (err.response?.data) {
+        const errorMessage = typeof err.response.data === 'string' 
+          ? err.response.data 
+          : Object.entries(err.response.data)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(', ');
+        enqueueSnackbar(`Failed to update user: ${errorMessage}`, { variant: 'error' });
+      } else {
+        enqueueSnackbar('Failed to update user', { variant: 'error' });
+      }
     } finally {
       handleCloseEdit();
     }
@@ -266,12 +314,32 @@ export default function UserManagement() {
     }
 
     try {
-      await apiService.post('/api/users/users/', editUserData);
+      // Create a properly formatted payload for Django user creation
+      const userData = {
+        username: editUserData.username,
+        email: editUserData.email,
+        password: editUserData.password,
+        is_active: editUserData.is_active,
+        is_staff: editUserData.is_staff,
+        is_superuser: editUserData.is_superuser
+      };
+      
+      await apiService.post('/api/users/users/', userData);
       enqueueSnackbar(`User ${editUserData.username} created successfully`, { variant: 'success' });
       fetchUsers();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating user:', err);
-      enqueueSnackbar('Failed to create user', { variant: 'error' });
+      // Display more detailed error message if available
+      if (err.response?.data) {
+        const errorMessage = typeof err.response.data === 'string' 
+          ? err.response.data 
+          : Object.entries(err.response.data)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(', ');
+        enqueueSnackbar(`Failed to create user: ${errorMessage}`, { variant: 'error' });
+      } else {
+        enqueueSnackbar('Failed to create user', { variant: 'error' });
+      }
     } finally {
       handleCloseCreate();
     }
@@ -281,14 +349,45 @@ export default function UserManagement() {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">User Management</Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<PersonAddIcon />}
-          onClick={handleOpenCreate}
-        >
-          Add User
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button 
+            variant="outlined" 
+            color="secondary"
+            startIcon={<SecurityIcon />}
+            onClick={() => navigate('/admin/permissions')}
+          >
+            Manage Roles & Permissions
+          </Button>
+          <Button 
+            variant="contained" 
+            startIcon={<PersonAddIcon />}
+            onClick={handleOpenCreate}
+          >
+            Add User
+          </Button>
+        </Box>
       </Box>
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            User Roles & Permissions System
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Users can have system roles (Admin, Superuser) and/or custom roles with specific permissions.
+            For detailed role management, permissions assignment, and role creation, use the 
+            <Button 
+              component={Link} 
+              to="/admin/permissions"
+              size="small"
+              sx={{ mx: 1 }}
+            >
+              Permissions Management
+            </Button> 
+            page.
+          </Typography>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -304,7 +403,7 @@ export default function UserManagement() {
                 <TableCell>Username</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Role</TableCell>
+                <TableCell>System Role</TableCell>
                 <TableCell>Joined</TableCell>
                 <TableCell>Last Login</TableCell>
                 <TableCell>Actions</TableCell>
@@ -324,39 +423,56 @@ export default function UserManagement() {
                   </TableCell>
                   <TableCell>
                     {user.is_superuser ? (
-                      <Chip 
-                        icon={<AdminPanelSettingsIcon />} 
-                        label="Superuser" 
-                        color="warning" 
-                        size="small" 
-                      />
+                      <Tooltip title="Full access to all system features">
+                        <Chip 
+                          icon={<AdminPanelSettingsIcon />} 
+                          label="Superuser" 
+                          color="warning" 
+                          size="small" 
+                        />
+                      </Tooltip>
                     ) : user.is_staff ? (
-                      <Chip 
-                        icon={<AdminPanelSettingsIcon />} 
-                        label="Admin" 
-                        color="primary" 
-                        size="small" 
-                      />
+                      <Tooltip title="Administrative access">
+                        <Chip 
+                          icon={<AdminPanelSettingsIcon />} 
+                          label="Admin" 
+                          color="primary" 
+                          size="small" 
+                        />
+                      </Tooltip>
                     ) : (
-                      <Chip label="User" size="small" />
+                      <Tooltip title="Standard user with custom permissions">
+                        <Chip 
+                          label="User" 
+                          size="small"
+                          onClick={() => navigate(`/admin/permissions?user=${user.id}`)}
+                          clickable
+                        />
+                      </Tooltip>
                     )}
+                    <Tooltip title="Manage detailed permissions">
+                      <IconButton 
+                        size="small"
+                        onClick={() => navigate(`/admin/permissions?user=${user.id}`)}
+                        sx={{ ml: 1 }}
+                      >
+                        <SecurityIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                   <TableCell>{new Date(user.date_joined).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
                   </TableCell>
                   <TableCell>
-                    <IconButton
-                      color="primary"
-                      size="small"
-                      onClick={() => handleOpenEdit(user)}
-                    >
+                    <IconButton size="small" onClick={() => handleOpenEdit(user)}>
                       <EditIcon fontSize="small" />
                     </IconButton>
-                    <IconButton
-                      color="error"
-                      size="small"
+                    <IconButton 
+                      size="small" 
+                      color="error" 
                       onClick={() => handleOpenDelete(user)}
+                      disabled={user.is_superuser} // Prevent deleting superusers
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -394,6 +510,17 @@ export default function UserManagement() {
       >
         <DialogTitle>Edit User</DialogTitle>
         <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Edit user details and system roles. For custom role assignment, use the
+            <Button 
+              component={Link} 
+              to={`/admin/permissions?user=${selectedUser?.id}`}
+              size="small"
+              sx={{ mx: 1 }}
+            >
+              Permissions Page
+            </Button>
+          </DialogContentText>
           <Box component="form" sx={{ mt: 2 }}>
             <TextField
               fullWidth
@@ -424,6 +551,9 @@ export default function UserManagement() {
               margin="normal"
             />
             <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                System Roles
+              </Typography>
               <FormControlLabel
                 control={
                   <Switch
@@ -442,7 +572,14 @@ export default function UserManagement() {
                     name="is_staff"
                   />
                 }
-                label="Admin Access"
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <span>Admin Access</span>
+                    <Tooltip title="Administrative access to manage system">
+                      <InfoIcon fontSize="small" sx={{ ml: 1, color: 'action.active' }} />
+                    </Tooltip>
+                  </Box>
+                }
               />
               <FormControlLabel
                 control={
@@ -452,13 +589,27 @@ export default function UserManagement() {
                     name="is_superuser"
                   />
                 }
-                label="Superuser"
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <span>Superuser</span>
+                    <Tooltip title="Full unrestricted access to all system features">
+                      <InfoIcon fontSize="small" sx={{ ml: 1, color: 'action.active' }} />
+                    </Tooltip>
+                  </Box>
+                }
               />
             </Box>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseEdit}>Cancel</Button>
+          <Button 
+            component={Link}
+            to={`/admin/permissions?user=${selectedUser?.id}`}
+            color="secondary"
+          >
+            Manage Custom Roles
+          </Button>
           <Button onClick={handleUpdateUser} variant="contained">Save Changes</Button>
         </DialogActions>
       </Dialog>

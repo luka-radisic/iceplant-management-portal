@@ -140,7 +140,7 @@ def register_user(request):
 
 # Permission viewset
 class PermissionViewSet(viewsets.ModelViewSet):
-    queryset = UserPermission.objects.all()
+    queryset = UserPermission.objects.all().order_by('user__username', 'permission_type')
     serializer_class = PermissionSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminUser]
     
@@ -183,13 +183,13 @@ class RoleViewSet(viewsets.ModelViewSet):
 
 # Role Permission viewset
 class RolePermissionViewSet(viewsets.ModelViewSet):
-    queryset = RolePermission.objects.all()
+    queryset = RolePermission.objects.all().order_by('role__name', 'permission_type')
     serializer_class = RolePermissionSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminUser]
 
 # User Role Assignment viewset
 class UserRoleViewSet(viewsets.ModelViewSet):
-    queryset = UserRoleAssignment.objects.all()
+    queryset = UserRoleAssignment.objects.all().order_by('user__username', 'role__name')
     serializer_class = UserRoleSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminUser]
     
@@ -200,3 +200,28 @@ class UserRoleViewSet(viewsets.ModelViewSet):
         # Add the current user as assigned_by
         request.data['assigned_by'] = request.user.id
         return super().create(request, *args, **kwargs)
+
+# User profile endpoint
+@api_view(['GET', 'PUT'])
+@permission_classes([permissions.IsAuthenticated])
+def user_profile(request):
+    """
+    Get or update the current user's profile
+    """
+    user = request.user
+    
+    if request.method == 'GET':
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+    
+    elif request.method == 'PUT':
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            # Handle password update separately
+            password = request.data.get('password')
+            if password:
+                user.set_password(password)
+                
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

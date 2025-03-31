@@ -15,6 +15,6 @@ urlpatterns = [
     path('', include(router.urls)),
     
     # Registration endpoint
-    path('register/', views.RegisterView.as_view(), name='register'),
+    path('register/', views.register_user, name='register'),
     path('profile/', views.user_profile, name='profile'),
 ] 
