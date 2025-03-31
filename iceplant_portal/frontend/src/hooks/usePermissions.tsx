@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import { loggerService } from '../utils/logger';
+import { useAuth } from '../contexts/AuthContext';
 
+// Define interfaces
 interface Role {
   id: number;
   name: string;
-  role_type: string;
-  description: string;
   permissions: string[];
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 interface UserRole {
@@ -19,8 +15,6 @@ interface UserRole {
   user: number;
   role: number;
   role_name: string;
-  assigned_at: string;
-  assigned_by: number | null;
 }
 
 interface Permission {
@@ -48,26 +42,36 @@ export const usePermissions = () => {
       try {
         setLoading(true);
         
-        // Fetch all roles
-        const rolesResponse = await apiService.get('/api/users/roles/');
-        const rolesList = Array.isArray(rolesResponse) 
-          ? rolesResponse 
-          : (rolesResponse?.results || []);
-        setRoles(rolesList);
+        let rolesList: Role[] = [];
+        let userRolesList: UserRole[] = [];
+        let permissionsList: Permission[] = [];
         
-        // Fetch user roles
-        const userRolesResponse = await apiService.get('/api/users/user-roles/');
-        const userRolesList = Array.isArray(userRolesResponse) 
-          ? userRolesResponse 
-          : (userRolesResponse?.results || []);
-        setUserRoles(userRolesList);
-        
-        // Fetch direct permissions
-        const permissionsResponse = await apiService.get('/api/users/permissions/');
-        const permissionsList = Array.isArray(permissionsResponse) 
-          ? permissionsResponse 
-          : (permissionsResponse?.results || []);
-        setPermissions(permissionsList);
+        try {
+          // Try to fetch all roles - this might fail for non-admin users
+          const rolesResponse = await apiService.get('/api/users/roles/');
+          rolesList = Array.isArray(rolesResponse) 
+            ? rolesResponse 
+            : (rolesResponse?.results || []);
+          setRoles(rolesList);
+          
+          // Try to fetch user roles
+          const userRolesResponse = await apiService.get('/api/users/user-roles/');
+          userRolesList = Array.isArray(userRolesResponse) 
+            ? userRolesResponse 
+            : (userRolesResponse?.results || []);
+          setUserRoles(userRolesList);
+          
+          // Try to fetch direct permissions
+          const permissionsResponse = await apiService.get('/api/users/permissions/');
+          permissionsList = Array.isArray(permissionsResponse) 
+            ? permissionsResponse 
+            : (permissionsResponse?.results || []);
+          setPermissions(permissionsList);
+        } catch (err) {
+          // If we get 403 Forbidden, the user doesn't have admin access
+          // We'll still continue but we'll rely on isAdmin status for permissions
+          loggerService.warn('Cannot fetch roles or permissions. Falling back to basic permissions', err);
+        }
         
         setLoading(false);
       } catch (error) {
@@ -80,35 +84,56 @@ export const usePermissions = () => {
     fetchUserPermissions();
   }, [user]);
 
-  // Check if user has a specific permission
+  /**
+   * Check if the user has a specific permission
+   * @param permissionType The permission to check for, e.g. 'expenses_add'
+   * @returns Boolean indicating whether the user has the permission
+   */
   const hasPermission = (permissionType: string): boolean => {
-    if (!user) return false;
+    // If loading, assume they don't have permission yet
+    if (loading) return false;
     
-    // Admins (is_staff or is_superuser) have all permissions
+    // If user is admin, they have all permissions
     if (isAdmin) return true;
     
-    // Check direct permissions
-    const directPermissions = permissions
-      .filter(perm => perm.user === user.id)
-      .map(perm => perm.permission_type);
+    // If we were able to fetch roles and permissions data, check those
+    if (roles.length > 0 || permissions.length > 0) {
+      // Check if user has this direct permission
+      const hasDirectPermission = permissions.some(
+        p => p.user === user?.id && p.permission_type === permissionType
+      );
+      
+      if (hasDirectPermission) return true;
+      
+      // Check if user has a role that includes this permission
+      const userRoleIds = userRoles
+        .filter(ur => ur.user === user?.id)
+        .map(ur => ur.role);
+      
+      const hasRoleWithPermission = roles
+        .filter(role => userRoleIds.includes(role.id))
+        .some(role => role.permissions.includes(permissionType));
+      
+      return hasRoleWithPermission;
+    }
     
-    if (directPermissions.includes(permissionType)) return true;
+    // If we couldn't fetch roles/permissions data, fall back to basic checks
+    // This section can be customized based on application requirements
+    if (permissionType.startsWith('expenses_view')) {
+      // Everyone can view expenses
+      return true;
+    }
     
-    // Check role-based permissions
-    const userRolesList = userRoles.filter(ur => ur.user === user.id);
-    const userRoleIds = userRolesList.map(ur => ur.role);
-    
-    // Get permissions from roles
-    const rolePermissions = roles
-      .filter(role => userRoleIds.includes(role.id) && role.is_active)
-      .flatMap(role => role.permissions);
-    
-    return rolePermissions.includes(permissionType);
+    // For any other permission, default to false for non-admin users if we couldn't fetch roles
+    return false;
   };
 
   return {
-    hasPermission,
     loading,
-    error
+    error,
+    hasPermission,
+    roles,
+    userRoles,
+    permissions
   };
 }; 

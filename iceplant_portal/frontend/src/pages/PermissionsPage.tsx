@@ -379,6 +379,16 @@ const PermissionsPage: React.FC = () => {
       return;
     }
 
+    // Check if the role is already assigned to the user
+    const alreadyAssigned = userRoles.some(
+      ur => ur.user === selectedUser && ur.role === selectedRole
+    );
+    
+    if (alreadyAssigned) {
+      enqueueSnackbar('This role is already assigned to the user', { variant: 'warning' });
+      return;
+    }
+
     try {
       await apiService.post('/api/users/user-roles/', {
         user: selectedUser,
@@ -390,7 +400,14 @@ const PermissionsPage: React.FC = () => {
       setOpenAssignRole(false);
     } catch (error) {
       console.error('Error assigning role:', error);
-      enqueueSnackbar('Failed to assign role', { variant: 'error' });
+      
+      // Check if this is a uniqueness error
+      const axiosError = error as any;
+      if (axiosError?.response?.data?.non_field_errors?.includes('The fields user, role must make a unique set.')) {
+        enqueueSnackbar('This role is already assigned to the user', { variant: 'warning' });
+      } else {
+        enqueueSnackbar('Failed to assign role', { variant: 'error' });
+      }
     }
   };
 
