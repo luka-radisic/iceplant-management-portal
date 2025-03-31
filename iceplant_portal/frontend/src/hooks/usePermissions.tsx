@@ -65,6 +65,10 @@ export const usePermissions = () => {
             ? permissionsResponse 
             : (permissionsResponse?.results || []);
           setPermissions(permissionsList);
+          loggerService.info(`Loaded ${permissionsList.length} direct permissions for user`, { 
+            userId: user.id, 
+            permissions: permissionsList.map(p => p.permission_type) 
+          });
         } else {
           loggerService.warn('Could not fetch user permissions', results[0].reason);
         }
@@ -76,6 +80,12 @@ export const usePermissions = () => {
             ? userRolesResponse 
             : (userRolesResponse?.results || []);
           setUserRoles(userRolesList);
+          
+          const userSpecificRoles = userRolesList.filter(ur => ur.user === user.id);
+          loggerService.info(`Loaded ${userSpecificRoles.length} roles for user`, { 
+            userId: user.id, 
+            roles: userSpecificRoles.map(r => r.role_name || r.role) 
+          });
         } else {
           loggerService.warn('Could not fetch user roles', results[1].reason);
         }
@@ -87,6 +97,7 @@ export const usePermissions = () => {
             ? rolesResponse 
             : (rolesResponse?.results || []);
           setRoles(rolesList);
+          loggerService.info(`Loaded ${rolesList.length} role definitions`);
         } else {
           loggerService.warn('Could not fetch roles', results[2].reason);
         }
@@ -109,17 +120,26 @@ export const usePermissions = () => {
    */
   const hasPermission = (permissionType: string): boolean => {
     // If loading, assume they don't have permission yet
-    if (loading) return false;
+    if (loading) {
+      loggerService.debug(`Permission check while loading: ${permissionType} = false`);
+      return false;
+    }
     
     // If user is admin, they have all permissions
-    if (isAdmin) return true;
+    if (isAdmin) {
+      loggerService.debug(`Admin permission check: ${permissionType} = true`);
+      return true;
+    }
     
     // First, check if user has this direct permission
     const hasDirectPermission = permissions.some(
       p => p.user === user?.id && p.permission_type === permissionType
     );
     
-    if (hasDirectPermission) return true;
+    if (hasDirectPermission) {
+      loggerService.debug(`Direct permission check: ${permissionType} = true`);
+      return true;
+    }
     
     // If we have role data, check role-based permissions
     if (roles.length > 0 && userRoles.length > 0) {
@@ -133,29 +153,26 @@ export const usePermissions = () => {
         .filter(role => userRoleIds.includes(role.id))
         .some(role => role.permissions.includes(permissionType));
       
-      if (hasRoleWithPermission) return true;
+      if (hasRoleWithPermission) {
+        loggerService.debug(`Role-based permission check: ${permissionType} = true`);
+        return true;
+      }
     }
     
-    // Default permissions logic for when we can't fetch all role data
-    // Add specific permissions that should be available to non-admin users
-    if (permissionType.startsWith('expenses_view') || 
-        permissionType.startsWith('inventory_view') ||
-        permissionType.startsWith('sales_view') ||
-        permissionType.startsWith('buyers_view') ||
-        permissionType.startsWith('attendance_view') ||
-        permissionType.startsWith('reports_view')) {
-      // Everyone can view these sections
-      return true;
-    }
-    
-    // For managers, check specific permissions they should have
+    // Check for Manager role specifically, as we want to ensure managers have appropriate permissions
+    // even if we couldn't fetch all role data
     const isManager = userRoles.some(
       ur => ur.role_name?.toLowerCase() === 'manager' && ur.user === user?.id
     );
     
     if (isManager) {
-      // Define permissions that managers should have regardless of API access
-      const managerPermissions = [
+      // Define permissions that managers should have
+      const managerViewPermissions = [
+        'expenses_view', 'inventory_view', 'sales_view', 
+        'buyers_view', 'attendance_view', 'reports_view'
+      ];
+      
+      const managerEditPermissions = [
         'expenses_add', 'expenses_edit', 
         'inventory_add', 'inventory_edit',
         'sales_add', 'sales_edit',
@@ -163,12 +180,22 @@ export const usePermissions = () => {
         'attendance_add', 'attendance_edit'
       ];
       
-      if (managerPermissions.includes(permissionType)) {
+      if (managerViewPermissions.includes(permissionType) || 
+          managerEditPermissions.includes(permissionType)) {
+        loggerService.debug(`Manager permission check: ${permissionType} = true`);
         return true;
       }
     }
     
-    // Default to false for any other permission
+    // Log detailed information about the failed permission check
+    loggerService.debug(`Permission denied: ${permissionType}`, {
+      userId: user?.id,
+      userRoles: userRoles.filter(ur => ur.user === user?.id).map(r => r.role_name || r.role),
+      directPermissionsCount: permissions.filter(p => p.user === user?.id).length,
+      isManager
+    });
+    
+    // Default to false - user must have explicit permission
     return false;
   };
 
