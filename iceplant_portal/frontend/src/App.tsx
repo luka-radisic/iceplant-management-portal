@@ -22,10 +22,11 @@ import UserManagement from './pages/UserManagement';
 import BuyersPage from './pages/BuyersPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
 import SalePrintView from './components/sales/SalePrintView';
+import InventoryPage from './pages/InventoryPage';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
-const Inventory = () => <div>Inventory Page (Coming Soon)</div>;
+// const Inventory = () => <div>Inventory Page (Coming Soon)</div>;
 const Expenses = () => <div>Expenses Page (Coming Soon)</div>;
 
 function App() {
@@ -58,7 +59,7 @@ function App() {
                     <Route path="/attendance" element={<Attendance />} />
                     <Route path="/sales" element={<SalesPage />} />
                     <Route path="/buyers" element={<BuyersPage />} />
-                    <Route path="/inventory" element={<Inventory />} />
+                    <Route path="/inventory" element={<InventoryPage />} />
                     <Route path="/expenses" element={<Expenses />} />
                     <Route path="/tools" element={<ToolsPage />} />
                     
