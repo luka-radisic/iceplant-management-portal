@@ -15,6 +15,7 @@ interface UserRole {
   user: number;
   role: number;
   role_name: string;
+  role_permissions?: string[]; // New field from backend API
 }
 
 interface Permission {
@@ -62,7 +63,7 @@ export const usePermissions = () => {
           loggerService.warn('Could not fetch user permissions', error);
         }
         
-        // Then try to get user roles
+        // Then try to get user roles and their permissions (most important API call)
         try {
           const userRolesResponse = await apiService.get('/api/users/user-roles/');
           userRolesList = Array.isArray(userRolesResponse) 
@@ -76,20 +77,28 @@ export const usePermissions = () => {
           loggerService.info(`Loaded ${userSpecificRoles.length} roles for user`, { 
             userId: user.id, 
             username: user.username,
-            roles: userSpecificRoles.map(r => ({ id: r.role, name: r.role_name }))
+            roles: userSpecificRoles.map(r => ({ 
+              id: r.role, 
+              name: r.role_name,
+              permissions: r.role_permissions || []
+            }))
           });
           
           // Debug log all role names exactly as they appear
           if (userSpecificRoles.length > 0) {
             loggerService.debug('User role data:', { 
-              exact_role_names: userSpecificRoles.map(r => r.role_name) 
+              exact_role_names: userSpecificRoles.map(r => r.role_name),
+              role_permissions: userSpecificRoles.map(r => ({ 
+                role: r.role_name,
+                permissions: r.role_permissions || []
+              }))
             });
           }
         } catch (error) {
           loggerService.warn('Could not fetch user roles', error);
         }
         
-        // Last, try to get all roles with their permissions
+        // Last, try to get all roles with their permissions (not critical, but helpful)
         try {
           const rolesResponse = await apiService.get('/api/users/roles/');
           rolesList = Array.isArray(rolesResponse) 
@@ -144,44 +153,29 @@ export const usePermissions = () => {
       return true;
     }
     
-    // Extract this user's role IDs
-    const userRoleIds = userRoles
-      .filter(ur => ur.user === user?.id)
-      .map(ur => ur.role);
+    // Check if any of the user's roles have this permission (using role_permissions from user-roles endpoint)
+    const userSpecificRoles = userRoles.filter(ur => ur.user === user?.id);
     
-    loggerService.debug(`User ${user?.username} has roles:`, userRoleIds);
-    
-    // Now check if any of the user's roles have this permission
-    for (const role of roles) {
-      if (userRoleIds.includes(role.id) && role.permissions.includes(permissionType)) {
-        loggerService.debug(`Role-based permission check: ${permissionType} = true (user has role ${role.name} with permission)`);
+    for (const userRole of userSpecificRoles) {
+      if (userRole.role_permissions && userRole.role_permissions.includes(permissionType)) {
+        loggerService.debug(`Role-based permission check: ${permissionType} = true (user has role ${userRole.role_name} with permission)`);
         return true;
       }
     }
     
-    // Check for roles by name if we couldn't get the roles by ID
-    // This is a fallback for when the roles API is not accessible
-    const userRoleNames = userRoles
-      .filter(ur => ur.user === user?.id)
-      .map(ur => ur.role_name?.toLowerCase() || '');
-    
-    // If the user has a Manager role, give them basic management permissions
-    if (userRoleNames.some(name => name.includes('manager'))) {
-      loggerService.debug(`User has a manager role: ${userRoleNames.filter(n => n.includes('manager'))}`);
+    // If role_permissions are not available from user-roles, use the old method with roles endpoint
+    if (roles.length > 0) {
+      // Extract this user's role IDs
+      const userRoleIds = userRoles
+        .filter(ur => ur.user === user?.id)
+        .map(ur => ur.role);
       
-      // Common permissions for manager role
-      const managerPermissions = [
-        'expenses_view', 'expenses_add', 'expenses_edit',
-        'inventory_view', 'inventory_add', 'inventory_edit',
-        'sales_view', 'sales_add', 'sales_edit',
-        'buyers_view', 'buyers_add', 'buyers_edit',
-        'attendance_view', 'attendance_add', 'attendance_edit',
-        'reports_view'
-      ];
-      
-      if (managerPermissions.includes(permissionType)) {
-        loggerService.debug(`Manager role permission match: ${permissionType} = true`);
-        return true;
+      // Now check if any of the user's roles have this permission
+      for (const role of roles) {
+        if (userRoleIds.includes(role.id) && role.permissions.includes(permissionType)) {
+          loggerService.debug(`Role-based permission check from roles API: ${permissionType} = true (user has role ${role.name} with permission)`);
+          return true;
+        }
       }
     }
     
@@ -190,8 +184,10 @@ export const usePermissions = () => {
       userId: user?.id,
       username: user?.username,
       directPermissionsCount: permissions.filter(p => p.user === user?.id).length,
-      userRoleIds,
-      userRoleNames
+      userRoles: userSpecificRoles.map(r => ({
+        name: r.role_name,
+        permissions: r.role_permissions || []
+      }))
     });
     
     // Permission not found through any method

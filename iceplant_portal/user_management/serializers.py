@@ -32,47 +32,51 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user 
 
 class PermissionSerializer(serializers.ModelSerializer):
+    """Serializer for user permissions."""
+    
+    user_username = serializers.SerializerMethodField()
     permission_display = serializers.SerializerMethodField()
     
     class Meta:
         model = UserPermission
-        fields = ['id', 'user', 'permission_type', 'permission_display']
+        fields = ['id', 'user', 'user_username', 'permission_type', 'permission_display']
     
+    def get_user_username(self, obj):
+        return obj.user.username
+        
     def get_permission_display(self, obj):
-        return obj.get_permission_type_display()
-
-class RolePermissionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RolePermission
-        fields = ['id', 'role', 'permission_type']
-
-class UserRoleSerializer(serializers.ModelSerializer):
-    role_name = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = UserRoleAssignment
-        fields = ['id', 'user', 'role', 'role_name', 'assigned_at', 'assigned_by']
-    
-    def get_role_name(self, obj):
-        return obj.role.name
+        for perm_type, display in UserPermission.PERMISSION_TYPES:
+            if perm_type == obj.permission_type:
+                return display
+        return obj.permission_type
 
 class RoleSerializer(serializers.ModelSerializer):
-    permissions = serializers.SerializerMethodField()
+    """Serializer for roles."""
     
     class Meta:
         model = UserRole
         fields = ['id', 'name', 'role_type', 'description', 'is_active', 'permissions', 'created_at', 'updated_at']
     
+    # Use the permissions_json field directly
+    permissions = serializers.SerializerMethodField()
+    
     def get_permissions(self, obj):
-        # Get all permission types for this role
+        # Return the cached permissions from the JSON field
+        if obj.permissions_json:
+            return obj.permissions_json
+        
+        # Fallback to quering permissions if JSON field is empty
         role_permissions = RolePermission.objects.filter(role=obj)
-        return [rp.permission_type for rp in role_permissions]
+        permissions = [rp.permission_type for rp in role_permissions]
+        return permissions
     
     def create(self, validated_data):
         permissions_data = self.context.get('request').data.get('permissions', [])
         
         # Create the role
         role = UserRole.objects.create(**validated_data)
+        role.permissions_json = permissions_data
+        role.save(update_fields=['permissions_json'])
         
         # Create role permissions
         for permission_type in permissions_data:
@@ -88,6 +92,7 @@ class RoleSerializer(serializers.ModelSerializer):
         instance.role_type = validated_data.get('role_type', instance.role_type)
         instance.description = validated_data.get('description', instance.description)
         instance.is_active = validated_data.get('is_active', instance.is_active)
+        instance.permissions_json = permissions_data
         instance.save()
         
         # Update role permissions
@@ -98,4 +103,46 @@ class RoleSerializer(serializers.ModelSerializer):
         for permission_type in permissions_data:
             RolePermission.objects.create(role=instance, permission_type=permission_type)
             
-        return instance 
+        return instance
+
+class RolePermissionSerializer(serializers.ModelSerializer):
+    """Serializer for role permissions."""
+    
+    role_name = serializers.SerializerMethodField()
+    permission_display = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = RolePermission
+        fields = ['id', 'role', 'role_name', 'permission_type', 'permission_display']
+    
+    def get_role_name(self, obj):
+        return obj.role.name
+        
+    def get_permission_display(self, obj):
+        for perm_type, display in UserPermission.PERMISSION_TYPES:
+            if perm_type == obj.permission_type:
+                return display
+        return obj.permission_type
+
+class UserRoleSerializer(serializers.ModelSerializer):
+    """Serializer for user-role assignments."""
+    
+    user_username = serializers.SerializerMethodField()
+    role_name = serializers.CharField(read_only=True)
+    role_permissions = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = UserRoleAssignment
+        fields = ['id', 'user', 'user_username', 'role', 'role_name', 'assigned_at', 'assigned_by', 'role_permissions']
+    
+    def get_user_username(self, obj):
+        return obj.user.username
+    
+    def get_role_permissions(self, obj):
+        # Return the cached permissions from the role's JSON field
+        if hasattr(obj.role, 'permissions_json') and obj.role.permissions_json:
+            return obj.role.permissions_json
+        
+        # Fallback to querying role permissions
+        role_permissions = RolePermission.objects.filter(role=obj.role)
+        return [rp.permission_type for rp in role_permissions] 
