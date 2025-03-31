@@ -19,7 +19,7 @@
     "@mui/x-date-pickers": "^7.28.2",
     "@types/node": "^22.13.10",
     "axios": "^1.8.4",
-    "date-fns": "^4.1.0",
+    "date-fns": "^2.30.0",
     "date-fns-tz": "^3.2.0",
     "notistack": "^3.0.2",
     "react": "^19.0.0",

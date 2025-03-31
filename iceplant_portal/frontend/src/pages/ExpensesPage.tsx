@@ -437,7 +437,7 @@ const ExpensesPage: React.FC = () => {
   const handleApproveExpense = async (expense: Expense) => {
     try {
       setIsLoading(true);
-      await apiService.post(`${endpoints.expenses}${expense.id}/approve/`);
+      await apiService.post(`${endpoints.expenses}${expense.id}/approve/`, {});
       enqueueSnackbar('Expense approved successfully', { variant: 'success' });
       
       // Refresh data
