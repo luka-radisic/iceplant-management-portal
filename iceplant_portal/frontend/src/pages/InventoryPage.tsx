@@ -82,19 +82,54 @@ const InventoryPage = () => {
     new_quantity: 0
   });
   const { enqueueSnackbar } = useSnackbar();
+  const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
 
   useEffect(() => {
     fetchInventory();
+    fetchLowStockItems();
   }, []);
 
   const fetchInventory = async () => {
     try {
       setIsLoading(true);
       const data = await apiService.get(endpoints.inventory);
-      setInventoryItems(data);
+      
+      // Handle paginated response
+      if (data.results && Array.isArray(data.results)) {
+        setInventoryItems(data.results);
+      } else if (Array.isArray(data)) {
+        setInventoryItems(data);
+      } else {
+        console.error('Unexpected inventory data format:', data);
+        setInventoryItems([]);
+      }
     } catch (error) {
       enqueueSnackbar('Failed to load inventory', { variant: 'error' });
       console.error('Error fetching inventory:', error);
+      setInventoryItems([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchLowStockItems = async () => {
+    try {
+      setIsLoading(true);
+      const data = await apiService.get(endpoints.lowStock);
+      
+      // Handle different response structures
+      if (Array.isArray(data)) {
+        setLowStockItems(data);
+      } else if (data.results && Array.isArray(data.results)) {
+        setLowStockItems(data.results);
+      } else {
+        console.error('Unexpected low stock data format:', data);
+        setLowStockItems([]);
+      }
+    } catch (error) {
+      enqueueSnackbar('Failed to load low stock items', { variant: 'error' });
+      console.error('Error fetching low stock items:', error);
+      setLowStockItems([]);
     } finally {
       setIsLoading(false);
     }
@@ -187,7 +222,8 @@ const InventoryPage = () => {
       
       enqueueSnackbar('Inventory item added successfully', { variant: 'success' });
       handleCloseModal();
-      fetchInventory();
+      await fetchInventory();
+      await fetchLowStockItems();
     } catch (error) {
       enqueueSnackbar('Failed to add inventory item', { variant: 'error' });
       console.error('Error adding inventory item:', error);
@@ -210,7 +246,8 @@ const InventoryPage = () => {
       
       enqueueSnackbar('Inventory item updated successfully', { variant: 'success' });
       handleCloseModal();
-      fetchInventory();
+      await fetchInventory();
+      await fetchLowStockItems();
     } catch (error) {
       enqueueSnackbar('Failed to update inventory item', { variant: 'error' });
       console.error('Error updating inventory item:', error);
@@ -233,7 +270,8 @@ const InventoryPage = () => {
       
       enqueueSnackbar('Inventory quantity adjusted successfully', { variant: 'success' });
       handleCloseModal();
-      fetchInventory();
+      await fetchInventory();
+      await fetchLowStockItems();
     } catch (error) {
       enqueueSnackbar('Failed to adjust inventory quantity', { variant: 'error' });
       console.error('Error adjusting inventory:', error);
@@ -251,7 +289,8 @@ const InventoryPage = () => {
       
       enqueueSnackbar('Inventory item deleted successfully', { variant: 'success' });
       handleCloseModal();
-      fetchInventory();
+      await fetchInventory();
+      await fetchLowStockItems();
     } catch (error) {
       enqueueSnackbar('Failed to delete inventory item', { variant: 'error' });
       console.error('Error deleting inventory item:', error);
@@ -557,36 +596,34 @@ const InventoryPage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {inventoryItems.filter(item => item.is_low).length > 0 ? (
-                  inventoryItems
-                    .filter(item => item.is_low)
-                    .map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Typography fontWeight="bold">
-                            {item.item_name}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={`${item.quantity} ${item.unit}`}
-                            color="error"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>{item.minimum_level} {item.unit}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="primary"
-                            onClick={() => handleOpenModal(ModalType.ADJUST, item)}
-                          >
-                            Adjust Stock
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                {lowStockItems.length > 0 ? (
+                  lowStockItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Typography fontWeight="bold">
+                          {item.item_name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={`${item.quantity} ${item.unit}`}
+                          color="error"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>{item.minimum_level} {item.unit}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          onClick={() => handleOpenModal(ModalType.ADJUST, item)}
+                        >
+                          Adjust Stock
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} align="center">
