@@ -11,6 +11,7 @@ import {
   AdminPanelSettings as AdminIcon,
   Business as BusinessIcon,
   Settings as SettingsIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -68,6 +69,7 @@ const menuItems = [
 // Admin-only menu items
 const adminMenuItems = [
   { text: 'User Management', icon: <AdminIcon />, path: '/admin' },
+  { text: 'User Permissions', icon: <LockIcon />, path: '/admin/permissions' },
   { text: 'Company Settings', icon: <SettingsIcon />, path: '/company-settings' },
 ];
 

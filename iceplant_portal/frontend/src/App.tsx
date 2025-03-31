@@ -24,6 +24,7 @@ import CompanySettingsPage from './pages/CompanySettingsPage';
 import SalePrintView from './components/sales/SalePrintView';
 import InventoryPage from './pages/InventoryPage';
 import ExpensesPage from './pages/ExpensesPage';
+import PermissionsPage from './pages/PermissionsPage';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
@@ -75,6 +76,11 @@ function App() {
                       </AdminRoute>
                     } />
                   </Route>
+
+                  {/* Admin-only routes */}
+                  <Route path="/admin" element={<AdminRoute><UserManagement /></AdminRoute>} />
+                  <Route path="/company-settings" element={<AdminRoute><CompanySettingsPage /></AdminRoute>} />
+                  <Route path="/admin/permissions" element={<AdminRoute><PermissionsPage /></AdminRoute>} />
 
                   {/* Catch all route */}
                   <Route path="*" element={<Navigate to="/" replace />} />

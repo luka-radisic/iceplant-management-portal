@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-# Create your models here.
-
 # Define permission levels
 class UserPermission(models.Model):
     """
@@ -48,7 +46,7 @@ class UserPermission(models.Model):
         ('permissions_management', 'Can manage user permissions'),
     ]
     
-    user = models.ForeignKey(User, related_name='custom_permissions', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, related_name='permissions', on_delete=models.CASCADE)
     permission_type = models.CharField(max_length=50, choices=PERMISSION_TYPES)
     
     class Meta:
@@ -77,9 +75,6 @@ class UserRole(models.Model):
     name = models.CharField(max_length=100)
     role_type = models.CharField(max_length=50, choices=ROLE_CHOICES)
     description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return self.name
@@ -96,23 +91,4 @@ class RolePermission(models.Model):
         unique_together = ('role', 'permission_type')
 
     def __str__(self):
-        return f"{self.role.name} - {self.permission_type}"
-
-# User-Role assignment
-class UserRoleAssignment(models.Model):
-    """
-    Assigns roles to users
-    """
-    user = models.ForeignKey(User, related_name='role_assignments', on_delete=models.CASCADE)
-    role = models.ForeignKey(UserRole, related_name='user_assignments', on_delete=models.CASCADE)
-    assigned_at = models.DateTimeField(auto_now_add=True)
-    assigned_by = models.ForeignKey(User, related_name='role_assignments_made', 
-                                   on_delete=models.SET_NULL, null=True, blank=True)
-    
-    class Meta:
-        unique_together = ('user', 'role')
-        verbose_name = 'User Role Assignment'
-        verbose_name_plural = 'User Role Assignments'
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.role.name}"
+        return f"{self.role.name} - {self.permission_type}" 
