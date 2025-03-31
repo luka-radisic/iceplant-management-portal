@@ -23,6 +23,7 @@ import {
   Alert,
   Chip,
   CircularProgress,
+  Pagination,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -83,16 +84,18 @@ const InventoryPage = () => {
   });
   const { enqueueSnackbar } = useSnackbar();
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
-    fetchInventory();
+    fetchInventory(page);
     fetchLowStockItems();
-  }, []);
+  }, [page]);
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (pageNumber = 1) => {
     try {
       setIsLoading(true);
-      const data = await apiService.get(endpoints.inventory);
+      const data = await apiService.get(`${endpoints.inventory}?page=${pageNumber}`);
       
       console.log('Inventory data received:', data);
       
@@ -100,17 +103,21 @@ const InventoryPage = () => {
       if (data.results && Array.isArray(data.results)) {
         console.log('Setting inventory from paginated results:', data.results);
         setInventoryItems(data.results);
+        setTotalItems(data.count || 0);
       } else if (Array.isArray(data)) {
         console.log('Setting inventory from array data:', data);
         setInventoryItems(data);
+        setTotalItems(data.length);
       } else {
         console.error('Unexpected inventory data format:', data);
         setInventoryItems([]);
+        setTotalItems(0);
       }
     } catch (error) {
       enqueueSnackbar('Failed to load inventory', { variant: 'error' });
       console.error('Error fetching inventory:', error);
       setInventoryItems([]);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
@@ -329,6 +336,11 @@ const InventoryPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+    fetchInventory(value);
   };
 
   const renderModalContent = () => {
@@ -763,6 +775,17 @@ const InventoryPage = () => {
               </TableBody>
             </Table>
           </TableContainer>
+        )}
+        
+        {totalItems > 0 && (
+          <Box display="flex" justifyContent="center" mt={2}>
+            <Pagination 
+              count={Math.ceil(totalItems / 20)} 
+              page={page} 
+              onChange={handlePageChange}
+              color="primary"
+            />
+          </Box>
         )}
       </Paper>
 
