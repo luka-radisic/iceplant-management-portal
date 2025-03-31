@@ -46,31 +46,49 @@ export const usePermissions = () => {
         let userRolesList: UserRole[] = [];
         let permissionsList: Permission[] = [];
         
-        try {
+        // Use Promise.allSettled to handle both successful and failed requests
+        const results = await Promise.allSettled([
+          // Try to fetch user-specific permissions first - this should work for all users
+          apiService.get('/api/users/permissions/'),
+          
+          // Try to fetch user roles - this might fail for non-admin users
+          apiService.get('/api/users/user-roles/'),
+          
           // Try to fetch all roles - this might fail for non-admin users
-          const rolesResponse = await apiService.get('/api/users/roles/');
-          rolesList = Array.isArray(rolesResponse) 
-            ? rolesResponse 
-            : (rolesResponse?.results || []);
-          setRoles(rolesList);
-          
-          // Try to fetch user roles
-          const userRolesResponse = await apiService.get('/api/users/user-roles/');
-          userRolesList = Array.isArray(userRolesResponse) 
-            ? userRolesResponse 
-            : (userRolesResponse?.results || []);
-          setUserRoles(userRolesList);
-          
-          // Try to fetch direct permissions
-          const permissionsResponse = await apiService.get('/api/users/permissions/');
+          apiService.get('/api/users/roles/')
+        ]);
+        
+        // Handle permissions result
+        if (results[0].status === 'fulfilled') {
+          const permissionsResponse = results[0].value;
           permissionsList = Array.isArray(permissionsResponse) 
             ? permissionsResponse 
             : (permissionsResponse?.results || []);
           setPermissions(permissionsList);
-        } catch (err) {
-          // If we get 403 Forbidden, the user doesn't have admin access
-          // We'll still continue but we'll rely on isAdmin status for permissions
-          loggerService.warn('Cannot fetch roles or permissions. Falling back to basic permissions', err);
+        } else {
+          loggerService.warn('Could not fetch user permissions', results[0].reason);
+        }
+        
+        // Handle user roles result
+        if (results[1].status === 'fulfilled') {
+          const userRolesResponse = results[1].value;
+          userRolesList = Array.isArray(userRolesResponse) 
+            ? userRolesResponse 
+            : (userRolesResponse?.results || []);
+          setUserRoles(userRolesList);
+        } else {
+          loggerService.warn('Could not fetch user roles', results[1].reason);
+        }
+        
+        // Handle roles result
+        if (results[2].status === 'fulfilled') {
+          const rolesResponse = results[2].value;
+          rolesList = Array.isArray(rolesResponse) 
+            ? rolesResponse 
+            : (rolesResponse?.results || []);
+          setRoles(rolesList);
+        } else {
+          loggerService.warn('Could not fetch roles', results[2].reason);
         }
         
         setLoading(false);
@@ -96,35 +114,61 @@ export const usePermissions = () => {
     // If user is admin, they have all permissions
     if (isAdmin) return true;
     
-    // If we were able to fetch roles and permissions data, check those
-    if (roles.length > 0 || permissions.length > 0) {
-      // Check if user has this direct permission
-      const hasDirectPermission = permissions.some(
-        p => p.user === user?.id && p.permission_type === permissionType
-      );
-      
-      if (hasDirectPermission) return true;
-      
-      // Check if user has a role that includes this permission
+    // First, check if user has this direct permission
+    const hasDirectPermission = permissions.some(
+      p => p.user === user?.id && p.permission_type === permissionType
+    );
+    
+    if (hasDirectPermission) return true;
+    
+    // If we have role data, check role-based permissions
+    if (roles.length > 0 && userRoles.length > 0) {
+      // Get user role IDs
       const userRoleIds = userRoles
         .filter(ur => ur.user === user?.id)
         .map(ur => ur.role);
       
+      // Check if any of the user's roles have this permission
       const hasRoleWithPermission = roles
         .filter(role => userRoleIds.includes(role.id))
         .some(role => role.permissions.includes(permissionType));
       
-      return hasRoleWithPermission;
+      if (hasRoleWithPermission) return true;
     }
     
-    // If we couldn't fetch roles/permissions data, fall back to basic checks
-    // This section can be customized based on application requirements
-    if (permissionType.startsWith('expenses_view')) {
-      // Everyone can view expenses
+    // Default permissions logic for when we can't fetch all role data
+    // Add specific permissions that should be available to non-admin users
+    if (permissionType.startsWith('expenses_view') || 
+        permissionType.startsWith('inventory_view') ||
+        permissionType.startsWith('sales_view') ||
+        permissionType.startsWith('buyers_view') ||
+        permissionType.startsWith('attendance_view') ||
+        permissionType.startsWith('reports_view')) {
+      // Everyone can view these sections
       return true;
     }
     
-    // For any other permission, default to false for non-admin users if we couldn't fetch roles
+    // For managers, check specific permissions they should have
+    const isManager = userRoles.some(
+      ur => ur.role_name?.toLowerCase() === 'manager' && ur.user === user?.id
+    );
+    
+    if (isManager) {
+      // Define permissions that managers should have regardless of API access
+      const managerPermissions = [
+        'expenses_add', 'expenses_edit', 
+        'inventory_add', 'inventory_edit',
+        'sales_add', 'sales_edit',
+        'buyers_add', 'buyers_edit',
+        'attendance_add', 'attendance_edit'
+      ];
+      
+      if (managerPermissions.includes(permissionType)) {
+        return true;
+      }
+    }
+    
+    // Default to false for any other permission
     return false;
   };
 

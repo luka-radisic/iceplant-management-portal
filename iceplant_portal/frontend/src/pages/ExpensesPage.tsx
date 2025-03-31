@@ -198,6 +198,12 @@ const ExpensesPage: React.FC = () => {
   
   const { enqueueSnackbar } = useSnackbar();
   
+  // Check specific permissions
+  const canAddExpenses = hasPermission('expenses_add');
+  const canEditExpenses = hasPermission('expenses_edit');
+  const canDeleteExpenses = hasPermission('expenses_delete');
+  const canApproveExpenses = hasPermission('expenses_approve');
+  
   // Fetch data on component mount
   useEffect(() => {
     fetchExpenses();
@@ -549,7 +555,7 @@ const ExpensesPage: React.FC = () => {
           >
             Filters
           </Button>
-          {hasPermission('expenses_add') ? (
+          {canAddExpenses ? (
             <Button 
               variant="contained" 
               color="primary" 
@@ -691,7 +697,7 @@ const ExpensesPage: React.FC = () => {
                             </IconButton>
                           </Tooltip>
                           
-                          {hasPermission('expenses_edit') ? (
+                          {canEditExpenses ? (
                             <Tooltip title="Edit">
                               <IconButton size="small" onClick={() => handleOpenDialog('edit', expense)}>
                                 <EditIcon fontSize="small" />
@@ -699,7 +705,7 @@ const ExpensesPage: React.FC = () => {
                             </Tooltip>
                           ) : null}
                           
-                          {hasPermission('expenses_delete') ? (
+                          {canDeleteExpenses ? (
                             <Tooltip title="Delete">
                               <IconButton size="small" color="error" onClick={() => handleOpenDialog('delete', expense)}>
                                 <DeleteIcon fontSize="small" />
@@ -707,7 +713,7 @@ const ExpensesPage: React.FC = () => {
                             </Tooltip>
                           ) : null}
                           
-                          {hasPermission('expenses_approve') && !expense.approved ? (
+                          {canApproveExpenses && !expense.approved ? (
                             <Tooltip title="Approve">
                               <IconButton size="small" color="success" onClick={() => handleApproveExpense(expense)}>
                                 <CheckCircleIcon fontSize="small" />
@@ -715,7 +721,7 @@ const ExpensesPage: React.FC = () => {
                             </Tooltip>
                           ) : null}
                           
-                          {!hasPermission('expenses_edit') && !hasPermission('expenses_delete') && !hasPermission('expenses_approve') ? (
+                          {!canEditExpenses && !canDeleteExpenses && !canApproveExpenses ? (
                             <Tooltip title="You don't have permission to modify expenses">
                               <IconButton size="small" disabled>
                                 <LockIcon fontSize="small" />
@@ -862,7 +868,7 @@ const ExpensesPage: React.FC = () => {
            dialogType === 'edit' ? 'Edit Expense' : 
            dialogType === 'view' ? 'View Expense' :
            'Delete Expense'}
-           {!hasPermission('expenses_edit') && dialogType !== 'view' && (
+           {!canEditExpenses && dialogType !== 'view' && (
              <Chip
                label="Admin Only"
                color="error"
@@ -878,7 +884,7 @@ const ExpensesPage: React.FC = () => {
               <Typography gutterBottom>
                 Are you sure you want to delete this expense? This action cannot be undone.
               </Typography>
-              {!hasPermission('expenses_delete') && (
+              {!canDeleteExpenses && (
                 <Alert severity="warning" sx={{ mt: 2 }}>
                   You do not have permission to perform this action.
                 </Alert>
@@ -886,7 +892,7 @@ const ExpensesPage: React.FC = () => {
             </>
           ) : (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              {!hasPermission('expenses_edit') && dialogType !== 'view' && (
+              {!canEditExpenses && dialogType !== 'view' && (
                 <Grid item xs={12}>
                   <Alert severity="warning">
                     You don't have permission to modify expenses.
@@ -899,7 +905,7 @@ const ExpensesPage: React.FC = () => {
                     label="Date"
                     value={formData.date ? new Date(formData.date) : null}
                     onChange={handleDateChange}
-                    disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                    disabled={dialogType === 'view' || !canEditExpenses}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -916,7 +922,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.payee}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   required
                 />
               </Grid>
@@ -929,7 +935,7 @@ const ExpensesPage: React.FC = () => {
                   fullWidth
                   multiline
                   rows={2}
-                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   required
                 />
               </Grid>
@@ -941,7 +947,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.amount}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                   }}
@@ -956,7 +962,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.ice_plant_allocation}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                   }}
@@ -971,7 +977,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.category}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   required
                 >
                   <MenuItem value="meals">Meals</MenuItem>
@@ -999,7 +1005,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.payment_method}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                 >
                   <MenuItem value="cash">Cash</MenuItem>
                   <MenuItem value="check">Check</MenuItem>
@@ -1017,7 +1023,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.reference_number}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -1029,7 +1035,7 @@ const ExpensesPage: React.FC = () => {
                   fullWidth
                   multiline
                   rows={3}
-                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                 />
               </Grid>
               
@@ -1088,7 +1094,7 @@ const ExpensesPage: React.FC = () => {
             {dialogType === 'view' ? 'Close' : 'Cancel'}
           </Button>
           
-          {dialogType === 'add' && hasPermission('expenses_add') && (
+          {dialogType === 'add' && canAddExpenses && (
             <Button 
               onClick={handleAddExpense} 
               variant="contained" 
@@ -1099,7 +1105,7 @@ const ExpensesPage: React.FC = () => {
             </Button>
           )}
           
-          {dialogType === 'edit' && hasPermission('expenses_edit') && (
+          {dialogType === 'edit' && canEditExpenses && (
             <Button 
               onClick={handleUpdateExpense} 
               variant="contained" 
@@ -1110,7 +1116,7 @@ const ExpensesPage: React.FC = () => {
             </Button>
           )}
           
-          {dialogType === 'delete' && hasPermission('expenses_delete') && (
+          {dialogType === 'delete' && canDeleteExpenses && (
             <Button 
               onClick={handleDeleteExpense} 
               variant="contained" 
