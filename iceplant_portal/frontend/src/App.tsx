@@ -23,11 +23,12 @@ import BuyersPage from './pages/BuyersPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
 import SalePrintView from './components/sales/SalePrintView';
 import InventoryPage from './pages/InventoryPage';
+import ExpensesPage from './pages/ExpensesPage';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
 // const Inventory = () => <div>Inventory Page (Coming Soon)</div>;
-const Expenses = () => <div>Expenses Page (Coming Soon)</div>;
+// const Expenses = () => <div>Expenses Page (Coming Soon)</div>;
 
 function App() {
   const [showLogs, setShowLogs] = useState(false);
@@ -60,7 +61,7 @@ function App() {
                     <Route path="/sales" element={<SalesPage />} />
                     <Route path="/buyers" element={<BuyersPage />} />
                     <Route path="/inventory" element={<InventoryPage />} />
-                    <Route path="/expenses" element={<Expenses />} />
+                    <Route path="/expenses" element={<ExpensesPage />} />
                     <Route path="/tools" element={<ToolsPage />} />
                     
                     {/* Admin-only routes */}

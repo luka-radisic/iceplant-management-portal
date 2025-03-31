@@ -79,22 +79,66 @@ export interface InventoryAdjustment {
 // Expenses
 export interface Expense {
   id: number;
+  date: string;
+  payee: string;
   description: string;
   amount: number;
-  purchase_date: string;
-  vendor: string;
   category: string;
-  receipt: string | null;
+  category_display: string;
+  reference_number: string | null;
+  payment_method: string;
+  payment_method_display: string;
+  ice_plant_allocation: number;
   notes: string | null;
+  receipt: string | null;
   created_at: string;
   updated_at: string;
+  approved: boolean;
+  approved_by: number | null;
+  approved_date: string | null;
+  created_by: number | null;
+  category_object: number | null;
+  // Formatted fields
+  date_formatted: string;
+  created_at_formatted: string;
+  updated_at_formatted: string;
+  approved_date_formatted: string | null;
+  // Nested objects
+  created_by_details?: User;
+  approved_by_details?: User;
+  category_object_details?: ExpenseCategory;
+}
+
+export interface ExpenseCategory {
+  id: number;
+  name: string;
+  description: string | null;
 }
 
 export interface ExpensesSummary {
   monthly_total: number;
-  by_category: {
+  monthly_ice_plant_total: number;
+  yearly_total: number;
+  yearly_ice_plant_total: number;
+  thirty_day_total: number;
+  thirty_day_ice_plant_total: number;
+  top_categories: {
     category: string;
     total: number;
-    count: number;
   }[];
+}
+
+export interface ExpenseSummaryByGroup {
+  period?: string;
+  category?: string;
+  total: number;
+  ice_plant_total: number;
+  count: number;
+}
+
+export interface ExpenseSummaryByPayee {
+  payee: string;
+  total: number;
+  ice_plant_total: number;
+  count: number;
 } 
