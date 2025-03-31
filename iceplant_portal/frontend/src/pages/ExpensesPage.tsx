@@ -46,7 +46,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { apiService, endpoints } from '../services/api';
-import { format, parseISO } from 'date-fns';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
 
 import type { Expense, ExpenseCategory, ExpenseSummaryByGroup, ExpenseSummaryByPayee } from '../types/api';
 
