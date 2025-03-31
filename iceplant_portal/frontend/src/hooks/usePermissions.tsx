@@ -141,6 +141,26 @@ export const usePermissions = () => {
       return true;
     }
     
+    // Special case for Iceplant_Manager user - grant all manager permissions
+    if (user?.username === 'Iceplant_Manager') {
+      const managerPermissions = [
+        // View permissions
+        'expenses_view', 'inventory_view', 'sales_view', 
+        'buyers_view', 'attendance_view', 'reports_view',
+        // Edit permissions
+        'expenses_add', 'expenses_edit', 
+        'inventory_add', 'inventory_edit',
+        'sales_add', 'sales_edit',
+        'buyers_add', 'buyers_edit',
+        'attendance_add', 'attendance_edit'
+      ];
+      
+      if (managerPermissions.includes(permissionType)) {
+        loggerService.debug(`Iceplant_Manager special permission check: ${permissionType} = true`);
+        return true;
+      }
+    }
+    
     // First, check if user has this direct permission
     const hasDirectPermission = permissions.some(
       p => p.user === user?.id && p.permission_type === permissionType
@@ -174,13 +194,12 @@ export const usePermissions = () => {
     // More flexible check for Manager role - case-insensitive and partial match
     const isManager = userRoles.some(
       ur => ur.user === user?.id && (
-        (ur.role_name && ur.role_name.toLowerCase().includes('manager')) ||
-        (user?.username && user.username.toLowerCase().includes('manager'))
+        (ur.role_name && ur.role_name.toLowerCase().includes('manager'))
       )
     );
     
     if (isManager) {
-      loggerService.debug(`User identified as a manager through role name or username: ${user?.username}`);
+      loggerService.debug(`User identified as a manager through role name: ${user?.username}`);
       
       // Define permissions that managers should have
       const managerViewPermissions = [
@@ -204,13 +223,6 @@ export const usePermissions = () => {
         loggerService.debug(`Manager permission check: ${permissionType} = true`);
         return true;
       }
-    }
-    
-    // Additional check for users with "Manager" in their username
-    if (user?.username && user.username.toLowerCase().includes('manager') && 
-        !isManager && permissionType === 'expenses_add') {
-      loggerService.debug(`Special case: Granting expenses_add to ${user.username} based on username`);
-      return true;
     }
     
     // Log detailed information about the failed permission check
