@@ -51,6 +51,7 @@ import { apiService, endpoints } from '../services/api';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 import type { Expense, ExpenseCategory, ExpenseSummaryByGroup, ExpenseSummaryByPayee } from '../types/api';
 
@@ -150,6 +151,7 @@ const SummaryCard: React.FC<ExpenseSummaryProps> = ({ title, total, icePlantTota
 const ExpensesPage: React.FC = () => {
   // Get auth context for admin check
   const { isAdmin } = useAuth();
+  const { hasPermission } = usePermissions();
   
   // State for expense data
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -547,7 +549,7 @@ const ExpensesPage: React.FC = () => {
           >
             Filters
           </Button>
-          {isAdmin ? (
+          {hasPermission('expenses_add') ? (
             <Button 
               variant="contained" 
               color="primary" 
@@ -557,7 +559,7 @@ const ExpensesPage: React.FC = () => {
               Add Expense
             </Button>
           ) : (
-            <Tooltip title="Only administrators can add expenses">
+            <Tooltip title="You don't have permission to add expenses">
               <span>
                 <Button 
                   variant="contained" 
@@ -689,33 +691,37 @@ const ExpensesPage: React.FC = () => {
                             </IconButton>
                           </Tooltip>
                           
-                          {isAdmin ? (
-                            <>
-                              <Tooltip title="Edit">
-                                <IconButton size="small" onClick={() => handleOpenDialog('edit', expense)}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete">
-                                <IconButton size="small" color="error" onClick={() => handleOpenDialog('delete', expense)}>
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              {!expense.approved && (
-                                <Tooltip title="Approve">
-                                  <IconButton size="small" color="success" onClick={() => handleApproveExpense(expense)}>
-                                    <CheckCircleIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            </>
-                          ) : (
-                            <Tooltip title="Admin privileges required for modifications">
+                          {hasPermission('expenses_edit') ? (
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => handleOpenDialog('edit', expense)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
+                          
+                          {hasPermission('expenses_delete') ? (
+                            <Tooltip title="Delete">
+                              <IconButton size="small" color="error" onClick={() => handleOpenDialog('delete', expense)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
+                          
+                          {hasPermission('expenses_approve') && !expense.approved ? (
+                            <Tooltip title="Approve">
+                              <IconButton size="small" color="success" onClick={() => handleApproveExpense(expense)}>
+                                <CheckCircleIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
+                          
+                          {!hasPermission('expenses_edit') && !hasPermission('expenses_delete') && !hasPermission('expenses_approve') ? (
+                            <Tooltip title="You don't have permission to modify expenses">
                               <IconButton size="small" disabled>
                                 <LockIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          )}
+                          ) : null}
                         </TableCell>
                       </TableRow>
                     ))
@@ -856,7 +862,7 @@ const ExpensesPage: React.FC = () => {
            dialogType === 'edit' ? 'Edit Expense' : 
            dialogType === 'view' ? 'View Expense' :
            'Delete Expense'}
-           {!isAdmin && dialogType !== 'view' && (
+           {!hasPermission('expenses_edit') && dialogType !== 'view' && (
              <Chip
                label="Admin Only"
                color="error"
@@ -872,18 +878,18 @@ const ExpensesPage: React.FC = () => {
               <Typography gutterBottom>
                 Are you sure you want to delete this expense? This action cannot be undone.
               </Typography>
-              {!isAdmin && (
+              {!hasPermission('expenses_delete') && (
                 <Alert severity="warning" sx={{ mt: 2 }}>
-                  You do not have admin privileges to perform this action.
+                  You do not have permission to perform this action.
                 </Alert>
               )}
             </>
           ) : (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              {!isAdmin && dialogType !== 'view' && (
+              {!hasPermission('expenses_edit') && dialogType !== 'view' && (
                 <Grid item xs={12}>
                   <Alert severity="warning">
-                    You are in read-only mode. Admin privileges are required to modify expenses.
+                    You don't have permission to modify expenses.
                   </Alert>
                 </Grid>
               )}
@@ -893,7 +899,7 @@ const ExpensesPage: React.FC = () => {
                     label="Date"
                     value={formData.date ? new Date(formData.date) : null}
                     onChange={handleDateChange}
-                    disabled={dialogType === 'view' || !isAdmin}
+                    disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -910,7 +916,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.payee}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !isAdmin}
+                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                   required
                 />
               </Grid>
@@ -923,7 +929,7 @@ const ExpensesPage: React.FC = () => {
                   fullWidth
                   multiline
                   rows={2}
-                  disabled={dialogType === 'view' || !isAdmin}
+                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                   required
                 />
               </Grid>
@@ -935,7 +941,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.amount}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !isAdmin}
+                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                   }}
@@ -950,7 +956,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.ice_plant_allocation}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !isAdmin}
+                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                   }}
@@ -965,7 +971,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.category}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !isAdmin}
+                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                   required
                 >
                   <MenuItem value="meals">Meals</MenuItem>
@@ -993,7 +999,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.payment_method}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !isAdmin}
+                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                 >
                   <MenuItem value="cash">Cash</MenuItem>
                   <MenuItem value="check">Check</MenuItem>
@@ -1011,7 +1017,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.reference_number}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !isAdmin}
+                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -1023,7 +1029,7 @@ const ExpensesPage: React.FC = () => {
                   fullWidth
                   multiline
                   rows={3}
-                  disabled={dialogType === 'view' || !isAdmin}
+                  disabled={dialogType === 'view' || !hasPermission('expenses_edit')}
                 />
               </Grid>
               
@@ -1082,7 +1088,7 @@ const ExpensesPage: React.FC = () => {
             {dialogType === 'view' ? 'Close' : 'Cancel'}
           </Button>
           
-          {dialogType === 'add' && isAdmin && (
+          {dialogType === 'add' && hasPermission('expenses_add') && (
             <Button 
               onClick={handleAddExpense} 
               variant="contained" 
@@ -1093,7 +1099,7 @@ const ExpensesPage: React.FC = () => {
             </Button>
           )}
           
-          {dialogType === 'edit' && isAdmin && (
+          {dialogType === 'edit' && hasPermission('expenses_edit') && (
             <Button 
               onClick={handleUpdateExpense} 
               variant="contained" 
@@ -1104,7 +1110,7 @@ const ExpensesPage: React.FC = () => {
             </Button>
           )}
           
-          {dialogType === 'delete' && isAdmin && (
+          {dialogType === 'delete' && hasPermission('expenses_delete') && (
             <Button 
               onClick={handleDeleteExpense} 
               variant="contained" 
