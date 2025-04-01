@@ -1,17 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LoginResponse } from '../types/api';
+import { User, LoginResponse } from '../types/api';
 import { loggerService } from '../utils/logger';
 import apiService from '../services/api';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  is_superuser: boolean;
-  is_staff: boolean;
-  group?: string;
-}
 
 interface AuthContextType {
   isAuthenticated: boolean;

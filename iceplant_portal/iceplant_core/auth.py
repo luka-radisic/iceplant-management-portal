@@ -17,7 +17,12 @@ class CustomObtainAuthToken(ObtainAuthToken):
         groups = user.groups.values_list('name', flat=True)
         user_group = groups[0] if groups else None
         
-        # Return enhanced response with user info including group information
+        # Create full name from first_name and last_name if available
+        first_name = getattr(user, 'first_name', '')
+        last_name = getattr(user, 'last_name', '')
+        full_name = f"{first_name} {last_name}".strip()
+        
+        # Return enhanced response with user info including group information and full name
         return Response({
             'token': token.key,
             'user_id': user.pk,
@@ -26,4 +31,7 @@ class CustomObtainAuthToken(ObtainAuthToken):
             'is_superuser': user.is_superuser,
             'is_staff': user.is_staff,
             'group': user_group,
+            'first_name': first_name,
+            'last_name': last_name,
+            'full_name': full_name or user.username,  # Fall back to username if no full name
         }) 

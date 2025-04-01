@@ -139,7 +139,18 @@ export const apiService = {
   // Auth
   login: async (username: string, password: string) => {
     const response = await api.post(endpoints.login, { username, password });
-    const { token, user_id, username: userName, email, is_superuser, is_staff, group } = response.data;
+    const { 
+      token, 
+      user_id, 
+      username: userName, 
+      email, 
+      is_superuser, 
+      is_staff, 
+      group,
+      first_name,
+      last_name,
+      full_name
+    } = response.data;
     
     // Store token in localStorage
     localStorage.setItem('token', token);
@@ -151,7 +162,10 @@ export const apiService = {
       email: email || '',
       is_superuser: is_superuser || false,
       is_staff: is_staff || false,
-      group: group || ''
+      group: group || '',
+      first_name: first_name || '',
+      last_name: last_name || '',
+      full_name: full_name || userName
     };
     
     // Store user data in localStorage

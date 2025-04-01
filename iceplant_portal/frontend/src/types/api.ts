@@ -1,14 +1,19 @@
 // Authentication
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  is_staff?: boolean;
+  is_superuser?: boolean;
+  group?: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+}
+
 export interface LoginResponse {
   token: string;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-    is_staff?: boolean; // Django's staff flag
-    is_superuser?: boolean; // Django's superuser flag
-    group?: string; // User's primary group (Office, Admin, etc.)
-  };
+  user: User;
 }
 
 // Attendance
