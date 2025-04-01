@@ -63,14 +63,19 @@ const menuItems = [
   { text: 'Buyers', icon: <BusinessIcon />, path: '/buyers' },
   { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
   { text: 'Expenses', icon: <ExpensesIcon />, path: '/expenses' },
+];
+
+// Superuser-only menu items
+const superuserMenuItems = [
   { text: 'Tools', icon: <ToolsIcon />, path: '/tools' },
+  { text: 'Company Settings', icon: <SettingsIcon />, path: '/company-settings' },
 ];
 
 // Admin-only menu items
 const adminMenuItems = [
   // { text: 'User Management', icon: <AdminIcon />, path: '/admin' },
   // { text: 'User Permissions', icon: <LockIcon />, path: '/admin/permissions' },
-  { text: 'Company Settings', icon: <SettingsIcon />, path: '/company-settings' },
+  // Moved to superuserMenuItems
 ];
 
 export default function DashboardLayout() {
@@ -78,6 +83,9 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
+  
+  // Check if user is a superuser
+  const isSuperuser = user?.is_superuser === true;
 
   const handleDrawerToggle = () => {
     setOpen(!open);
@@ -158,7 +166,31 @@ export default function DashboardLayout() {
             ))}
           </List>
           
-          {isAdmin && (
+          {isSuperuser && (
+            <>
+              <Divider />
+              <List>
+                <ListItem>
+                  <Typography variant="overline" color="text.secondary">
+                    Superuser Tools
+                  </Typography>
+                </ListItem>
+                {superuserMenuItems.map((item) => (
+                  <ListItem key={item.text} disablePadding>
+                    <ListItemButton
+                      selected={location.pathname === item.path}
+                      onClick={() => navigate(item.path)}
+                    >
+                      <ListItemIcon>{item.icon}</ListItemIcon>
+                      <ListItemText primary={item.text} />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+          
+          {isAdmin && adminMenuItems.length > 0 && (
             <>
               <Divider />
               <List>
