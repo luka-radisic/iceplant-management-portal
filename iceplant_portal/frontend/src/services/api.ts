@@ -85,7 +85,7 @@ export const endpoints = {
 
   // Attendance
   attendance: '/api/attendance/attendance/',
-  attendanceSummary: '/api/attendance/summary/',
+  attendanceSummary: '/api/attendance/attendance/summary/',
   importAttendance: '/api/attendance/attendance/import_xlsx/',
   importLogs: '/api/attendance/import-logs/',
 
@@ -109,6 +109,7 @@ export const endpoints = {
   expenses: '/api/expenses/expenses/',
   expenseCategories: '/api/expenses/categories/',
   expensesSummary: '/api/expenses/expenses/summary/',
+  expensesTotal: '/api/expenses/expenses/total/',
 
   // Employee Profile
   employeeProfileDepartments: '/api/attendance/employee-profile/departments/',
@@ -138,9 +139,27 @@ export const apiService = {
   // Auth
   login: async (username: string, password: string) => {
     const response = await api.post(endpoints.login, { username, password });
-    const { token } = response.data;
+    const { token, user_id, username: userName, email, is_superuser, is_staff } = response.data;
+    
+    // Store token in localStorage
     localStorage.setItem('token', token);
-    return response.data;
+    
+    // Create user object with all relevant information
+    const user = {
+      id: user_id,
+      username: userName,
+      email: email || '',
+      is_superuser: is_superuser || false,
+      is_staff: is_staff || false
+    };
+    
+    // Store user data in localStorage
+    localStorage.setItem('user', JSON.stringify(user));
+    
+    return {
+      token,
+      user
+    };
   },
 
   // User registration - Removed

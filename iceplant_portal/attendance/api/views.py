@@ -12,8 +12,10 @@ from rest_framework.viewsets import ModelViewSet
 import os
 from django.http import Http404
 from rest_framework.pagination import PageNumberPagination
-from django.db.models import F, ExpressionWrapper, DurationField, Count, Q, Func
+from django.db.models import F, ExpressionWrapper, DurationField, Count, Q, Func, DateField
 from django.db.models.functions import Extract, TruncDate
+from dateutil.relativedelta import relativedelta
+from datetime import date
 
 from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 from .serializers import (
@@ -565,6 +567,78 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(f"Error calculating attendance stats: {str(e)}")
             return Response({'error': f'Failed to calculate stats: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """
+        Get attendance summary statistics for a given date range.
+        Calculates employees present, total employees, and trend vs previous period.
+        """
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+        
+        # --- Date Handling --- 
+        try:
+            if not start_date_str or not end_date_str:
+                today = date.today()
+                start_date = today.replace(day=1)
+                end_date = (start_date + relativedelta(months=1)) - timedelta(days=1)
+            else:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # --- Calculate Previous Period Dates --- 
+        period_duration = end_date - start_date
+        prev_start_date = start_date - (period_duration + timedelta(days=1))
+        prev_end_date = start_date - timedelta(days=1)
+        
+        # Special handling for monthly/yearly periods
+        if start_date == start_date.replace(day=1) and end_date == (start_date + relativedelta(months=1)) - timedelta(days=1):
+             prev_month_date = start_date - relativedelta(months=1)
+             prev_start_date = prev_month_date.replace(day=1)
+             prev_end_date = (prev_start_date + relativedelta(months=1)) - timedelta(days=1)
+        elif start_date == start_date.replace(day=1, month=1) and end_date == end_date.replace(day=31, month=12):
+            prev_year_date = start_date - relativedelta(years=1)
+            prev_start_date = prev_year_date.replace(day=1, month=1)
+            prev_end_date = prev_year_date.replace(day=31, month=12)
+
+        # --- Calculations --- 
+        # Base queryset excluding NO SHOW
+        base_queryset = Attendance.objects.exclude(department='NO SHOW')
+        
+        # Employees present in the current period (unique count)
+        current_present_count = base_queryset.filter(
+            check_in__date__gte=start_date,
+            check_in__date__lte=end_date
+        ).values('employee_id').distinct().count()
+        
+        # Employees present in the previous period (unique count)
+        previous_present_count = base_queryset.filter(
+            check_in__date__gte=prev_start_date,
+            check_in__date__lte=prev_end_date
+        ).values('employee_id').distinct().count()
+        
+        # Total active employees (assuming EmployeeProfile holds active employees)
+        # Adjust this if your active employee logic is different
+        total_employees = EmployeeProfile.objects.filter(is_active=True).count()
+
+        # --- Trend Calculation --- 
+        trend = current_present_count - previous_present_count
+        # Avoid division by zero for percentage
+        trend_percentage = 0
+        if previous_present_count > 0:
+             trend_percentage = round((trend / previous_present_count) * 100, 1)
+
+        # --- Response --- 
+        return Response({
+            'present_today': current_present_count, # Renamed for clarity (means present in period)
+            'total_employees': total_employees,
+            'attendance_trend': trend_percentage, # Trend percentage
+            # Add raw previous count if needed by frontend
+            'previous_present_count': previous_present_count 
+        })
 
 class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
     """

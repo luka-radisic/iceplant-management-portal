@@ -22,18 +22,21 @@ from django.views.generic import TemplateView
 from rest_framework.authtoken.views import ObtainAuthToken
 from django.views.static import serve
 
+# Import our custom auth token view
+from .auth import CustomObtainAuthToken
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     # API endpoints
     path('api/attendance/', include('attendance.api.urls')),
     path('api/sales/', include('sales.api.urls')),
+    path('api/company/', include('companyconfig.urls')),
     path('api/inventory/', include('inventory.api.urls')),
     path('api/expenses/', include('expenses.api.urls')),
     path('api/tools/', include('tools.api.urls')),
     path('api/buyers/', include('buyers.api.urls')),
-    path('api/company/', include('companyconfig.urls')),
     path('api-auth/', include('rest_framework.urls')),
-    path('api-token-auth/', ObtainAuthToken.as_view(), name='api_token_auth'),
+    path('api-token-auth/', CustomObtainAuthToken.as_view(), name='api_token_auth'),
     
     # Serve media files directly
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),

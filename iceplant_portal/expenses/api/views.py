@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth, TruncDate
 from django.utils import timezone
+from datetime import timedelta, datetime, date
+from dateutil.relativedelta import relativedelta
 
 from expenses.models import Expense, ExpenseCategory
 from .serializers import ExpenseSerializer, ExpenseCategorySerializer
@@ -150,54 +152,67 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def total(self, request):
         """
-        Get total expenses for the current month and year
+        Get total expenses for a given date range and the preceding period.
+        Defaults to the current month if no date range is provided.
         """
-        now = timezone.now()
-        current_month = now.month
-        current_year = now.year
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+
+        # --- Date Handling --- 
+        try:
+            if not start_date_str or not end_date_str:
+                today = date.today()
+                start_date = today.replace(day=1)
+                end_date = (start_date + relativedelta(months=1)) - timedelta(days=1)
+            else:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # --- Calculate Previous Period --- 
+        period_duration = end_date - start_date
+        prev_start_date = start_date - (period_duration + timedelta(days=1))
+        prev_end_date = start_date - timedelta(days=1)
         
-        # Current month total
-        monthly_total = Expense.objects.filter(
-            date__month=current_month,
-            date__year=current_year
+        # Special handling for monthly/yearly periods (same logic as sales view)
+        if start_date == start_date.replace(day=1) and end_date == (start_date + relativedelta(months=1)) - timedelta(days=1):
+             prev_month_date = start_date - relativedelta(months=1)
+             prev_start_date = prev_month_date.replace(day=1)
+             prev_end_date = (prev_start_date + relativedelta(months=1)) - timedelta(days=1)
+        elif start_date == start_date.replace(day=1, month=1) and end_date == end_date.replace(day=31, month=12):
+            prev_year_date = start_date - relativedelta(years=1)
+            prev_start_date = prev_year_date.replace(day=1, month=1)
+            prev_end_date = prev_year_date.replace(day=31, month=12)
+
+        # --- Aggregations --- 
+        base_queryset = Expense.objects.all() # Consider if filtering by 'approved=True' is needed here
+
+        # Current period total aggregation
+        current_period_expenses = base_queryset.filter(
+            date__gte=start_date,
+            date__lte=end_date
         ).aggregate(
-            total=Sum('amount'),
-            ice_plant_total=Sum('ice_plant_allocation')
+            total_amount=Sum('amount', default=0),
+            total_ice_plant=Sum('ice_plant_allocation', default=0)
         )
         
-        # Current year total
-        yearly_total = Expense.objects.filter(
-            date__year=current_year
+        # Previous period total aggregation
+        previous_period_expenses = base_queryset.filter(
+            date__gte=prev_start_date,
+            date__lte=prev_end_date
         ).aggregate(
-            total=Sum('amount'),
-            ice_plant_total=Sum('ice_plant_allocation')
+            total_amount=Sum('amount', default=0),
+            total_ice_plant=Sum('ice_plant_allocation', default=0)
         )
-        
-        # Last 30 days total
-        thirty_days_ago = now.date() - timezone.timedelta(days=30)
-        thirty_day_total = Expense.objects.filter(
-            date__gte=thirty_days_ago
-        ).aggregate(
-            total=Sum('amount'),
-            ice_plant_total=Sum('ice_plant_allocation')
-        )
-        
-        # Top categories for current month
-        top_categories = Expense.objects.filter(
-            date__month=current_month,
-            date__year=current_year
-        ).values('category').annotate(
-            total=Sum('amount')
-        ).order_by('-total')[:5]
-        
+
+        # --- Response --- 
         result = {
-            'monthly_total': monthly_total['total'] or 0,
-            'monthly_ice_plant_total': monthly_total['ice_plant_total'] or 0,
-            'yearly_total': yearly_total['total'] or 0,
-            'yearly_ice_plant_total': yearly_total['ice_plant_total'] or 0,
-            'thirty_day_total': thirty_day_total['total'] or 0,
-            'thirty_day_ice_plant_total': thirty_day_total['ice_plant_total'] or 0,
-            'top_categories': list(top_categories)
+            'current_total': current_period_expenses['total_amount'] or 0,
+            'current_ice_plant_total': current_period_expenses['total_ice_plant'] or 0,
+            'previous_total': previous_period_expenses['total_amount'] or 0,
+            'previous_ice_plant_total': previous_period_expenses['total_ice_plant'] or 0,
+            # Add other relevant fields if needed, e.g., top categories for the period
         }
         
         return Response(result) 

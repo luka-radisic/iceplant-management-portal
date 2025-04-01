@@ -115,12 +115,21 @@ function a11yProps(index: number) {
   };
 }
 
-const formatCurrency = (amount: number) => {
+const formatCurrency = (amount: number | null | undefined) => {
+  // Handle null, undefined or NaN values
+  if (amount === null || amount === undefined || isNaN(Number(amount))) {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+    }).format(0);
+  }
+  
   return new Intl.NumberFormat('en-PH', {
     style: 'currency',
     currency: 'PHP',
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(Number(amount));
 };
 
 // Summary card component
@@ -608,8 +617,8 @@ const ExpensesPage: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <SummaryCard 
             title="Filtered Total" 
-            total={filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)}
-            icePlantTotal={filteredExpenses.reduce((sum, expense) => sum + expense.ice_plant_allocation, 0)}
+            total={filteredExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0)}
+            icePlantTotal={filteredExpenses.reduce((sum, expense) => sum + (Number(expense.ice_plant_allocation) || 0), 0)}
             count={filteredExpenses.length}
           />
         </Grid>
@@ -724,9 +733,11 @@ const ExpensesPage: React.FC = () => {
                           
                           {!canEditExpense && !canDeleteExpense && !canApproveExpense ? (
                             <Tooltip title="You don't have permission to modify expenses">
-                              <IconButton size="small" disabled>
-                                <LockIcon fontSize="small" />
-                              </IconButton>
+                              <span>
+                                <IconButton size="small" disabled>
+                                  <LockIcon fontSize="small" />
+                                </IconButton>
+                              </span>
                             </Tooltip>
                           ) : null}
                         </TableCell>

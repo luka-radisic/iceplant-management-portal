@@ -5,10 +5,11 @@ from django.db import models
 # Removed unused Trunc functions for dates, Count not needed here
 from django.db.models import Sum, F 
 # Import datetime and Decimal
-from datetime import timedelta
+from datetime import timedelta, datetime, date
 from decimal import Decimal
 # Import itertools for grouping
 import itertools
+from dateutil.relativedelta import relativedelta
 
 from sales.models import Sale
 from .serializers import SaleSerializer
@@ -27,68 +28,93 @@ class SaleViewSet(viewsets.ModelViewSet):
         """
         Get sales summary statistics based on new model structure.
         Calculates total blocks (pickup/delivery) and total payments received.
-        Grouping is done in Python to avoid SQLite limitations.
+        Supports date range filtering for totals and trends.
         """
-        # Get query parameters
-        period = request.query_params.get('period', 'daily')
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
         
-        # Base queryset - Filter for processed sales only for summaries/charts
-        queryset = Sale.objects.filter(status='processed').order_by('sale_date')
-        
-        # Apply date filtering if provided
-        if start_date_str:
-            queryset = queryset.filter(sale_date__gte=start_date_str)
-        if end_date_str:
-            queryset = queryset.filter(sale_date__lte=end_date_str)
+        # --- Date Handling --- 
+        try:
+            # Default to current month if no dates are provided
+            if not start_date_str or not end_date_str:
+                today = date.today()
+                start_date = today.replace(day=1)
+                end_date = (start_date + relativedelta(months=1)) - timedelta(days=1)
+            else:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Fetch data from DB
-        sales_data = list(queryset.values(
-            'id', 'sale_date', 'pickup_quantity', 'delivery_quantity', 
-            'cash_amount', 'po_amount'
+        # --- Calculate Previous Period --- 
+        period_duration = end_date - start_date
+        prev_start_date = start_date - (period_duration + timedelta(days=1))
+        prev_end_date = start_date - timedelta(days=1)
+        
+        # Special handling for monthly period to get the actual previous month
+        if start_date == start_date.replace(day=1) and end_date == (start_date + relativedelta(months=1)) - timedelta(days=1):
+             prev_month_date = start_date - relativedelta(months=1)
+             prev_start_date = prev_month_date.replace(day=1)
+             prev_end_date = (prev_start_date + relativedelta(months=1)) - timedelta(days=1)
+             
+        # Special handling for yearly period
+        elif start_date == start_date.replace(day=1, month=1) and end_date == end_date.replace(day=31, month=12):
+            prev_year_date = start_date - relativedelta(years=1)
+            prev_start_date = prev_year_date.replace(day=1, month=1)
+            prev_end_date = prev_year_date.replace(day=31, month=12)
+
+        # --- Aggregations --- 
+        base_queryset = Sale.objects.filter(status='processed')
+
+        # Current period total aggregation
+        current_period_sales = base_queryset.filter(
+            sale_date__gte=start_date,
+            sale_date__lte=end_date
+        ).aggregate(
+            total_blocks=Sum(F('pickup_quantity') + F('delivery_quantity'), default=0),
+            total_amount=Sum(F('cash_amount') + F('po_amount'), default=0)
+        )
+        
+        # Previous period total aggregation
+        previous_period_sales = base_queryset.filter(
+            sale_date__gte=prev_start_date,
+            sale_date__lte=prev_end_date
+        ).aggregate(
+            total_blocks=Sum(F('pickup_quantity') + F('delivery_quantity'), default=0),
+            total_amount=Sum(F('cash_amount') + F('po_amount'), default=0)
+        )
+
+        # --- Monthly Data for Charts (using current period filter) --- 
+        monthly_queryset = base_queryset.filter(sale_date__gte=start_date, sale_date__lte=end_date)
+        sales_data = list(monthly_queryset.values(
+            'sale_date', 'cash_amount', 'po_amount'
         ))
 
-        # --- Python-based Grouping and Aggregation --- 
-        summary_results = []
-        
-        # Define grouping key function based on period
-        def get_grouping_key(sale):
-            sale_date = sale['sale_date']
-            if period == 'monthly':
-                return sale_date.strftime('%Y-%m-01') # Group by first day of month
-            elif period == 'weekly':
-                # Group by first day of the week (assuming Monday start)
-                return (sale_date - timedelta(days=sale_date.weekday())).strftime('%Y-%m-%d')
-            else: # daily
-                return sale_date.strftime('%Y-%m-%d')
+        # Group by month (Python-based)
+        monthly_data_grouped = {}
+        for sale in sales_data:
+            month_key = sale['sale_date'].strftime('%Y-%m')
+            amount = Decimal(sale['cash_amount'] or 0) + Decimal(sale['po_amount'] or 0)
+            monthly_data_grouped[month_key] = monthly_data_grouped.get(month_key, Decimal(0)) + amount
 
-        # Group data by the calculated period key
-        grouped_sales = itertools.groupby(sales_data, key=get_grouping_key)
-
-        # Aggregate within each group
-        for period_key, group in grouped_sales:
-            group_list = list(group) # Consume the iterator
-            total_sales = len(group_list)
-            
-            # Summing up quantities and payments, handling potential None values just in case
-            total_blocks_pickup = sum(Decimal(s['pickup_quantity'] or 0) for s in group_list)
-            total_blocks_delivery = sum(Decimal(s['delivery_quantity'] or 0) for s in group_list)
-            total_cash_received = sum(Decimal(s['cash_amount'] or 0) for s in group_list)
-            total_po_received = sum(Decimal(s['po_amount'] or 0) for s in group_list)
-            
-            total_blocks_sold = total_blocks_pickup + total_blocks_delivery
-            total_payments_received = total_cash_received + total_po_received
-            
-            summary_results.append({
-                'period': period_key,
-                'total_sales': total_sales,
-                'total_blocks_pickup': total_blocks_pickup,
-                'total_blocks_delivery': total_blocks_delivery,
-                'total_blocks_sold': total_blocks_sold,
-                'total_cash_received': total_cash_received,
-                'total_po_received': total_po_received,
-                'total_payments_received': total_payments_received
+        # Format for frontend chart
+        monthly_data_chart = []
+        for month_key, total_amount in sorted(monthly_data_grouped.items()):
+            try:
+                month_date = datetime.strptime(month_key, '%Y-%m')
+                month_name = month_date.strftime('%b %Y')
+            except:
+                month_name = month_key
+            monthly_data_chart.append({
+                'month': month_name,
+                'total': float(total_amount)
             })
 
-        return Response(summary_results) 
+        # --- Response --- 
+        return Response({
+            'current_total': float(current_period_sales['total_amount'] or 0),
+            'previous_total': float(previous_period_sales['total_amount'] or 0),
+            'current_blocks': int(current_period_sales['total_blocks'] or 0),
+            'previous_blocks': int(previous_period_sales['total_blocks'] or 0),
+            'monthly_data': monthly_data_chart
+        }) 
