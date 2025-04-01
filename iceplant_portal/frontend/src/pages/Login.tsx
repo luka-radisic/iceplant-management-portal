@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -15,7 +15,9 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
-import { CompanySettings, defaultCompanySettings } from '../types/company';
+
+// Logo as base64 data URL
+const logoDataUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgODAiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiPgogIDxzdHlsZT4KICAgIC50ZXh0IHsKICAgICAgZm9udC1mYW1pbHk6IEFyaWFsLCBzYW5zLXNlcmlmOwogICAgICBmb250LXdlaWdodDogYm9sZDsKICAgICAgZm9udC1zaXplOiAyNHB4OwogICAgICBmaWxsOiAjMTk3NmQyOwogICAgfQogICAgLmljZSB7CiAgICAgIGZpbGw6ICM5MGNhZjk7CiAgICB9CiAgICAucGxhbnQgewogICAgICBmaWxsOiAjNGNhZjUwOwogICAgfQogIDwvc3R5bGU+CiAgPHJlY3Qgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0id2hpdGUiIHJ4PSIxMCIgcnk9IjEwIiAvPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwLCA1MCkiPgogICAgPCEtLSBJY2UgY3ViZXMgLS0+CiAgICA8cmVjdCB4PSIwIiB5PSItMzAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgY2xhc3M9ImljZSIgcng9IjIiIHJ5PSIyIiAvPgogICAgPHJlY3QgeD0iMjUiIHk9Ii0zMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBjbGFzcz0iaWNlIiByeD0iMiIgcnk9IjIiIC8+CiAgICA8cmVjdCB4PSIxMyIgeT0iLTEwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGNsYXNzPSJpY2UiIHJ4PSIyIiByeT0iMiIgLz4KICAgIDwhLS0gUGxhbnQgLS0+CiAgICA8cGF0aCBkPSJNNjAsMCBDNjAsLTIwIDgwLC0yMCA4MCwwIEw3MCwwIFoiIGNsYXNzPSJwbGFudCIgLz4KICAgIDxwYXRoIGQ9Ik05MCwwIEM5MCwtMjUgMTEwLC0yNSAxMTAsMCBMMTAwLDAgWiIgY2xhc3M9InBsYW50IiAvPgogICAgPHBhdGggZD0iTTc1LC01IEw5NSwtNSBMODUsLTM1IFoiIGNsYXNzPSJwbGFudCIgLz4KICAgIDxyZWN0IHg9IjgwIiB5PSIwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiM4ZDZlNjMiIC8+CiAgICA8IS0tIFRleHQgLS0+CiAgICA8dGV4dCB4PSIwIiB5PSIyMCIgY2xhc3M9InRleHQiPklDRSBQTEFOVDwvdGV4dD4KICA8L2c+Cjwvc3ZnPg==';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -26,27 +28,10 @@ export default function Login() {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [companySettings, setCompanySettings] = useState<CompanySettings>(defaultCompanySettings);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
-
-  // Fetch company settings to get the logo
-  useEffect(() => {
-    const fetchCompanySettings = async () => {
-      try {
-        const response = await apiService.getCompanySettings();
-        setCompanySettings(response);
-      } catch (err) {
-        console.error('Error fetching company settings:', err);
-        // Use default settings if fetch fails
-        setCompanySettings(defaultCompanySettings);
-      }
-    };
-
-    fetchCompanySettings();
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -93,14 +78,28 @@ export default function Login() {
     <Box
       sx={{
         minHeight: '100vh',
+        width: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 2,
+        padding: isSmallScreen ? 2 : 3,
         background: theme.palette.grey[100],
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
       }}
     >
-      <Container maxWidth="xs">
+      <Container 
+        maxWidth="xs" 
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
         <Paper
           elevation={6}
           sx={{
@@ -110,26 +109,20 @@ export default function Login() {
             alignItems: 'center',
             width: '100%',
             borderRadius: '8px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
           }}
         >
-          {/* Company Logo */}
-          {companySettings.logo_url && (
-            <Box
-              component="img"
-              src={companySettings.logo_url}
-              alt="Company Logo"
-              sx={{
-                maxWidth: '80%',
-                maxHeight: '120px',
-                mb: 2,
-                objectFit: 'contain',
-              }}
-            />
-          )}
-          
-          <Typography component="h1" variant="h5" align="center" gutterBottom>
-            {companySettings.company_name || 'Ice Plant Management Portal'}
-          </Typography>
+          {/* Logo as Image */}
+          <Box
+            component="img"
+            src={logoDataUrl}
+            alt="Ice Plant Logo"
+            sx={{
+              width: '240px',
+              height: 'auto',
+              mb: 3,
+            }}
+          />
           
           <Typography component="h2" variant="h6" color="textSecondary" gutterBottom>
             Sign In
@@ -179,11 +172,9 @@ export default function Login() {
             </Button>
           </Box>
           
-          {companySettings.company_name && (
-            <Typography variant="caption" color="text.secondary" align="center" sx={{ mt: 2 }}>
-              © {new Date().getFullYear()} {companySettings.company_name}
-            </Typography>
-          )}
+          <Typography variant="caption" color="text.secondary" align="center" sx={{ mt: 2 }}>
+            © {new Date().getFullYear()} Ice Plant Management
+          </Typography>
         </Paper>
       </Container>
     </Box>
