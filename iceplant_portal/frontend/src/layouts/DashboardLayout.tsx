@@ -12,6 +12,7 @@ import {
   Business as BusinessIcon,
   Settings as SettingsIcon,
   Lock as LockIcon,
+  ConstructionOutlined as BuildIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -63,6 +64,7 @@ const menuItems = [
   { text: 'Buyers', icon: <BusinessIcon />, path: '/buyers' },
   { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
   { text: 'Expenses', icon: <ExpensesIcon />, path: '/expenses' },
+  { text: 'Maintenance', icon: <BuildIcon />, path: '/maintenance' },
 ];
 
 // Superuser-only menu items

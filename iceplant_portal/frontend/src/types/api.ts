@@ -147,4 +147,70 @@ export interface ExpenseSummaryByPayee {
   total: number;
   ice_plant_total: number;
   count: number;
+}
+
+// Maintenance
+export interface MaintenanceItem {
+  id: number;
+  equipment_name: string;
+  equipment_type: string;
+  model_number?: string;
+  serial_number?: string;
+  location: string;
+  installation_date?: string;
+  last_maintenance_date?: string;
+  next_maintenance_date: string;
+  maintenance_frequency: number;
+  frequency_unit: 'days' | 'weeks' | 'months' | 'hours';
+  status: 'operational' | 'requires_maintenance' | 'under_maintenance' | 'not_operational';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaintenanceRecord {
+  id: number;
+  maintenance_item: number;
+  equipment_name: string;
+  maintenance_date: string;
+  maintenance_type: 'scheduled' | 'emergency' | 'preventive' | 'corrective';
+  performed_by: string;
+  cost: number;
+  parts_replaced?: string;
+  duration: number; // in hours
+  issues_found?: string;
+  actions_taken: string;
+  recommendations?: string;
+  next_maintenance_date?: string;
+  status: 'completed' | 'in_progress' | 'scheduled';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaintenanceTemplate {
+  id: number;
+  template_name: string;
+  equipment_type: string;
+  tasks: MaintenanceTask[];
+  maintenance_frequency: number;
+  frequency_unit: 'days' | 'weeks' | 'months' | 'hours';
+  estimated_duration: number; // in hours
+  required_tools?: string;
+  required_parts?: string;
+  required_skills?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaintenanceTask {
+  id: number;
+  task_name: string;
+  description?: string;
+  sequence_number: number;
+  estimated_time: number; // in minutes
+  template_id?: number;
+  is_required: boolean;
+  created_at: string;
+  updated_at: string;
 } 
