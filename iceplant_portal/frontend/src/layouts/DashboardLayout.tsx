@@ -103,14 +103,20 @@ export default function DashboardLayout() {
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {user?.group && (
                 <Chip 
-                  size="small"
                   label={user.group}
                   color={user.group === 'Admin' ? 'warning' : 'primary'}
-                  sx={{ mr: 1 }}
+                  sx={{ 
+                    mr: 1.5,
+                    fontWeight: 'bold',
+                    letterSpacing: '0.3px',
+                    px: 1,
+                    borderRadius: '16px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
                 />
               )}
-              <Typography variant="body1" noWrap>
-                {user?.username}
+              <Typography variant="body1" fontWeight="medium" noWrap>
+                {user?.full_name || user?.username}
               </Typography>
             </Box>
             <Button
