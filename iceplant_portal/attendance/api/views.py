@@ -621,9 +621,17 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             check_in__date__lte=prev_end_date
         ).values('employee_id').distinct().count()
         
-        # Total active employees (assuming EmployeeProfile holds active employees)
-        # Adjust this if your active employee logic is different
-        total_employees = EmployeeProfile.objects.filter(is_active=True).count()
+        # Get the total unique employees who have ever had attendance records
+        # This gives a more accurate count of the total employee base
+        total_employees = Attendance.objects.values('employee_id').distinct().count()
+        
+        # If no attendance records exist, fall back to active employees in EmployeeProfile
+        if total_employees == 0:
+            total_employees = EmployeeProfile.objects.filter(is_active=True).count()
+            
+        # Ensure total is never less than present count (logical consistency)
+        if total_employees < current_present_count:
+            total_employees = current_present_count
 
         # --- Trend Calculation --- 
         trend = current_present_count - previous_present_count
