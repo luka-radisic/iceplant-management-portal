@@ -43,7 +43,7 @@ export default function Login() {
     const fetchCompanyInfo = async () => {
       try {
         setLogoLoading(true);
-        // Use relative URL to avoid CORS issues and work in any environment
+        // Use relative URL that will be proxied to the Django backend
         const response = await axios.get('/api/company/public-info/');
         if (response.data) {
           setCompanyInfo({
