@@ -51,7 +51,6 @@ import { apiService, endpoints } from '../services/api';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
 import { useAuth } from '../contexts/AuthContext';
-import { usePermissions } from '../hooks/usePermissions';
 
 import type { Expense, ExpenseCategory, ExpenseSummaryByGroup, ExpenseSummaryByPayee } from '../types/api';
 
@@ -151,7 +150,6 @@ const SummaryCard: React.FC<ExpenseSummaryProps> = ({ title, total, icePlantTota
 const ExpensesPage: React.FC = () => {
   // Get auth context for admin check
   const { isAdmin } = useAuth();
-  const { hasPermission } = usePermissions();
   
   // State for expense data
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -198,11 +196,14 @@ const ExpensesPage: React.FC = () => {
   
   const { enqueueSnackbar } = useSnackbar();
   
-  // Check specific permissions
-  const canAddExpenses = hasPermission('expenses_add');
-  const canEditExpenses = hasPermission('expenses_edit');
-  const canDeleteExpenses = hasPermission('expenses_delete');
-  const canApproveExpenses = hasPermission('expenses_approve');
+  // Replace usePermissions with simple hardcoded check based on isAdmin from AuthContext
+  // const { hasPermission } = usePermissions();
+  
+  // Replace hasPermission calls with isAdmin check
+  const canAddExpense = isAdmin; // Previously: hasPermission('expenses_add')
+  const canEditExpense = isAdmin; // Previously: hasPermission('expenses_edit')
+  const canDeleteExpense = isAdmin; // Previously: hasPermission('expenses_delete')
+  const canApproveExpense = isAdmin; // Previously: hasPermission('expenses_approve')
   
   // Fetch data on component mount
   useEffect(() => {
@@ -555,7 +556,7 @@ const ExpensesPage: React.FC = () => {
           >
             Filters
           </Button>
-          {canAddExpenses ? (
+          {canAddExpense ? (
             <Button 
               variant="contained" 
               color="primary" 
@@ -697,7 +698,7 @@ const ExpensesPage: React.FC = () => {
                             </IconButton>
                           </Tooltip>
                           
-                          {canEditExpenses ? (
+                          {canEditExpense ? (
                             <Tooltip title="Edit">
                               <IconButton size="small" onClick={() => handleOpenDialog('edit', expense)}>
                                 <EditIcon fontSize="small" />
@@ -705,7 +706,7 @@ const ExpensesPage: React.FC = () => {
                             </Tooltip>
                           ) : null}
                           
-                          {canDeleteExpenses ? (
+                          {canDeleteExpense ? (
                             <Tooltip title="Delete">
                               <IconButton size="small" color="error" onClick={() => handleOpenDialog('delete', expense)}>
                                 <DeleteIcon fontSize="small" />
@@ -713,7 +714,7 @@ const ExpensesPage: React.FC = () => {
                             </Tooltip>
                           ) : null}
                           
-                          {canApproveExpenses && !expense.approved ? (
+                          {canApproveExpense && !expense.approved ? (
                             <Tooltip title="Approve">
                               <IconButton size="small" color="success" onClick={() => handleApproveExpense(expense)}>
                                 <CheckCircleIcon fontSize="small" />
@@ -721,7 +722,7 @@ const ExpensesPage: React.FC = () => {
                             </Tooltip>
                           ) : null}
                           
-                          {!canEditExpenses && !canDeleteExpenses && !canApproveExpenses ? (
+                          {!canEditExpense && !canDeleteExpense && !canApproveExpense ? (
                             <Tooltip title="You don't have permission to modify expenses">
                               <IconButton size="small" disabled>
                                 <LockIcon fontSize="small" />
@@ -868,7 +869,7 @@ const ExpensesPage: React.FC = () => {
            dialogType === 'edit' ? 'Edit Expense' : 
            dialogType === 'view' ? 'View Expense' :
            'Delete Expense'}
-           {!canEditExpenses && dialogType !== 'view' && (
+           {!canEditExpense && dialogType !== 'view' && (
              <Chip
                label="Admin Only"
                color="error"
@@ -884,7 +885,7 @@ const ExpensesPage: React.FC = () => {
               <Typography gutterBottom>
                 Are you sure you want to delete this expense? This action cannot be undone.
               </Typography>
-              {!canDeleteExpenses && (
+              {!canDeleteExpense && (
                 <Alert severity="warning" sx={{ mt: 2 }}>
                   You do not have permission to perform this action.
                 </Alert>
@@ -892,7 +893,7 @@ const ExpensesPage: React.FC = () => {
             </>
           ) : (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              {!canEditExpenses && dialogType !== 'view' && (
+              {!canEditExpense && dialogType !== 'view' && (
                 <Grid item xs={12}>
                   <Alert severity="warning">
                     You don't have permission to modify expenses.
@@ -905,7 +906,7 @@ const ExpensesPage: React.FC = () => {
                     label="Date"
                     value={formData.date ? new Date(formData.date) : null}
                     onChange={handleDateChange}
-                    disabled={dialogType === 'view' || !canEditExpenses}
+                    disabled={dialogType === 'view' || !canEditExpense}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -922,7 +923,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.payee}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !canEditExpenses}
+                  disabled={dialogType === 'view' || !canEditExpense}
                   required
                 />
               </Grid>
@@ -935,7 +936,7 @@ const ExpensesPage: React.FC = () => {
                   fullWidth
                   multiline
                   rows={2}
-                  disabled={dialogType === 'view' || !canEditExpenses}
+                  disabled={dialogType === 'view' || !canEditExpense}
                   required
                 />
               </Grid>
@@ -947,7 +948,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.amount}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !canEditExpenses}
+                  disabled={dialogType === 'view' || !canEditExpense}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                   }}
@@ -962,7 +963,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.ice_plant_allocation}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !canEditExpenses}
+                  disabled={dialogType === 'view' || !canEditExpense}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                   }}
@@ -977,7 +978,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.category}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !canEditExpenses}
+                  disabled={dialogType === 'view' || !canEditExpense}
                   required
                 >
                   <MenuItem value="meals">Meals</MenuItem>
@@ -1005,7 +1006,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.payment_method}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !canEditExpenses}
+                  disabled={dialogType === 'view' || !canEditExpense}
                 >
                   <MenuItem value="cash">Cash</MenuItem>
                   <MenuItem value="check">Check</MenuItem>
@@ -1023,7 +1024,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.reference_number}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view' || !canEditExpenses}
+                  disabled={dialogType === 'view' || !canEditExpense}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -1035,7 +1036,7 @@ const ExpensesPage: React.FC = () => {
                   fullWidth
                   multiline
                   rows={3}
-                  disabled={dialogType === 'view' || !canEditExpenses}
+                  disabled={dialogType === 'view' || !canEditExpense}
                 />
               </Grid>
               
@@ -1094,7 +1095,7 @@ const ExpensesPage: React.FC = () => {
             {dialogType === 'view' ? 'Close' : 'Cancel'}
           </Button>
           
-          {dialogType === 'add' && canAddExpenses && (
+          {dialogType === 'add' && canAddExpense && (
             <Button 
               onClick={handleAddExpense} 
               variant="contained" 
@@ -1105,7 +1106,7 @@ const ExpensesPage: React.FC = () => {
             </Button>
           )}
           
-          {dialogType === 'edit' && canEditExpenses && (
+          {dialogType === 'edit' && canEditExpense && (
             <Button 
               onClick={handleUpdateExpense} 
               variant="contained" 
@@ -1116,7 +1117,7 @@ const ExpensesPage: React.FC = () => {
             </Button>
           )}
           
-          {dialogType === 'delete' && canDeleteExpenses && (
+          {dialogType === 'delete' && canDeleteExpense && (
             <Button 
               onClick={handleDeleteExpense} 
               variant="contained" 

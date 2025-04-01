@@ -15,16 +15,13 @@ import DashboardLayout from './layouts/DashboardLayout';
 import Attendance from './pages/Attendance';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import ToolsPage from './pages/ToolsPage';
 import SalesPage from './pages/SalesPage';
-import UserManagement from './pages/UserManagement';
 import BuyersPage from './pages/BuyersPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
 import SalePrintView from './components/sales/SalePrintView';
 import InventoryPage from './pages/InventoryPage';
 import ExpensesPage from './pages/ExpensesPage';
-import PermissionsPage from './pages/PermissionsPage';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
@@ -45,7 +42,6 @@ function App() {
               <AuthProvider>
                 <Routes>
                   <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
                   
                   {/* Print view route - doesn't need dashboard layout or auth */}
                   <Route path="/sales/print/:id" element={<SalePrintView />} />
@@ -66,8 +62,6 @@ function App() {
                     <Route path="/tools" element={<ToolsPage />} />
                     
                     {/* Admin-only routes */}
-                    <Route path="/admin" element={<AdminRoute><UserManagement /></AdminRoute>} />
-                    <Route path="/admin/permissions" element={<AdminRoute><PermissionsPage /></AdminRoute>} />
                     <Route path="/company-settings" element={<AdminRoute><CompanySettingsPage /></AdminRoute>} />
                     
                     {/* Admin edit routes */}
