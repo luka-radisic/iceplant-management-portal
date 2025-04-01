@@ -10,6 +10,7 @@ from decimal import Decimal
 # Import itertools for grouping
 import itertools
 from dateutil.relativedelta import relativedelta
+from rest_framework.permissions import DjangoModelPermissions
 
 from sales.models import Sale
 from .serializers import SaleSerializer
@@ -22,6 +23,7 @@ class SaleViewSet(viewsets.ModelViewSet):
     serializer_class = SaleSerializer
     filterset_fields = ['si_number', 'sale_date', 'buyer_name', 'status']
     search_fields = ['si_number', 'buyer_name', 'po_number', 'notes']
+    permission_classes = [DjangoModelPermissions]
     
     @action(detail=False, methods=['get'])
     def summary(self, request):
@@ -30,6 +32,11 @@ class SaleViewSet(viewsets.ModelViewSet):
         Calculates total blocks (pickup/delivery) and total payments received.
         Supports date range filtering for totals and trends.
         """
+        # Check if user has view permission
+        if not request.user.has_perm('sales.view_sale'):
+            return Response({"error": "You do not have permission to view sales data."}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
         

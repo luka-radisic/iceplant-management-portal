@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 class ExpenseCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -61,18 +62,21 @@ class Expense(models.Model):
     receipt = models.FileField(upload_to='receipts/%Y/%m/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='created_expenses')
+    created_by = models.ForeignKey(User, related_name='created_expenses', on_delete=models.SET_NULL, null=True, blank=True)
     approved = models.BooleanField(default=False)
-    approved_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_expenses')
+    approved_by = models.ForeignKey(User, related_name='approved_expenses', on_delete=models.SET_NULL, null=True, blank=True)
     approved_date = models.DateTimeField(null=True, blank=True)
     
     class Meta:
-        ordering = ['-date']
+        ordering = ['date']
         verbose_name = 'Expense'
         verbose_name_plural = 'Expenses'
+        permissions = [
+            ('approve_expense', 'Can approve expenses'),
+        ]
     
     def __str__(self):
-        return f"{self.description} - ₱{self.amount} - {self.date}"
+        return f"{self.date} - {self.category} - {self.payee} - {self.amount}"
     
     def save(self, *args, **kwargs):
         # If not explicitly set, set ice_plant_allocation to the same as amount

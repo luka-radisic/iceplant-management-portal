@@ -2,6 +2,7 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import DjangoModelPermissions
 from buyers.models import Buyer
 from .serializers import BuyerSerializer, BuyerLightSerializer
 from uuid import UUID
@@ -16,6 +17,7 @@ class BuyerViewSet(viewsets.ModelViewSet):
     filterset_fields = ['is_active', 'business_type']
     search_fields = ['name', 'company_name', 'email', 'phone', 'id']
     ordering_fields = ['name', 'created_at', 'updated_at']
+    permission_classes = [DjangoModelPermissions]
     
     @action(detail=False, methods=['get'])
     def active(self, request):

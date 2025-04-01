@@ -38,6 +38,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
+    # Core app
+    'iceplant_core',
+
     # Third-party apps
     'rest_framework',
     'rest_framework.authtoken',

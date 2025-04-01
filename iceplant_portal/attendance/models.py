@@ -3,6 +3,7 @@ from django.utils import timezone
 import pytz
 from datetime import datetime, time, timedelta
 import os
+from django.contrib.auth.models import User
 
 def employee_photo_path(instance, filename):
     """
@@ -130,9 +131,19 @@ class ImportLog(models.Model):
     success = models.BooleanField(default=True)
     error_message = models.TextField(blank=True, null=True)
     records_imported = models.IntegerField(default=0)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     
     def __str__(self):
-        return f"{self.filename} ({self.import_date.date()})"
+        status = "Success" if self.success else "Failed"
+        return f"{self.filename} ({self.import_date.date()}) - {status}"
+
+    class Meta:
+        ordering = ['import_date']
+        verbose_name = 'Import Log'
+        verbose_name_plural = 'Import Logs'
+        permissions = [
+            ('import_attendance', 'Can import attendance data'),
+        ]
 
 class EmployeeShift(models.Model):
     """Store shift configuration per employee"""
