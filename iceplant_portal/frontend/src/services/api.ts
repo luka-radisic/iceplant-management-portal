@@ -111,6 +111,14 @@ export const endpoints = {
   expensesSummary: '/api/expenses/expenses/summary/',
   expensesTotal: '/api/expenses/expenses/total/',
 
+  // Maintenance
+  maintenanceItems: '/api/maintenance/items/',
+  maintenanceRecords: '/api/maintenance/records/',
+  maintenanceTemplates: '/api/maintenance/templates/',
+  maintenanceTasks: '/api/maintenance/tasks/',
+  maintenanceDashboard: '/api/maintenance/dashboard/',
+  maintenanceUpcoming: '/api/maintenance/upcoming/',
+
   // Employee Profile
   employeeProfileDepartments: '/api/attendance/employee-profile/departments/',
 

@@ -23,6 +23,7 @@ import CompanySettingsPage from './pages/CompanySettingsPage';
 import SalePrintView from './components/sales/SalePrintView';
 import InventoryPage from './pages/InventoryPage';
 import ExpensesPage from './pages/ExpensesPage';
+import MaintenancePage from './pages/MaintenancePage';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
@@ -60,6 +61,7 @@ function App() {
                     <Route path="/buyers" element={<BuyersPage />} />
                     <Route path="/inventory" element={<InventoryPage />} />
                     <Route path="/expenses" element={<ExpensesPage />} />
+                    <Route path="/maintenance" element={<MaintenancePage />} />
                     
                     {/* Superadmin-only routes */}
                     <Route path="/tools" element={<SuperAdminRoute><ToolsPage /></SuperAdminRoute>} />
