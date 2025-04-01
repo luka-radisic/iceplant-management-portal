@@ -5,6 +5,10 @@ from . import views
 # Create a router for viewsets
 router = DefaultRouter()
 router.register(r'users', views.UserViewSet)
+router.register(r'permissions', views.PermissionViewSet)
+router.register(r'roles', views.RoleViewSet)
+router.register(r'role-permissions', views.RolePermissionViewSet)
+router.register(r'user-roles', views.UserRoleViewSet)
 
 urlpatterns = [
     # Include the router URLs
@@ -12,4 +16,5 @@ urlpatterns = [
     
     # Registration endpoint
     path('register/', views.register_user, name='register'),
+    path('profile/', views.user_profile, name='profile'),
 ] 

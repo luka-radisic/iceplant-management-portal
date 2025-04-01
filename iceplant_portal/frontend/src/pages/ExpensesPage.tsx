@@ -30,6 +30,7 @@ import {
   Card,
   CardContent,
   InputAdornment,
+  Alert,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -45,9 +46,12 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import LockIcon from '@mui/icons-material/Lock';
 import { apiService, endpoints } from '../services/api';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
+import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 import type { Expense, ExpenseCategory, ExpenseSummaryByGroup, ExpenseSummaryByPayee } from '../types/api';
 
@@ -58,9 +62,18 @@ interface TabPanelProps {
   value: number;
 }
 
+// Get current date in YYYY-MM-DD format
+const getCurrentDateString = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Expense form initial values
 const initialExpenseFormData = {
-  date: new Date().toISOString().substring(0, 10),
+  date: getCurrentDateString(),
   payee: '',
   description: '',
   amount: 0,
@@ -136,6 +149,10 @@ const SummaryCard: React.FC<ExpenseSummaryProps> = ({ title, total, icePlantTota
 };
 
 const ExpensesPage: React.FC = () => {
+  // Get auth context for admin check
+  const { isAdmin } = useAuth();
+  const { hasPermission } = usePermissions();
+  
   // State for expense data
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
@@ -181,6 +198,12 @@ const ExpensesPage: React.FC = () => {
   
   const { enqueueSnackbar } = useSnackbar();
   
+  // Check specific permissions
+  const canAddExpenses = hasPermission('expenses_add');
+  const canEditExpenses = hasPermission('expenses_edit');
+  const canDeleteExpenses = hasPermission('expenses_delete');
+  const canApproveExpenses = hasPermission('expenses_approve');
+  
   // Fetch data on component mount
   useEffect(() => {
     fetchExpenses();
@@ -197,9 +220,14 @@ const ExpensesPage: React.FC = () => {
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
-      const data = await apiService.get(endpoints.expenses);
-      setExpenses(data);
-      setFilteredExpenses(data);
+      const response = await apiService.get(endpoints.expenses);
+      // Check if response is an object with results property or already an array
+      const expensesData = Array.isArray(response) ? response : 
+                          response.results ? response.results : [];
+      
+      console.log('Expenses data structure:', expensesData);
+      setExpenses(expensesData);
+      setFilteredExpenses(expensesData);
     } catch (error) {
       console.error('Error fetching expenses:', error);
       enqueueSnackbar('Failed to load expenses', { variant: 'error' });
@@ -211,8 +239,11 @@ const ExpensesPage: React.FC = () => {
   // Fetch expense categories
   const fetchCategories = async () => {
     try {
-      const data = await apiService.get(endpoints.expenseCategories);
-      setCategories(data);
+      const response = await apiService.get(endpoints.expenseCategories);
+      const categoriesData = Array.isArray(response) ? response : 
+                           response.results ? response.results : [];
+      console.log('Categories data structure:', categoriesData);
+      setCategories(categoriesData);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -226,15 +257,24 @@ const ExpensesPage: React.FC = () => {
       setMonthlySummary(totalData);
       
       // Fetch category summary
-      const categorySummary = await apiService.get(`${endpoints.expenses}summary/?group_by=category`);
+      const categoryResponse = await apiService.get(`${endpoints.expenses}summary/?group_by=category`);
+      const categorySummary = Array.isArray(categoryResponse) ? categoryResponse :
+                             categoryResponse.results ? categoryResponse.results : [];
+      console.log('Category summary structure:', categorySummary);
       setSummaryCategoryData(categorySummary);
       
       // Fetch monthly summary
-      const monthSummary = await apiService.get(`${endpoints.expenses}summary/?group_by=month`);
+      const monthResponse = await apiService.get(`${endpoints.expenses}summary/?group_by=month`);
+      const monthSummary = Array.isArray(monthResponse) ? monthResponse :
+                          monthResponse.results ? monthResponse.results : [];
+      console.log('Month summary structure:', monthSummary);
       setSummaryMonthData(monthSummary);
       
       // Fetch payee summary
-      const payeeSummary = await apiService.get(`${endpoints.expenses}payee_summary/`);
+      const payeeResponse = await apiService.get(`${endpoints.expenses}payee_summary/`);
+      const payeeSummary = Array.isArray(payeeResponse) ? payeeResponse :
+                          payeeResponse.results ? payeeResponse.results : [];
+      console.log('Payee summary structure:', payeeSummary);
       setSummaryPayeeData(payeeSummary);
     } catch (error) {
       console.error('Error fetching summaries:', error);
@@ -244,6 +284,12 @@ const ExpensesPage: React.FC = () => {
   
   // Apply all filters to expenses
   const applyFilters = () => {
+    if (!Array.isArray(expenses)) {
+      console.warn('Expenses is not an array', expenses);
+      setFilteredExpenses([]);
+      return;
+    }
+    
     let filtered = [...expenses];
     
     // Apply search query filter
@@ -308,7 +354,7 @@ const ExpensesPage: React.FC = () => {
     if (type === 'add') {
       setFormData({
         ...initialExpenseFormData,
-        date: new Date().toISOString().substring(0, 10),
+        date: getCurrentDateString(),
       });
     } else if (expense) {
       setSelectedExpense(expense);
@@ -363,9 +409,15 @@ const ExpensesPage: React.FC = () => {
   // Handle date change
   const handleDateChange = (date: Date | null) => {
     if (date) {
+      // Format as YYYY-MM-DD without any time information
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      
       setFormData(prev => ({
         ...prev,
-        date: date.toISOString().substring(0, 10),
+        date: formattedDate,
       }));
     }
   };
@@ -374,7 +426,13 @@ const ExpensesPage: React.FC = () => {
   const handleAddExpense = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.post(endpoints.expenses, formData);
+      // Ensure the date is properly formatted as YYYY-MM-DD
+      const expenseData = {
+        ...formData,
+        date: formData.date.substring(0, 10) // Ensure only YYYY-MM-DD is sent
+      };
+      
+      const response = await apiService.post(endpoints.expenses, expenseData);
       enqueueSnackbar('Expense added successfully', { variant: 'success' });
       
       // Refresh data
@@ -396,7 +454,13 @@ const ExpensesPage: React.FC = () => {
     
     try {
       setIsLoading(true);
-      const response = await apiService.put(`${endpoints.expenses}${selectedExpense.id}/`, formData);
+      // Ensure the date is properly formatted as YYYY-MM-DD
+      const expenseData = {
+        ...formData,
+        date: formData.date.substring(0, 10) // Ensure only YYYY-MM-DD is sent
+      };
+      
+      const response = await apiService.put(`${endpoints.expenses}${selectedExpense.id}/`, expenseData);
       enqueueSnackbar('Expense updated successfully', { variant: 'success' });
       
       // Refresh data
@@ -472,7 +536,9 @@ const ExpensesPage: React.FC = () => {
   };
   
   // Build unique list of payees for filtering
-  const uniquePayees = Array.from(new Set(expenses.map(expense => expense.payee))).sort();
+  const uniquePayees = Array.isArray(expenses) 
+    ? Array.from(new Set(expenses.map(expense => expense.payee))).sort()
+    : [];
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -489,14 +555,29 @@ const ExpensesPage: React.FC = () => {
           >
             Filters
           </Button>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog('add')}
-          >
-            Add Expense
-          </Button>
+          {canAddExpenses ? (
+            <Button 
+              variant="contained" 
+              color="primary" 
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog('add')}
+            >
+              Add Expense
+            </Button>
+          ) : (
+            <Tooltip title="You don't have permission to add expenses">
+              <span>
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  startIcon={<AddIcon />}
+                  disabled
+                >
+                  Add Expense
+                </Button>
+              </span>
+            </Tooltip>
+          )}
         </Box>
       </Box>
 
@@ -585,7 +666,7 @@ const ExpensesPage: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredExpenses.length > 0 ? (
+                  {(Array.isArray(filteredExpenses) && filteredExpenses.length > 0) ? (
                     filteredExpenses.map((expense) => (
                       <TableRow key={expense.id}>
                         <TableCell>{expense.date_formatted || format(parseISO(expense.date), 'MM/dd/yy')}</TableCell>
@@ -615,23 +696,38 @@ const ExpensesPage: React.FC = () => {
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Edit">
-                            <IconButton size="small" onClick={() => handleOpenDialog('edit', expense)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton size="small" color="error" onClick={() => handleOpenDialog('delete', expense)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          {!expense.approved && (
+                          
+                          {canEditExpenses ? (
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => handleOpenDialog('edit', expense)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
+                          
+                          {canDeleteExpenses ? (
+                            <Tooltip title="Delete">
+                              <IconButton size="small" color="error" onClick={() => handleOpenDialog('delete', expense)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
+                          
+                          {canApproveExpenses && !expense.approved ? (
                             <Tooltip title="Approve">
                               <IconButton size="small" color="success" onClick={() => handleApproveExpense(expense)}>
                                 <CheckCircleIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          )}
+                          ) : null}
+                          
+                          {!canEditExpenses && !canDeleteExpenses && !canApproveExpenses ? (
+                            <Tooltip title="You don't have permission to modify expenses">
+                              <IconButton size="small" disabled>
+                                <LockIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
                         </TableCell>
                       </TableRow>
                     ))
@@ -772,21 +868,44 @@ const ExpensesPage: React.FC = () => {
            dialogType === 'edit' ? 'Edit Expense' : 
            dialogType === 'view' ? 'View Expense' :
            'Delete Expense'}
+           {!canEditExpenses && dialogType !== 'view' && (
+             <Chip
+               label="Admin Only"
+               color="error"
+               size="small"
+               icon={<LockIcon />}
+               sx={{ ml: 2 }}
+             />
+           )}
         </DialogTitle>
         <DialogContent>
           {dialogType === 'delete' ? (
-            <Typography>
-              Are you sure you want to delete this expense? This action cannot be undone.
-            </Typography>
+            <>
+              <Typography gutterBottom>
+                Are you sure you want to delete this expense? This action cannot be undone.
+              </Typography>
+              {!canDeleteExpenses && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  You do not have permission to perform this action.
+                </Alert>
+              )}
+            </>
           ) : (
             <Grid container spacing={2} sx={{ mt: 1 }}>
+              {!canEditExpenses && dialogType !== 'view' && (
+                <Grid item xs={12}>
+                  <Alert severity="warning">
+                    You don't have permission to modify expenses.
+                  </Alert>
+                </Grid>
+              )}
               <Grid item xs={12} md={6}>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <DatePicker 
                     label="Date"
                     value={formData.date ? new Date(formData.date) : null}
                     onChange={handleDateChange}
-                    disabled={dialogType === 'view'}
+                    disabled={dialogType === 'view' || !canEditExpenses}
                     slotProps={{
                       textField: {
                         fullWidth: true,
@@ -803,7 +922,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.payee}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view'}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   required
                 />
               </Grid>
@@ -816,7 +935,7 @@ const ExpensesPage: React.FC = () => {
                   fullWidth
                   multiline
                   rows={2}
-                  disabled={dialogType === 'view'}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   required
                 />
               </Grid>
@@ -828,7 +947,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.amount}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view'}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                   }}
@@ -843,7 +962,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.ice_plant_allocation}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view'}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                   }}
@@ -858,7 +977,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.category}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view'}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                   required
                 >
                   <MenuItem value="meals">Meals</MenuItem>
@@ -886,7 +1005,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.payment_method}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view'}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                 >
                   <MenuItem value="cash">Cash</MenuItem>
                   <MenuItem value="check">Check</MenuItem>
@@ -904,7 +1023,7 @@ const ExpensesPage: React.FC = () => {
                   value={formData.reference_number}
                   onChange={handleInputChange}
                   fullWidth
-                  disabled={dialogType === 'view'}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -916,7 +1035,7 @@ const ExpensesPage: React.FC = () => {
                   fullWidth
                   multiline
                   rows={3}
-                  disabled={dialogType === 'view'}
+                  disabled={dialogType === 'view' || !canEditExpenses}
                 />
               </Grid>
               
@@ -975,7 +1094,7 @@ const ExpensesPage: React.FC = () => {
             {dialogType === 'view' ? 'Close' : 'Cancel'}
           </Button>
           
-          {dialogType === 'add' && (
+          {dialogType === 'add' && canAddExpenses && (
             <Button 
               onClick={handleAddExpense} 
               variant="contained" 
@@ -986,7 +1105,7 @@ const ExpensesPage: React.FC = () => {
             </Button>
           )}
           
-          {dialogType === 'edit' && (
+          {dialogType === 'edit' && canEditExpenses && (
             <Button 
               onClick={handleUpdateExpense} 
               variant="contained" 
@@ -997,7 +1116,7 @@ const ExpensesPage: React.FC = () => {
             </Button>
           )}
           
-          {dialogType === 'delete' && (
+          {dialogType === 'delete' && canDeleteExpenses && (
             <Button 
               onClick={handleDeleteExpense} 
               variant="contained" 
@@ -1085,7 +1204,7 @@ const ExpensesPage: React.FC = () => {
                 fullWidth
               >
                 <MenuItem value="all">All Payees</MenuItem>
-                {uniquePayees.map((payee, index) => (
+                {Array.isArray(uniquePayees) && uniquePayees.map((payee, index) => (
                   <MenuItem key={index} value={payee}>{payee}</MenuItem>
                 ))}
               </TextField>

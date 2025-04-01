@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-# Create your models here.
-
 # Define permission levels
 class UserPermission(models.Model):
     """
@@ -48,24 +46,16 @@ class UserPermission(models.Model):
         ('permissions_management', 'Can manage user permissions'),
     ]
     
-    user = models.ForeignKey(User, related_name='custom_permissions', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, related_name='permissions', on_delete=models.CASCADE)
     permission_type = models.CharField(max_length=50, choices=PERMISSION_TYPES)
-    permission_display = models.CharField(max_length=100, blank=True)
     
     class Meta:
         unique_together = ('user', 'permission_type')
+        verbose_name = 'User Permission'
+        verbose_name_plural = 'User Permissions'
     
     def __str__(self):
         return f"{self.user.username} - {self.get_permission_type_display()}"
-    
-    def save(self, *args, **kwargs):
-        # Set the display name if not provided
-        if not self.permission_display:
-            for perm_type, display in self.PERMISSION_TYPES:
-                if perm_type == self.permission_type:
-                    self.permission_display = display
-                    break
-        super().save(*args, **kwargs)
 
 # User role definitions
 class UserRole(models.Model):
@@ -85,18 +75,9 @@ class UserRole(models.Model):
     name = models.CharField(max_length=100)
     role_type = models.CharField(max_length=50, choices=ROLE_CHOICES)
     description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    permissions_json = models.JSONField(default=list, blank=True, help_text="JSON array of permission names")
     
     def __str__(self):
         return self.name
-    
-    def save(self, *args, **kwargs):
-        # Ensure role_type is lowercase for consistency
-        self.role_type = self.role_type.lower()
-        super().save(*args, **kwargs)
         
 # Role-Permission relationship
 class RolePermission(models.Model):
@@ -110,37 +91,4 @@ class RolePermission(models.Model):
         unique_together = ('role', 'permission_type')
 
     def __str__(self):
-        return f"{self.role.name} - {self.permission_type}"
-        
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Update the permissions_json field in the role
-        role = self.role
-        permissions = RolePermission.objects.filter(role=role).values_list('permission_type', flat=True)
-        role.permissions_json = list(permissions)
-        role.save(update_fields=['permissions_json'])
-
-# User-Role assignment
-class UserRoleAssignment(models.Model):
-    """
-    Assigns roles to users
-    """
-    user = models.ForeignKey(User, related_name='role_assignments', on_delete=models.CASCADE)
-    role = models.ForeignKey(UserRole, related_name='user_assignments', on_delete=models.CASCADE)
-    assigned_at = models.DateTimeField(auto_now_add=True)
-    assigned_by = models.ForeignKey(User, related_name='role_assignments_made', 
-                                   on_delete=models.SET_NULL, null=True, blank=True)
-    role_name = models.CharField(max_length=100, blank=True, help_text="Cached role name for easier querying")
-    
-    class Meta:
-        unique_together = ('user', 'role')
-        verbose_name = 'User Role Assignment'
-        verbose_name_plural = 'User Role Assignments'
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.role.name}"
-    
-    def save(self, *args, **kwargs):
-        # Store the role name for easier querying
-        self.role_name = self.role.name
-        super().save(*args, **kwargs)
+        return f"{self.role.name} - {self.permission_type}" 
