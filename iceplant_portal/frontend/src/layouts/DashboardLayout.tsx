@@ -101,11 +101,11 @@ export default function DashboardLayout() {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {isAdmin && (
+              {user?.group && (
                 <Chip 
                   size="small"
-                  label="Admin"
-                  color="warning"
+                  label={user.group}
+                  color={user.group === 'Admin' ? 'warning' : 'primary'}
                   sx={{ mr: 1 }}
                 />
               )}
