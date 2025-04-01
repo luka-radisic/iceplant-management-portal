@@ -43,13 +43,17 @@ export default function Login() {
     const fetchCompanyInfo = async () => {
       try {
         setLogoLoading(true);
-        const response = await axios.get('http://127.0.0.1:8000/api/company/public-info/');
-        setCompanyInfo({
-          company_name: response.data.company_name || 'Ice Plant Management Portal',
-          logo_url: response.data.logo_url
-        });
+        // Use relative URL to avoid CORS issues and work in any environment
+        const response = await axios.get('/api/company/public-info/');
+        if (response.data) {
+          setCompanyInfo({
+            company_name: response.data.company_name || 'Ice Plant Management Portal',
+            logo_url: response.data.logo_url
+          });
+        }
       } catch (error) {
         console.error('Error fetching company info:', error);
+        // Keep default values on error
       } finally {
         setLogoLoading(false);
       }
