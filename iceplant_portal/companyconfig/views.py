@@ -16,12 +16,28 @@ def public_company_info(request):
     Public endpoint to get basic company info including logo without authentication.
     Used for the login page.
     """
-    settings = CompanySettings.get_settings()
-    data = {
-        'company_name': settings.company_name,
-        'logo_url': settings.logo_url if settings.company_logo else None,
-    }
-    return Response(data)
+    try:
+        settings = CompanySettings.get_settings()
+        # Get absolute URL for company logo if it exists
+        logo_url = None
+        if settings.company_logo and hasattr(settings.company_logo, 'url'):
+            try:
+                logo_url = request.build_absolute_uri(settings.company_logo.url)
+            except:
+                logo_url = None
+        
+        data = {
+            'company_name': settings.company_name or 'Ice Plant Management Portal',
+            'logo_url': logo_url
+        }
+        return Response(data)
+    except Exception as e:
+        # Log the error but return a default response instead of an error
+        print(f"Error in public_company_info: {str(e)}")
+        return Response({
+            'company_name': 'Ice Plant Management Portal',
+            'logo_url': None
+        })
 
 class CompanySettingsViewSet(viewsets.ModelViewSet):
     """
