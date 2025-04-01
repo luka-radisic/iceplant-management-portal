@@ -80,8 +80,8 @@ api.interceptors.response.use(
 export const endpoints = {
   // Auth
   login: '/api-token-auth/',
-  register: '/api/register/',
-  users: '/api/users/',
+  // register: '/api/register/', // Removed user management endpoint
+  // users: '/api/users/', // Removed user management endpoint
 
   // Attendance
   attendance: '/api/attendance/attendance/',
@@ -143,7 +143,8 @@ export const apiService = {
     return response.data;
   },
 
-  // User registration
+  // User registration - Removed
+  /*
   register: async (userData: {
     username: string;
     email: string;
@@ -153,8 +154,10 @@ export const apiService = {
     const response = await api.post(endpoints.register, userData);
     return response.data;
   },
+  */
 
-  // User management (admin only)
+  // User management (admin only) - Removed
+  /*
   getUsers: async () => {
     return apiService.get(endpoints.users);
   },
@@ -174,6 +177,7 @@ export const apiService = {
   deleteUser: async (userId: number) => {
     return apiService.delete(`${endpoints.users}${userId}/`);
   },
+  */
 
   // GET requests
   get: async (endpoint: string, params?: any) => {

@@ -135,15 +135,6 @@ export default function Login() {
             >
               {loading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
-            
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="body2">
-                Don't have an account?{' '}
-                <RouterLink to="/register" style={{ textDecoration: 'none' }}>
-                  Create one
-                </RouterLink>
-              </Typography>
-            </Box>
           </Box>
         </Paper>
       </Box>
