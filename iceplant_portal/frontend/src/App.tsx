@@ -10,6 +10,7 @@ import { LogProvider } from './components/LogProvider';
 import { LogViewer } from './components/LogViewer';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import SuperAdminRoute from './components/SuperAdminRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import Attendance from './pages/Attendance';
@@ -59,10 +60,10 @@ function App() {
                     <Route path="/buyers" element={<BuyersPage />} />
                     <Route path="/inventory" element={<InventoryPage />} />
                     <Route path="/expenses" element={<ExpensesPage />} />
-                    <Route path="/tools" element={<ToolsPage />} />
                     
-                    {/* Admin-only routes */}
-                    <Route path="/company-settings" element={<AdminRoute><CompanySettingsPage /></AdminRoute>} />
+                    {/* Superadmin-only routes */}
+                    <Route path="/tools" element={<SuperAdminRoute><ToolsPage /></SuperAdminRoute>} />
+                    <Route path="/company-settings" element={<SuperAdminRoute><CompanySettingsPage /></SuperAdminRoute>} />
                     
                     {/* Admin edit routes */}
                     <Route path="/admin/sales/sale/:id/change" element={
