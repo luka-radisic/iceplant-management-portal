@@ -302,11 +302,26 @@ const InventoryPage = () => {
     
     try {
       setIsLoading(true);
+      
+      // Get the current user's name from localStorage
+      let adjustedBy = 'system';
+      const userJson = localStorage.getItem('user');
+      if (userJson) {
+        try {
+          const user = JSON.parse(userJson);
+          if (user && user.username) {
+            adjustedBy = user.username;
+          }
+        } catch (e) {
+          console.error('Error parsing user from localStorage:', e);
+        }
+      }
+      
       const response = await apiService.post(endpoints.inventoryAdjustments, {
         inventory: currentItem.id,
         new_quantity: formData.new_quantity,
         reason: formData.reason,
-        adjusted_by: localStorage.getItem('username') || 'system'
+        adjusted_by: adjustedBy
       });
       
       console.log('Adjust quantity response:', response);
