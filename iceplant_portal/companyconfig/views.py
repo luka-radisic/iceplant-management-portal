@@ -1,12 +1,27 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status, parsers
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes, api_view
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.permissions import AllowAny
 from .models import CompanySettings
 from .serializers import CompanySettingsSerializer
 
 # Create your views here.
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_company_info(request):
+    """
+    Public endpoint to get basic company info including logo without authentication.
+    Used for the login page.
+    """
+    settings = CompanySettings.get_settings()
+    data = {
+        'company_name': settings.company_name,
+        'logo_url': settings.logo_url if settings.company_logo else None,
+    }
+    return Response(data)
 
 class CompanySettingsViewSet(viewsets.ModelViewSet):
     """
