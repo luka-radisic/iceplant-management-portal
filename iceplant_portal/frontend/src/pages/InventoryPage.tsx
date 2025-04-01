@@ -153,8 +153,22 @@ const InventoryPage = () => {
   const fetchInventoryHistory = async (inventoryId: number) => {
     try {
       setIsLoading(true);
+      console.log('Fetching history for inventory ID:', inventoryId);
+      console.log('Request URL:', `${endpoints.inventoryAdjustments}history/?inventory_id=${inventoryId}`);
+      
       const data = await apiService.get(`${endpoints.inventoryAdjustments}history/?inventory_id=${inventoryId}`);
-      setAdjustmentHistory(data);
+      
+      console.log('History data received:', data);
+      console.log('Results count:', data.results ? data.results.length : 'No results found');
+      
+      // Check if the response is paginated
+      if (data.results) {
+        console.log('Found paginated response, setting adjustment history from results');
+        setAdjustmentHistory(data.results);
+      } else {
+        console.log('Non-paginated response, setting adjustment history directly');
+        setAdjustmentHistory(data);
+      }
     } catch (error) {
       enqueueSnackbar('Failed to load adjustment history', { variant: 'error' });
       console.error('Error fetching adjustment history:', error);
