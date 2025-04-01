@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -8,22 +8,45 @@ import {
   Container,
   CircularProgress,
   Alert,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
+import { CompanySettings, defaultCompanySettings } from '../types/company';
 
 export default function Login() {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { login: authLogin } = useAuth();
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings>(defaultCompanySettings);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
+
+  // Fetch company settings to get the logo
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      try {
+        const response = await apiService.getCompanySettings();
+        setCompanySettings(response);
+      } catch (err) {
+        console.error('Error fetching company settings:', err);
+        // Use default settings if fetch fails
+        setCompanySettings(defaultCompanySettings);
+      }
+    };
+
+    fetchCompanySettings();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -67,28 +90,47 @@ export default function Login() {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 2,
+        background: theme.palette.grey[100],
+      }}
+    >
+      <Container maxWidth="xs">
         <Paper
-          elevation={3}
+          elevation={6}
           sx={{
-            padding: 4,
+            padding: isSmallScreen ? 2 : 4,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             width: '100%',
+            borderRadius: '8px',
           }}
         >
-          <Typography component="h1" variant="h5" gutterBottom>
-            Ice Plant Management Portal
+          {/* Company Logo */}
+          {companySettings.logo_url && (
+            <Box
+              component="img"
+              src={companySettings.logo_url}
+              alt="Company Logo"
+              sx={{
+                maxWidth: '80%',
+                maxHeight: '120px',
+                mb: 2,
+                objectFit: 'contain',
+              }}
+            />
+          )}
+          
+          <Typography component="h1" variant="h5" align="center" gutterBottom>
+            {companySettings.company_name || 'Ice Plant Management Portal'}
           </Typography>
+          
           <Typography component="h2" variant="h6" color="textSecondary" gutterBottom>
             Sign In
           </Typography>
@@ -136,8 +178,14 @@ export default function Login() {
               {loading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
           </Box>
+          
+          {companySettings.company_name && (
+            <Typography variant="caption" color="text.secondary" align="center" sx={{ mt: 2 }}>
+              © {new Date().getFullYear()} {companySettings.company_name}
+            </Typography>
+          )}
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 } 
