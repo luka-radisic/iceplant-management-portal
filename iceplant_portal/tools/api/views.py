@@ -5,7 +5,10 @@ from django.core import management
 from django.http import HttpResponse
 from django.utils import timezone
 from django.apps import apps
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 import json
+import tempfile
+import os
 
 from attendance.models import EmployeeProfile # To get department list
 
@@ -18,6 +21,7 @@ class ToolsViewSet(viewsets.ViewSet):
     def backup_full_database(self, request):
         """
         Performs a full database dump using dumpdata and returns it as a JSON file.
+        Includes all app data for a complete backup.
         """
         try:
             timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
@@ -26,19 +30,26 @@ class ToolsViewSet(viewsets.ViewSet):
             response = HttpResponse(content_type='application/json')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             
-            # Specify all relevant apps - adjust as needed when new apps are added
+            # Include all relevant apps for a complete backup
             apps_to_backup = [
-                'attendance', 
-                # 'sales', 
-                # 'inventory', 
-                # 'expenses',
-                'auth', # Include auth models (users, groups, permissions)
-                'contenttypes' # Required by Django
+                'attendance',
+                'sales',
+                'inventory',
+                'expenses',
+                'buyers',
+                'tools',
+                'companyconfig',
+                'iceplant_core',
+                'auth',           # Users, groups, permissions
+                'authtoken',      # API tokens
+                'contenttypes',   # Required by Django
+                'sessions'        # User sessions
             ]
             
             management.call_command(
                 'dumpdata', 
                 *apps_to_backup,
+                exclude=['contenttypes.contenttype', 'auth.permission'],
                 format='json',
                 indent=2,
                 stdout=response
@@ -48,6 +59,67 @@ class ToolsViewSet(viewsets.ViewSet):
         except Exception as e:
             print(f"Error during full database backup: {str(e)}")
             return Response({'error': f'Failed to create full backup: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='restore', parser_classes=[MultiPartParser, FormParser, JSONParser])
+    def restore_database(self, request):
+        """
+        Restores database from a backup file uploaded by the user.
+        The backup file should be a JSON file created by the backup/full endpoint.
+        """
+        if 'backup_file' not in request.FILES:
+            return Response(
+                {'error': 'No backup file provided. Please upload a backup file.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        backup_file = request.FILES['backup_file']
+        
+        # Validate the file
+        if not backup_file.name.endswith('.json'):
+            return Response(
+                {'error': 'Invalid file format. Please upload a JSON backup file.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            # Create a temporary file to save the uploaded content
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as temp_file:
+                temp_path = temp_file.name
+                for chunk in backup_file.chunks():
+                    temp_file.write(chunk)
+            
+            # Validate the backup file by trying to parse it
+            with open(temp_path, 'r') as f:
+                try:
+                    json.load(f)
+                except json.JSONDecodeError as e:
+                    os.unlink(temp_path)  # Clean up the temp file
+                    return Response(
+                        {'error': f'Invalid JSON file: {str(e)}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Attempt to restore the database
+            # Note: We're NOT using flush here as it would delete all data first
+            # Instead, we'll use the loaddata command which will update or create records
+            management.call_command('loaddata', temp_path)
+            
+            # Clean up the temp file
+            os.unlink(temp_path)
+            
+            return Response({
+                'success': True,
+                'message': 'Database restored successfully from backup file.'
+            })
+        except Exception as e:
+            # Clean up the temp file if it exists
+            if 'temp_path' in locals() and os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+            print(f"Error during database restore: {str(e)}")
+            return Response({
+                'error': f'Failed to restore database: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'], url_path='backup/department')
     def backup_department_data(self, request):

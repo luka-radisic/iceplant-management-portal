@@ -1,6 +1,6 @@
 import pandas as pd
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db import transaction
@@ -16,6 +16,7 @@ from django.db.models import F, ExpressionWrapper, DurationField, Count, Q, Func
 from django.db.models.functions import Extract, TruncDate
 from dateutil.relativedelta import relativedelta
 from datetime import date
+from rest_framework.permissions import AllowAny
 
 from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 from .serializers import (
@@ -640,6 +641,76 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             'previous_present_count': previous_present_count 
         })
 
+    @action(detail=False, methods=['get'])
+    def departments(self, request):
+        """Get a comprehensive list of all departments in the system"""
+        print("\n====== DEPARTMENTS API CALLED ======")
+        
+        # Get departments from ALL employee profiles (both active and inactive)
+        profile_departments = list(
+            EmployeeProfile.objects
+            .exclude(department__isnull=True)
+            .exclude(department__exact='')
+            .values_list('department', flat=True)
+            .distinct()
+        )
+        print(f"Profile departments: {profile_departments}")
+
+        # Get ALL departments from attendance records including historical ones
+        attendance_departments = list(
+            Attendance.objects
+            .exclude(department__isnull=True)
+            .exclude(department__exact='')
+            .exclude(department__exact='NO SHOW')  # Exclude NO SHOW as it's not a real department
+            .values_list('department', flat=True)
+            .distinct()
+        )
+        print(f"Attendance departments (unique): {set(attendance_departments)}")
+
+        # Also get departments from DepartmentShift
+        try:
+            shift_departments = list(
+                DepartmentShift.objects
+                .values_list('department', flat=True)
+                .distinct()
+            )
+        except Exception as e:
+            print(f"Error getting shift departments: {e}")
+            shift_departments = []
+        print(f"Shift departments: {shift_departments}")
+
+        # Also get departments from EmployeeShift
+        try:
+            employee_shift_departments = list(
+                EmployeeShift.objects
+                .exclude(department__isnull=True)
+                .exclude(department__exact='')
+                .values_list('department', flat=True)
+                .distinct()
+            )
+        except Exception as e:
+            print(f"Error getting employee shift departments: {e}")
+            employee_shift_departments = []
+        print(f"Employee shift departments: {employee_shift_departments}")
+
+        # Add any hardcoded departments that might exist in the codebase
+        known_departments = ["Driver", "Office", "Harvester", "Operator", "Sales", "Admin", "HR"]
+        print(f"Known departments: {known_departments}")
+
+        # Combine all department sources and remove duplicates
+        all_departments = sorted(set(
+            profile_departments + 
+            attendance_departments + 
+            shift_departments + 
+            employee_shift_departments +
+            known_departments
+        ))
+        
+        print(f"FINAL departments list: {all_departments}")
+        print("====== END DEPARTMENTS API ======\n")
+        
+        return Response({'departments': all_departments})
+
 class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint for Import Logs
@@ -1013,18 +1084,73 @@ class EmployeeProfileViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def departments(self, request):
-        """Get a list of unique departments"""
-        # Get only active employees' departments and exclude empty departments
-        departments = (
+        """Get a comprehensive list of all departments in the system"""
+        print("\n====== DEPARTMENTS API CALLED ======")
+        
+        # Get departments from ALL employee profiles (both active and inactive)
+        profile_departments = list(
             EmployeeProfile.objects
-            .filter(is_active=True)
             .exclude(department__isnull=True)
             .exclude(department__exact='')
             .values_list('department', flat=True)
             .distinct()
-            .order_by('department')
         )
-        return Response({'departments': list(departments)})
+        print(f"Profile departments: {profile_departments}")
+
+        # Get ALL departments from attendance records including historical ones
+        attendance_departments = list(
+            Attendance.objects
+            .exclude(department__isnull=True)
+            .exclude(department__exact='')
+            .exclude(department__exact='NO SHOW')  # Exclude NO SHOW as it's not a real department
+            .values_list('department', flat=True)
+            .distinct()
+        )
+        print(f"Attendance departments (unique): {set(attendance_departments)}")
+
+        # Also get departments from DepartmentShift
+        try:
+            shift_departments = list(
+                DepartmentShift.objects
+                .values_list('department', flat=True)
+                .distinct()
+            )
+        except Exception as e:
+            print(f"Error getting shift departments: {e}")
+            shift_departments = []
+        print(f"Shift departments: {shift_departments}")
+
+        # Also get departments from EmployeeShift
+        try:
+            employee_shift_departments = list(
+                EmployeeShift.objects
+                .exclude(department__isnull=True)
+                .exclude(department__exact='')
+                .values_list('department', flat=True)
+                .distinct()
+            )
+        except Exception as e:
+            print(f"Error getting employee shift departments: {e}")
+            employee_shift_departments = []
+        print(f"Employee shift departments: {employee_shift_departments}")
+
+        # Add any hardcoded departments that might exist in the codebase
+        known_departments = ["Driver", "Office", "Harvester", "Operator", "Sales", "Admin", "HR"]
+        print(f"Known departments: {known_departments}")
+
+        # Combine all department sources and remove duplicates
+        all_departments = sorted(set(
+            profile_departments + 
+            attendance_departments + 
+            shift_departments + 
+            employee_shift_departments +
+            known_departments
+        ))
+        
+        print(f"FINAL departments list: {all_departments}")
+        print("====== END DEPARTMENTS API ======\n")
+        
+        return Response({'departments': all_departments})
 
 class DepartmentShiftViewSet(ModelViewSet):
     """API endpoint for managing department shift configurations"""
@@ -1099,4 +1225,79 @@ class DepartmentShiftViewSet(ModelViewSet):
 
     def update(self, request, department=None):
         """Update shift configurations for a department"""
-        return self.create(request, department) 
+        return self.create(request, department)
+
+# Add debug view without authentication for testing
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def debug_departments(request):
+    """Debug endpoint to get all departments without authentication"""
+    # Get departments from ALL employee profiles (both active and inactive)
+    profile_departments = list(
+        EmployeeProfile.objects
+        .exclude(department__isnull=True)
+        .exclude(department__exact='')
+        .values_list('department', flat=True)
+        .distinct()
+    )
+
+    # Get ALL departments from attendance records including historical ones
+    attendance_departments = list(
+        Attendance.objects
+        .exclude(department__isnull=True)
+        .exclude(department__exact='')
+        .exclude(department__exact='NO SHOW')  # Exclude NO SHOW as it's not a real department
+        .values_list('department', flat=True)
+        .distinct()
+    )
+
+    # Also get departments from DepartmentShift
+    try:
+        shift_departments = list(
+            DepartmentShift.objects
+            .values_list('department', flat=True)
+            .distinct()
+        )
+    except Exception:
+        shift_departments = []
+
+    # Also get departments from EmployeeShift
+    try:
+        employee_shift_departments = list(
+            EmployeeShift.objects
+            .exclude(department__isnull=True)
+            .exclude(department__exact='')
+            .values_list('department', flat=True)
+            .distinct()
+        )
+    except Exception:
+        employee_shift_departments = []
+
+    # Add any hardcoded departments that might exist in the codebase
+    known_departments = ["Driver", "Office", "Harvester", "Operator", "Sales", "Admin", "HR"]
+
+    # Combine all department sources and remove duplicates
+    all_departments = sorted(set(
+        profile_departments + 
+        attendance_departments + 
+        shift_departments + 
+        employee_shift_departments +
+        known_departments
+    ))
+    
+    # Print raw data for debugging
+    print(f"Profile departments: {profile_departments}")
+    print(f"Attendance departments: {attendance_departments}")
+    print(f"Shift departments: {shift_departments}")
+    print(f"Employee shift departments: {employee_shift_departments}")
+    print(f"Combined departments: {all_departments}")
+    
+    return Response({
+        'departments': all_departments,
+        'details': {
+            'profile_departments': profile_departments,
+            'attendance_departments': attendance_departments,
+            'shift_departments': shift_departments,
+            'employee_shift_departments': employee_shift_departments
+        }
+    }) 
