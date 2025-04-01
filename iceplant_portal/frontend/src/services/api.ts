@@ -323,6 +323,22 @@ export const apiService = {
   async backupDepartmentDatabase(department: string) {
     return this.getFile('/api/tools/tools/backup/department/', { department });
   },
+  async restoreDatabase(backupFile: File) {
+    const formData = new FormData();
+    formData.append('backup_file', backupFile);
+    
+    try {
+      const response = await api.post('/api/tools/tools/restore/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error restoring database:', error);
+      throw error;
+    }
+  },
 
   // ImportLog
 

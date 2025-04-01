@@ -5,7 +5,8 @@ from .views import (
     ImportLogViewSet,
     EmployeeShiftViewSet,
     DepartmentShiftViewSet,
-    EmployeeProfileViewSet
+    EmployeeProfileViewSet,
+    debug_departments
 )
 
 router = DefaultRouter()
@@ -17,4 +18,5 @@ router.register(r'employee-profile', EmployeeProfileViewSet, basename='employee-
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('debug/departments/', debug_departments, name='debug-departments'),
 ] 
