@@ -1,22 +1,36 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginResponse } from '../types/api';
 import { loggerService } from '../utils/logger';
+import apiService from '../services/api';
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  is_superuser: boolean;
+  is_staff: boolean;
+  group?: string;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
-  user: LoginResponse['user'] | null;
-  login: (userData: LoginResponse) => void;
+  user: User | null;
+  loading: boolean;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isAdmin: false,
   user: null,
-  login: () => { },
+  loading: true,
+  login: async () => { },
   logout: () => { },
+  error: null,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -24,7 +38,9 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [user, setUser] = useState<LoginResponse['user'] | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,41 +69,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = (userData: LoginResponse) => {
-    loggerService.info('User logged in', {
-      username: userData.user.username,
-      isAdmin: userData.user.is_staff || userData.user.is_superuser,
-      timestamp: new Date().toISOString()
-    });
-    localStorage.setItem('token', userData.token);
-    localStorage.setItem('user', JSON.stringify(userData.user));
-    setIsAuthenticated(true);
-    setUser(userData.user);
-    
-    // Set admin status based on Django's staff or superuser flag
-    setIsAdmin(userData.user.is_staff === true || userData.user.is_superuser === true);
+  const login = async (username: string, password: string) => {
+    try {
+      const response = await apiService.login(username, password);
+      loggerService.info('User logged in', {
+        username: response.user.username,
+        isAdmin: response.user.is_staff || response.user.is_superuser,
+        timestamp: new Date().toISOString()
+      });
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      setIsAuthenticated(true);
+      setUser(response.user);
+      
+      // Set admin status based on Django's staff or superuser flag
+      setIsAdmin(response.user.is_staff === true || response.user.is_superuser === true);
+    } catch (error) {
+      loggerService.error('Error logging in', error);
+      setError('An error occurred while logging in. Please try again later.');
+    }
   };
 
   const logout = () => {
-    const currentUser = user?.username;
-    loggerService.info('User logged out', {
-      username: currentUser,
-      timestamp: new Date().toISOString()
-    });
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsAuthenticated(false);
-    setIsAdmin(false); // Reset admin status
+    setIsAdmin(false);
     setUser(null);
-    navigate('/login', { replace: true });
+    navigate('/login');
   };
 
   const value = {
     isAuthenticated,
     isAdmin,
     user,
+    loading,
     login,
     logout,
+    error,
   };
 
   return (

@@ -13,7 +13,11 @@ class CustomObtainAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
         
-        # Return enhanced response with user info including superuser status
+        # Get the user's groups
+        groups = user.groups.values_list('name', flat=True)
+        user_group = groups[0] if groups else None
+        
+        # Return enhanced response with user info including group information
         return Response({
             'token': token.key,
             'user_id': user.pk,
@@ -21,4 +25,5 @@ class CustomObtainAuthToken(ObtainAuthToken):
             'email': user.email,
             'is_superuser': user.is_superuser,
             'is_staff': user.is_staff,
+            'group': user_group,
         }) 
