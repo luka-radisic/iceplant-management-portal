@@ -54,7 +54,7 @@ export default function Dashboard() {
         const [
           attendanceData,
           salesSummary,
-          inventoryStatus,
+          inventoryStatusResponse,
           expensesSummary
         ] = await Promise.all([
           apiService.get(endpoints.attendance),
@@ -63,17 +63,26 @@ export default function Dashboard() {
           apiService.get(endpoints.expensesSummary),
         ]);
 
+        // Extract inventory data from paginated response if needed
+        const inventoryStatus = inventoryStatusResponse.results && Array.isArray(inventoryStatusResponse.results) 
+          ? inventoryStatusResponse.results 
+          : (Array.isArray(inventoryStatusResponse) ? inventoryStatusResponse : []);
+
+        // Get ice blocks from inventory or default to 0
+        const iceBlocksItem = inventoryStatus.find((item: any) => item.item_name === 'Ice Blocks');
+        const iceBlocksQuantity = iceBlocksItem ? iceBlocksItem.quantity : 0;
+
         setDashboardData({
           employeesPresent: attendanceData.today_count || 0,
           todaySales: salesSummary.today_total || 0,
-          iceBlocks: inventoryStatus.find((item: any) => item.item_name === 'Ice Blocks')?.quantity || 0,
+          iceBlocks: iceBlocksQuantity,
           monthlyExpenses: expensesSummary.monthly_total || 0,
           salesData: salesSummary.monthly_data || [],
           inventoryData: inventoryStatus.map((item: any) => ({
             id: item.id,
             value: item.quantity,
             label: item.item_name,
-          })),
+          })) || [],
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);

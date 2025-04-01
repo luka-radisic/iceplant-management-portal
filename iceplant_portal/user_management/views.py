@@ -10,6 +10,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.views import APIView
 from .serializers import UserSerializer, UserCreateSerializer
+from django.db import connection
 
 # Custom token auth view that returns more user details
 class CustomAuthToken(ObtainAuthToken):
@@ -58,6 +59,29 @@ class UserViewSet(viewsets.ModelViewSet):
         
         self.perform_update(serializer)
         return Response(serializer.data)
+        
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            username = instance.username
+            user_id = instance.id
+            
+            # Delete token first
+            Token.objects.filter(user=instance).delete()
+            
+            # Force delete the user with SQL
+            with connection.cursor() as cursor:
+                cursor.execute("PRAGMA foreign_keys = OFF;")  # Disable foreign key constraints in SQLite
+                cursor.execute("DELETE FROM auth_user WHERE id = %s;", [user_id])
+                cursor.execute("PRAGMA foreign_keys = ON;")  # Re-enable foreign key constraints
+                
+            return Response({"detail": f"User {username} successfully deleted"})
+            
+        except Exception as e:
+            return Response(
+                {"detail": f"Error deleting user: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # Registration view accessible to all
 @api_view(['POST'])

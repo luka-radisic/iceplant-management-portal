@@ -23,6 +23,7 @@ import {
   Alert,
   Chip,
   CircularProgress,
+  Pagination,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -54,6 +55,14 @@ interface InventoryAdjustment {
   adjusted_by: string;
 }
 
+// Pagination interface
+interface PaginationData {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: InventoryItem[];
+}
+
 enum ModalType {
   ADD,
   EDIT,
@@ -81,27 +90,38 @@ const InventoryPage = () => {
     reason: '',
     new_quantity: 0
   });
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  
   const { enqueueSnackbar } = useSnackbar();
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
 
   useEffect(() => {
-    fetchInventory();
+    fetchInventory(page);
     fetchLowStockItems();
-  }, []);
+  }, [page]);
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (pageNumber = 1) => {
     try {
       setIsLoading(true);
-      const data = await apiService.get(endpoints.inventory);
+      const url = `${endpoints.inventory}?page=${pageNumber}`;
+      const data = await apiService.get(url);
       
       // Handle paginated response
       if (data.results && Array.isArray(data.results)) {
         setInventoryItems(data.results);
+        // Set pagination data
+        setTotalItems(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / 20)); // Assuming 20 items per page
       } else if (Array.isArray(data)) {
         setInventoryItems(data);
+        setTotalPages(1);
       } else {
         console.error('Unexpected inventory data format:', data);
         setInventoryItems([]);
+        setTotalPages(1);
       }
     } catch (error) {
       enqueueSnackbar('Failed to load inventory', { variant: 'error' });
@@ -110,6 +130,11 @@ const InventoryPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle page change
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
   };
 
   const fetchLowStockItems = async () => {
@@ -222,7 +247,7 @@ const InventoryPage = () => {
       
       enqueueSnackbar('Inventory item added successfully', { variant: 'success' });
       handleCloseModal();
-      await fetchInventory();
+      await fetchInventory(1); // Go to first page after adding item
       await fetchLowStockItems();
     } catch (error) {
       enqueueSnackbar('Failed to add inventory item', { variant: 'error' });
@@ -246,7 +271,7 @@ const InventoryPage = () => {
       
       enqueueSnackbar('Inventory item updated successfully', { variant: 'success' });
       handleCloseModal();
-      await fetchInventory();
+      await fetchInventory(page); // Stay on current page
       await fetchLowStockItems();
     } catch (error) {
       enqueueSnackbar('Failed to update inventory item', { variant: 'error' });
@@ -270,7 +295,7 @@ const InventoryPage = () => {
       
       enqueueSnackbar('Inventory quantity adjusted successfully', { variant: 'success' });
       handleCloseModal();
-      await fetchInventory();
+      await fetchInventory(page); // Stay on current page
       await fetchLowStockItems();
     } catch (error) {
       enqueueSnackbar('Failed to adjust inventory quantity', { variant: 'error' });
@@ -289,7 +314,13 @@ const InventoryPage = () => {
       
       enqueueSnackbar('Inventory item deleted successfully', { variant: 'success' });
       handleCloseModal();
-      await fetchInventory();
+      
+      // If this is the last item on the page and not page 1, go to previous page
+      if (inventoryItems.length === 1 && page > 1) {
+        setPage(page - 1);
+      } else {
+        await fetchInventory(page);
+      }
       await fetchLowStockItems();
     } catch (error) {
       enqueueSnackbar('Failed to delete inventory item', { variant: 'error' });
@@ -648,89 +679,113 @@ const InventoryPage = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Item Name</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell>Unit</TableCell>
-                  <TableCell>Minimum Level</TableCell>
-                  <TableCell>Last Updated</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {inventoryItems.length > 0 ? (
-                  inventoryItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.item_name}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={item.quantity}
-                          color={item.is_low ? "error" : "success"}
-                          variant={item.is_low ? "filled" : "outlined"}
-                        />
-                      </TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell>{item.minimum_level}</TableCell>
-                      <TableCell>
-                        {new Date(item.last_updated).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Grid container spacing={1}>
-                          <Grid item>
-                            <IconButton 
-                              size="small" 
-                              color="primary"
-                              onClick={() => handleOpenModal(ModalType.EDIT, item)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
+          <>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Item Name</TableCell>
+                    <TableCell>Quantity</TableCell>
+                    <TableCell>Unit</TableCell>
+                    <TableCell>Minimum Level</TableCell>
+                    <TableCell>Last Updated</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {inventoryItems.length > 0 ? (
+                    inventoryItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>{item.item_name}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={item.quantity}
+                            color={item.is_low ? "error" : "success"}
+                            variant={item.is_low ? "filled" : "outlined"}
+                          />
+                        </TableCell>
+                        <TableCell>{item.unit}</TableCell>
+                        <TableCell>{item.minimum_level}</TableCell>
+                        <TableCell>
+                          {new Date(item.last_updated).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Grid container spacing={1}>
+                            <Grid item>
+                              <IconButton 
+                                size="small" 
+                                color="primary"
+                                onClick={() => handleOpenModal(ModalType.EDIT, item)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Grid>
+                            <Grid item>
+                              <IconButton 
+                                size="small" 
+                                color="secondary"
+                                onClick={() => handleOpenModal(ModalType.ADJUST, item)}
+                              >
+                                <AddIcon fontSize="small" />
+                              </IconButton>
+                            </Grid>
+                            <Grid item>
+                              <IconButton 
+                                size="small" 
+                                color="info"
+                                onClick={() => handleOpenModal(ModalType.HISTORY, item)}
+                              >
+                                <HistoryIcon fontSize="small" />
+                              </IconButton>
+                            </Grid>
+                            <Grid item>
+                              <IconButton 
+                                size="small" 
+                                color="error"
+                                onClick={() => handleOpenModal(ModalType.DELETE, item)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Grid>
                           </Grid>
-                          <Grid item>
-                            <IconButton 
-                              size="small" 
-                              color="secondary"
-                              onClick={() => handleOpenModal(ModalType.ADJUST, item)}
-                            >
-                              <AddIcon fontSize="small" />
-                            </IconButton>
-                          </Grid>
-                          <Grid item>
-                            <IconButton 
-                              size="small" 
-                              color="info"
-                              onClick={() => handleOpenModal(ModalType.HISTORY, item)}
-                            >
-                              <HistoryIcon fontSize="small" />
-                            </IconButton>
-                          </Grid>
-                          <Grid item>
-                            <IconButton 
-                              size="small" 
-                              color="error"
-                              onClick={() => handleOpenModal(ModalType.DELETE, item)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Grid>
-                        </Grid>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">
+                        <Alert severity="info">
+                          No inventory items found. Add your first inventory item.
+                        </Alert>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      <Alert severity="info">
-                        No inventory items found. Add your first inventory item.
-                      </Alert>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            
+            {/* Pagination component */}
+            {totalPages > 1 && (
+              <Box display="flex" justifyContent="center" mt={3}>
+                <Pagination 
+                  count={totalPages} 
+                  page={page} 
+                  onChange={handlePageChange}
+                  color="primary"
+                  showFirstButton
+                  showLastButton
+                />
+              </Box>
+            )}
+            
+            {totalItems > 0 && (
+              <Box display="flex" justifyContent="center" mt={1}>
+                <Typography variant="body2" color="textSecondary">
+                  Showing page {page} of {totalPages} ({totalItems} total items)
+                </Typography>
+              </Box>
+            )}
+          </>
         )}
       </Paper>
 

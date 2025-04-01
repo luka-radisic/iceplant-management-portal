@@ -8,13 +8,27 @@ from django.utils import timezone
 from expenses.models import Expense, ExpenseCategory
 from .serializers import ExpenseSerializer, ExpenseCategorySerializer
 
+# Custom permission class that allows read access to all authenticated users
+class IsAdminUserOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to only allow admin users to edit/create objects.
+    Other authenticated users can only view.
+    """
+    def has_permission(self, request, view):
+        # Allow GET, HEAD, OPTIONS for any authenticated user
+        if request.method in permissions.SAFE_METHODS:
+            return bool(request.user and request.user.is_authenticated)
+        
+        # Write permissions only for admin or staff
+        return bool(request.user and (request.user.is_staff or request.user.is_superuser))
+
 class ExpenseCategoryViewSet(viewsets.ModelViewSet):
     """
     API endpoint for Expense Categories
     """
     queryset = ExpenseCategory.objects.all()
     serializer_class = ExpenseCategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminUserOrReadOnly]
     search_fields = ['name', 'description']
 
 class ExpenseViewSet(viewsets.ModelViewSet):
@@ -23,7 +37,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     """
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminUserOrReadOnly]
     filterset_fields = ['category', 'payee', 'date', 'approved']
     search_fields = ['description', 'payee', 'reference_number', 'notes']
     

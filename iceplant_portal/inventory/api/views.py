@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import F
+from rest_framework.pagination import PageNumberPagination
 
 from inventory.models import Inventory, InventoryAdjustment
 from .serializers import InventorySerializer, InventoryAdjustmentSerializer
@@ -14,6 +15,7 @@ class InventoryViewSet(viewsets.ModelViewSet):
     serializer_class = InventorySerializer
     filterset_fields = ['item_name']
     search_fields = ['item_name', 'unit']
+    pagination_class = PageNumberPagination
     
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
@@ -23,6 +25,11 @@ class InventoryViewSet(viewsets.ModelViewSet):
         low_stock_items = Inventory.objects.filter(
             quantity__lte=F('minimum_level')
         )
+        page = self.paginate_queryset(low_stock_items)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
         serializer = self.get_serializer(low_stock_items, many=True)
         return Response(serializer.data)
 
@@ -33,6 +40,7 @@ class InventoryAdjustmentViewSet(viewsets.ModelViewSet):
     queryset = InventoryAdjustment.objects.all()
     serializer_class = InventoryAdjustmentSerializer
     filterset_fields = ['inventory', 'adjustment_date']
+    pagination_class = PageNumberPagination
     
     @action(detail=False, methods=['get'])
     def history(self, request):
@@ -50,5 +58,10 @@ class InventoryAdjustmentViewSet(viewsets.ModelViewSet):
             inventory_id=inventory_id
         ).order_by('-adjustment_date')
         
+        page = self.paginate_queryset(adjustments)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
         serializer = self.get_serializer(adjustments, many=True)
         return Response(serializer.data) 

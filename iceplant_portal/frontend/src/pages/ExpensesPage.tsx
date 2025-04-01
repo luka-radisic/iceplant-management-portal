@@ -196,9 +196,20 @@ const ExpensesPage: React.FC = () => {
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
-      const data = await apiService.get(endpoints.expenses);
-      setExpenses(data);
-      setFilteredExpenses(data);
+      const response = await apiService.get(endpoints.expenses);
+      
+      // Handle paginated response
+      if (response.results && Array.isArray(response.results)) {
+        setExpenses(response.results);
+        setFilteredExpenses(response.results);
+      } else if (Array.isArray(response)) {
+        setExpenses(response);
+        setFilteredExpenses(response);
+      } else {
+        console.error('Unexpected data format for expenses:', response);
+        setExpenses([]);
+        setFilteredExpenses([]);
+      }
     } catch (error) {
       console.error('Error fetching expenses:', error);
       enqueueSnackbar('Failed to load expenses', { variant: 'error' });
@@ -210,8 +221,17 @@ const ExpensesPage: React.FC = () => {
   // Fetch expense categories
   const fetchCategories = async () => {
     try {
-      const data = await apiService.get(endpoints.expenseCategories);
-      setCategories(data);
+      const response = await apiService.get(endpoints.expenseCategories);
+      
+      // Handle paginated response
+      if (response.results && Array.isArray(response.results)) {
+        setCategories(response.results);
+      } else if (Array.isArray(response)) {
+        setCategories(response);
+      } else {
+        console.error('Unexpected data format for categories:', response);
+        setCategories([]);
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
