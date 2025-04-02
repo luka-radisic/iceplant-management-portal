@@ -24,6 +24,7 @@ import {
   TableRow,
   TextField,
   Typography,
+  Pagination,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -76,29 +77,52 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     status: 'scheduled',
   });
   const { enqueueSnackbar } = useSnackbar();
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize] = useState(10);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Fetch maintenance records
-        const recordsData = await apiService.get(endpoints.maintenanceRecords);
-        setRecords(Array.isArray(recordsData) ? recordsData : recordsData.results || []);
-        
-        // Fetch equipment items for the dropdown
-        const equipmentData = await apiService.get(endpoints.maintenanceItems);
-        setEquipment(Array.isArray(equipmentData) ? equipmentData : equipmentData.results || []);
-      } catch (err) {
-        console.error('Error fetching maintenance data:', err);
-        setError('Failed to load maintenance records');
-        enqueueSnackbar('Failed to load maintenance data', { variant: 'error' });
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchData(page);
+  }, [page]);
 
-    fetchData();
-  }, [enqueueSnackbar]);
+  const fetchData = async (pageNumber = 1) => {
+    try {
+      setLoading(true);
+      // Fetch maintenance records with pagination
+      const url = `${endpoints.maintenanceRecords}?page=${pageNumber}&page_size=${pageSize}`;
+      const recordsResponse = await apiService.get(url);
+      
+      if (recordsResponse && typeof recordsResponse === 'object') {
+        // Handle paginated response format
+        if (recordsResponse.results) {
+          setRecords(recordsResponse.results);
+          setTotalItems(recordsResponse.count || 0);
+        } else {
+          setRecords(Array.isArray(recordsResponse) ? recordsResponse : []);
+          setTotalItems(Array.isArray(recordsResponse) ? recordsResponse.length : 0);
+        }
+      } else {
+        setRecords([]);
+        setTotalItems(0);
+      }
+      
+      // Fetch equipment items for the dropdown (no need for pagination here)
+      const equipmentData = await apiService.get(endpoints.maintenanceItems);
+      setEquipment(Array.isArray(equipmentData) ? equipmentData : equipmentData.results || []);
+    } catch (err) {
+      console.error('Error fetching maintenance data:', err);
+      setError('Failed to load maintenance records');
+      enqueueSnackbar('Failed to load maintenance data', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+  };
 
   const handleOpenModal = (type: ModalType, record?: MaintenanceRecord) => {
     setModalType(type);
@@ -157,9 +181,10 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
   const handleAddRecord = async () => {
     try {
       setLoading(true);
-      const response = await apiService.post(endpoints.maintenanceRecords, formData);
+      await apiService.post(endpoints.maintenanceRecords, formData);
       
-      setRecords([...records, response]);
+      // Refresh records after adding
+      fetchData(page);
       enqueueSnackbar('Maintenance record added successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
@@ -175,14 +200,10 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     
     try {
       setLoading(true);
-      const response = await apiService.put(`${endpoints.maintenanceRecords}${currentRecord.id}/`, formData);
+      await apiService.put(`${endpoints.maintenanceRecords}${currentRecord.id}/`, formData);
       
-      // Update the records list
-      const updatedRecords = records.map(record => 
-        record.id === currentRecord.id ? response : record
-      );
-      
-      setRecords(updatedRecords);
+      // Refresh records after editing
+      fetchData(page);
       enqueueSnackbar('Maintenance record updated successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
@@ -200,10 +221,8 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       setLoading(true);
       await apiService.delete(`${endpoints.maintenanceRecords}${currentRecord.id}/`);
       
-      // Remove the deleted record from the list
-      const updatedRecords = records.filter(record => record.id !== currentRecord.id);
-      
-      setRecords(updatedRecords);
+      // Refresh records after deleting
+      fetchData(page);
       enqueueSnackbar('Maintenance record deleted successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
@@ -547,6 +566,20 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     }
   };
 
+  // Add this function to render pagination
+  const renderPagination = () => {
+    return totalItems > 0 ? (
+      <Box display="flex" justifyContent="center" mt={2}>
+        <Pagination 
+          count={Math.ceil(totalItems / pageSize)} 
+          page={page} 
+          onChange={handlePageChange}
+          color="primary"
+        />
+      </Box>
+    ) : null;
+  };
+
   if (loading && records.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', m: 3 }}>
@@ -644,6 +677,9 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       >
         {renderModalContent()}
       </Dialog>
+      
+      {/* Pagination */}
+      {renderPagination()}
     </Box>
   );
 };

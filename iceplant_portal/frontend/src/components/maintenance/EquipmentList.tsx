@@ -27,6 +27,7 @@ import {
   TableRow,
   TextField,
   Typography,
+  Pagination,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -80,24 +81,47 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
   });
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
   const { enqueueSnackbar } = useSnackbar();
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize] = useState(10);
 
   useEffect(() => {
-    const fetchEquipment = async () => {
-      try {
-        setLoading(true);
-        const data = await apiService.get(endpoints.maintenanceItems);
-        setEquipment(Array.isArray(data) ? data : data.results || []);
-      } catch (err) {
-        console.error('Error fetching equipment:', err);
-        setError('Failed to load equipment data');
-        enqueueSnackbar('Failed to load equipment data', { variant: 'error' });
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchEquipment(page);
+  }, [page]);
 
-    fetchEquipment();
-  }, [enqueueSnackbar]);
+  const fetchEquipment = async (pageNumber = 1) => {
+    try {
+      setLoading(true);
+      const url = `${endpoints.maintenanceItems}?page=${pageNumber}&page_size=${pageSize}`;
+      const response = await apiService.get(url);
+      
+      if (response && typeof response === 'object') {
+        // Handle paginated response format
+        if (response.results) {
+          setEquipment(response.results);
+          setTotalItems(response.count || 0);
+        } else {
+          setEquipment(Array.isArray(response) ? response : []);
+          setTotalItems(Array.isArray(response) ? response.length : 0);
+        }
+      } else {
+        setEquipment([]);
+        setTotalItems(0);
+      }
+    } catch (err) {
+      console.error('Error fetching equipment:', err);
+      setError('Failed to load equipment data');
+      enqueueSnackbar('Failed to load equipment data', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+  };
 
   const handleOpenModal = async (type: ModalType, item?: MaintenanceItem) => {
     setModalType(type);
@@ -165,7 +189,8 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
       setLoading(true);
       const response = await apiService.post(endpoints.maintenanceItems, formData);
       
-      setEquipment([...equipment, response]);
+      // Refresh the equipment list after adding
+      fetchEquipment(page);
       enqueueSnackbar('Equipment added successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
@@ -181,14 +206,10 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     
     try {
       setLoading(true);
-      const response = await apiService.put(`${endpoints.maintenanceItems}${currentItem.id}/`, formData);
+      await apiService.put(`${endpoints.maintenanceItems}${currentItem.id}/`, formData);
       
-      // Update the equipment list
-      const updatedEquipment = equipment.map(item => 
-        item.id === currentItem.id ? response : item
-      );
-      
-      setEquipment(updatedEquipment);
+      // Refresh the equipment list after editing
+      fetchEquipment(page);
       enqueueSnackbar('Equipment updated successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
@@ -206,10 +227,8 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
       setLoading(true);
       await apiService.delete(`${endpoints.maintenanceItems}${currentItem.id}/`);
       
-      // Remove the deleted item from the equipment list
-      const updatedEquipment = equipment.filter(item => item.id !== currentItem.id);
-      
-      setEquipment(updatedEquipment);
+      // Refresh the equipment list after deleting
+      fetchEquipment(page);
       enqueueSnackbar('Equipment deleted successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
@@ -639,6 +658,19 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     );
   }
 
+  const renderPagination = () => {
+    return totalItems > 0 ? (
+      <Box display="flex" justifyContent="center" mt={2}>
+        <Pagination 
+          count={Math.ceil(totalItems / pageSize)} 
+          page={page} 
+          onChange={handlePageChange}
+          color="primary"
+        />
+      </Box>
+    ) : null;
+  };
+
   return (
     <Box sx={{ mt: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -706,6 +738,8 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
           </TableBody>
         </Table>
       </TableContainer>
+      
+      {renderPagination()}
       
       {/* Modal */}
       <Dialog 
