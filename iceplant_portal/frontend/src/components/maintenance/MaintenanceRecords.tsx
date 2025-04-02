@@ -670,7 +670,14 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
         fullWidth
         aria-labelledby="maintenance-dialog-title"
         disablePortal={false}
+        container={() => document.getElementById('root') || document.body}
         keepMounted={false}
+        disableEnforceFocus
+        disableRestoreFocus
+        disableAutoFocus
+        BackdropProps={{
+          onClick: handleCloseModal
+        }}
       >
         {renderModalContent()}
       </Dialog>
