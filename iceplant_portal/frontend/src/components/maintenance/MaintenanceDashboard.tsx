@@ -20,7 +20,9 @@ import {
   MaintenanceRecord 
 } from '../../types/api';
 import { formatCurrency } from '../../utils/formatters';
-import { sampleMaintenanceDashboard } from '../../data/sampleMaintenanceData';
+import { useSnackbar } from 'notistack';
+import apiService from '../../services/api';
+import { endpoints } from '../../services/endpoints';
 
 interface MaintenanceDashboardProps {
   // Add props if needed in the future
@@ -46,31 +48,72 @@ interface DashboardData {
   };
 }
 
+// API response interface
+interface ApiDashboardResponse {
+  upcomingMaintenance: MaintenanceItem[];
+  recentMaintenance: MaintenanceRecord[];
+  stats: {
+    totalItems: number;
+    itemsByStatus: Array<{ status: string; count: number }>;
+    itemsByType: Array<{ equipment_type: string; count: number }>;
+    maintenanceCost: {
+      total_cost: number | null;
+      avg_cost: number | null;
+    };
+  };
+}
+
 const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // In a real implementation, we would fetch from the API
-        // const data = await apiService.get(endpoints.maintenanceDashboard);
+        const response = await apiService.get(endpoints.maintenanceDashboard);
         
-        // Using sample data for now
-        // This would be replaced with actual API call when backend is ready
-        setDashboardData(sampleMaintenanceDashboard as DashboardData);
+        if (response) {
+          const apiData = response as ApiDashboardResponse;
+          
+          // Transform API response to match component's expected format
+          const transformedData: DashboardData = {
+            totalEquipment: apiData.stats.totalItems,
+            equipmentByStatus: {
+              operational: apiData.stats.itemsByStatus.find(item => item.status === 'operational')?.count || 0,
+              requires_maintenance: apiData.stats.itemsByStatus.find(item => item.status === 'requires_maintenance')?.count || 0,
+              under_maintenance: apiData.stats.itemsByStatus.find(item => item.status === 'under_maintenance')?.count || 0,
+              not_operational: apiData.stats.itemsByStatus.find(item => item.status === 'not_operational')?.count || 0
+            },
+            upcomingMaintenance: apiData.upcomingMaintenance,
+            recentMaintenance: apiData.recentMaintenance,
+            totalMaintenanceCost: apiData.stats.maintenanceCost.total_cost || 0,
+            averageMaintenanceDuration: 0, // This data isn't provided by API yet
+            maintenanceByType: {
+              scheduled: 0, // These values aren't provided by API yet
+              emergency: 0,
+              preventive: 0,
+              corrective: 0
+            }
+          };
+          
+          setDashboardData(transformedData);
+        } else {
+          throw new Error('No data received from the API');
+        }
       } catch (err) {
         console.error('Error fetching maintenance dashboard data:', err);
         setError('Failed to load dashboard data');
+        enqueueSnackbar('Failed to load maintenance dashboard data', { variant: 'error' });
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []);
+  }, [enqueueSnackbar]);
 
   if (loading) {
     return (
