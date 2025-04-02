@@ -36,20 +36,22 @@ import {
   History as HistoryIcon,
 } from '@mui/icons-material';
 import { 
-  MaintenanceItem 
+  MaintenanceItem,
+  MaintenanceRecord
 } from '../../types/api';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatCurrency } from '../../utils/formatters';
 import { 
   sampleMaintenanceItems, 
   equipmentTypes, 
-  locations 
+  locations,
+  sampleMaintenanceRecords
 } from '../../data/sampleMaintenanceData';
 
 enum ModalType {
   ADD,
   EDIT,
   DELETE,
-  MAINTENANCE
+  HISTORY
 }
 
 interface EquipmentListProps {
@@ -72,8 +74,10 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     installation_date: '',
     maintenance_frequency: 3,
     frequency_unit: 'months',
+    status: 'operational',
     notes: '',
   });
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
 
   useEffect(() => {
     const fetchEquipment = async () => {
@@ -98,36 +102,40 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
   const handleOpenModal = (type: ModalType, item?: MaintenanceItem) => {
     setModalType(type);
     
-    if (item) {
-      setCurrentItem(item);
-      
-      if (type === ModalType.EDIT) {
-        setFormData({
-          equipment_name: item.equipment_name,
-          equipment_type: item.equipment_type,
-          model_number: item.model_number || '',
-          serial_number: item.serial_number || '',
-          location: item.location,
-          installation_date: item.installation_date || '',
-          maintenance_frequency: item.maintenance_frequency,
-          frequency_unit: item.frequency_unit,
-          notes: item.notes || '',
-        });
-      }
-    } else {
-      // Reset form for add new
-      setCurrentItem(null);
+    if (type === ModalType.ADD) {
       setFormData({
         equipment_name: '',
-        equipment_type: equipmentTypes[0],
+        equipment_type: '',
         model_number: '',
         serial_number: '',
-        location: locations[0],
-        installation_date: new Date().toISOString().split('T')[0],
+        location: '',
+        installation_date: '',
         maintenance_frequency: 3,
         frequency_unit: 'months',
+        status: 'operational',
         notes: '',
       });
+    } else if (item && (type === ModalType.EDIT || type === ModalType.DELETE)) {
+      setCurrentItem(item);
+      setFormData({
+        equipment_name: item.equipment_name,
+        equipment_type: item.equipment_type,
+        model_number: item.model_number || '',
+        serial_number: item.serial_number || '',
+        location: item.location,
+        installation_date: item.installation_date || '',
+        maintenance_frequency: item.maintenance_frequency,
+        frequency_unit: item.frequency_unit,
+        status: item.status,
+        notes: item.notes || '',
+      });
+    } else if (item && type === ModalType.HISTORY) {
+      setCurrentItem(item);
+      // Filter sample maintenance records for this equipment
+      const records = sampleMaintenanceRecords.filter(
+        record => record.equipment_name === item.equipment_name
+      );
+      setMaintenanceRecords(records);
     }
     
     setModalOpen(true);
@@ -567,6 +575,57 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
           </>
         );
         
+      case ModalType.HISTORY:
+        if (!currentItem) return null;
+        return (
+          <>
+            <DialogTitle id="equipment-dialog-title">Maintenance History: {currentItem.equipment_name}</DialogTitle>
+            <DialogContent>
+              {maintenanceRecords.length > 0 ? (
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Type</TableCell>
+                        <TableCell>Performed By</TableCell>
+                        <TableCell>Cost</TableCell>
+                        <TableCell>Duration</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {maintenanceRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>{formatDate(record.maintenance_date)}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              size="small" 
+                              label={record.maintenance_type.charAt(0).toUpperCase() + record.maintenance_type.slice(1)} 
+                              color={
+                                record.maintenance_type === 'scheduled' ? 'primary' :
+                                record.maintenance_type === 'emergency' ? 'error' :
+                                record.maintenance_type === 'preventive' ? 'success' : 'warning'
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>{record.performed_by}</TableCell>
+                          <TableCell>{formatCurrency(record.cost)}</TableCell>
+                          <TableCell>{record.duration} hours</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Typography variant="body1">No maintenance records found for this equipment.</Typography>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseModal}>Close</Button>
+            </DialogActions>
+          </>
+        );
+        
       default:
         return null;
     }
@@ -644,6 +703,7 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
                   <IconButton 
                     size="small" 
                     color="secondary"
+                    onClick={() => handleOpenModal(ModalType.HISTORY, item)}
                     title="Maintenance History"
                   >
                     <HistoryIcon fontSize="small" />
@@ -663,7 +723,14 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
         fullWidth
         aria-labelledby="equipment-dialog-title"
         disablePortal={false}
+        container={() => document.getElementById('root') || document.body}
         keepMounted={false}
+        disableEnforceFocus
+        disableRestoreFocus
+        disableAutoFocus
+        BackdropProps={{
+          onClick: handleCloseModal
+        }}
       >
         {renderModalContent()}
       </Dialog>
