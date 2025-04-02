@@ -225,28 +225,71 @@ const ExpensesPage: React.FC = () => {
   const fetchExpenses = async (page = 1) => {
     try {
       setIsLoading(true);
-      const response = await apiService.get(`${endpoints.expenses}?page=${page}&page_size=${itemsPerPage}`);
+      
+      // Build URL with pagination and any active filters
+      let url = `${endpoints.expenses}?page=${page}&page_size=${itemsPerPage}`;
+      
+      // Add date filters if active
+      if (dateRange.startDate) {
+        const formattedStartDate = format(dateRange.startDate, 'yyyy-MM-dd');
+        url += `&date__gte=${formattedStartDate}`;
+      }
+      
+      if (dateRange.endDate) {
+        const formattedEndDate = format(dateRange.endDate, 'yyyy-MM-dd');
+        url += `&date__lte=${formattedEndDate}`;
+      }
+      
+      // Add category filter if active
+      if (categoryFilter !== 'all') {
+        url += `&category=${categoryFilter}`;
+      }
+      
+      // Add payee filter if active
+      if (payeeFilter !== 'all') {
+        url += `&payee=${payeeFilter}`;
+      }
+      
+      // Add approved filter if active
+      if (showApprovedOnly) {
+        url += `&approved=true`;
+      }
+      
+      const response = await apiService.get(url);
       
       // Check if response has pagination info
-      if (response.results && Array.isArray(response.results)) {
-        setExpenses(response.results);
-        setFilteredExpenses(response.results);
-        
-        // Set pagination info
-        if (response.count) {
-          setTotalItems(response.count);
-          setTotalPages(Math.ceil(response.count / itemsPerPage));
+      if (response && typeof response === 'object') {
+        if (response.results && Array.isArray(response.results)) {
+          setExpenses(response.results);
+          // For filtered results, use the same result set
+          setFilteredExpenses(response.results);
+          
+          // Set pagination info
+          if (response.count !== undefined) {
+            setTotalItems(response.count);
+            setTotalPages(Math.ceil(response.count / itemsPerPage));
+          }
+        } else if (Array.isArray(response)) {
+          // Fallback for non-paginated API
+          setExpenses(response);
+          setFilteredExpenses(response);
+          setTotalItems(response.length);
+          setTotalPages(Math.ceil(response.length / itemsPerPage));
         }
-      } else if (Array.isArray(response)) {
-        // Fallback for non-paginated API
-        setExpenses(response);
-        setFilteredExpenses(response);
-        setTotalItems(response.length);
-        setTotalPages(Math.ceil(response.length / itemsPerPage));
+      } else {
+        console.error('Unexpected API response format:', response);
+        setExpenses([]);
+        setFilteredExpenses([]);
+        setTotalItems(0);
+        setTotalPages(1);
       }
     } catch (error) {
       console.error('Error fetching expenses:', error);
       enqueueSnackbar('Failed to load expenses', { variant: 'error' });
+      setExpenses([]);
+      setFilteredExpenses([]);
+      setTotalItems(0);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
@@ -255,7 +298,7 @@ const ExpensesPage: React.FC = () => {
   // Handle page change
   const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
     setCurrentPage(page);
-    fetchExpenses(page);
+    // fetchExpenses will be called via useEffect when currentPage changes
   };
   
   // Fetch expense categories
@@ -264,7 +307,6 @@ const ExpensesPage: React.FC = () => {
       const response = await apiService.get(endpoints.expenseCategories);
       const categoriesData = Array.isArray(response) ? response : 
                            response.results ? response.results : [];
-      console.log('Categories data structure:', categoriesData);
       setCategories(categoriesData);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -304,80 +346,59 @@ const ExpensesPage: React.FC = () => {
     }
   };
   
-  // Modify useEffect to include currentPage
+  // Modify useEffect to include dependencies properly
   useEffect(() => {
     fetchExpenses(currentPage);
+  }, [currentPage, dateRange.startDate, dateRange.endDate, categoryFilter, payeeFilter, showApprovedOnly]);
+  
+  // Separate useEffect for initial data loading
+  useEffect(() => {
     fetchCategories();
     fetchSummaries();
-  }, [currentPage]);
+  }, []);
   
-  // Apply filters when filter states change
+  // Apply client-side filters for search only
   useEffect(() => {
-    applyFilters();
-  }, [expenses, searchQuery, dateRange, categoryFilter, payeeFilter, showApprovedOnly]);
+    if (searchQuery) {
+      applySearchFilter();
+    } else {
+      // If no search query, use the expenses from the API directly
+      setFilteredExpenses(expenses);
+    }
+  }, [searchQuery, expenses]);
   
-  // Apply filters and reset to page 1
-  const applyFilters = () => {
+  // Apply search filter (client-side only)
+  const applySearchFilter = () => {
     if (!Array.isArray(expenses)) {
       console.warn('Expenses is not an array', expenses);
       setFilteredExpenses([]);
       return;
     }
     
-    let filtered = [...expenses];
-    
     // Apply search query filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
+      const filtered = expenses.filter(
         expense => 
           expense.description.toLowerCase().includes(query) ||
           expense.payee.toLowerCase().includes(query) ||
           (expense.reference_number && expense.reference_number.toLowerCase().includes(query)) ||
           (expense.notes && expense.notes.toLowerCase().includes(query))
       );
+      setFilteredExpenses(filtered);
+    } else {
+      setFilteredExpenses(expenses);
     }
-    
-    // Apply date range filter
-    if (dateRange.startDate) {
-      filtered = filtered.filter(expense => 
-        new Date(expense.date) >= dateRange.startDate!
-      );
-    }
-    
-    if (dateRange.endDate) {
-      const endDate = new Date(dateRange.endDate);
-      endDate.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(expense => 
-        new Date(expense.date) <= endDate
-      );
-    }
-    
-    // Apply category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(expense => expense.category === categoryFilter);
-    }
-    
-    // Apply payee filter
-    if (payeeFilter !== 'all') {
-      filtered = filtered.filter(expense => expense.payee === payeeFilter);
-    }
-    
-    // Apply approved filter
-    if (showApprovedOnly) {
-      filtered = filtered.filter(expense => expense.approved);
-    }
-    
-    // Sort by date descending
-    filtered = filtered.sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    
-    setFilteredExpenses(filtered);
-    
+  };
+  
+  // Apply filters
+  const applyFilters = () => {
     // Reset to page 1 when filters change
     if (currentPage !== 1) {
       setCurrentPage(1);
+    } else {
+      // If already on page 1, fetch with the current filters
+      fetchExpenses(1);
     }
   };
   
@@ -557,13 +578,12 @@ const ExpensesPage: React.FC = () => {
   
   // Handle apply filters (update to reset page)
   const handleApplyFilters = () => {
-    setCurrentPage(1); // Reset to page 1 when applying filters
     setFilterDialogOpen(false);
+    applyFilters();
   };
   
   // Handle reset filters (update to reset page)
   const handleResetFilters = () => {
-    setSearchQuery('');
     setDateRange({
       startDate: null,
       endDate: null,
@@ -571,8 +591,10 @@ const ExpensesPage: React.FC = () => {
     setCategoryFilter('all');
     setPayeeFilter('all');
     setShowApprovedOnly(false);
-    setCurrentPage(1); // Reset to page 1 when resetting filters
-    setFilterDialogOpen(false);
+    
+    // Reset to page 1 and fetch without filters
+    setCurrentPage(1);
+    // Will trigger fetchExpenses via useEffect since currentPage changed
   };
   
   // Build unique list of payees for filtering
