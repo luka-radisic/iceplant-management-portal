@@ -92,6 +92,7 @@ function App() {
                     color="primary"
                     onClick={() => setShowLogs(!showLogs)}
                     sx={{ mb: showLogs ? 2 : 0 }}
+                    aria-label="Toggle debug logs"
                   >
                     <BugReportIcon />
                   </Fab>
