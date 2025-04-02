@@ -5,14 +5,25 @@ from rest_framework.response import Response
 from django.db.models import Count, Sum, F, Avg
 from django.utils import timezone
 from datetime import timedelta
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
+from rest_framework.permissions import AllowAny
 
 from .models import MaintenanceItem, MaintenanceRecord
 from .serializers import MaintenanceItemSerializer, MaintenanceRecordSerializer
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class MaintenanceItemViewSet(viewsets.ModelViewSet):
     """ViewSet for MaintenanceItem model"""
     queryset = MaintenanceItem.objects.all()
     serializer_class = MaintenanceItemSerializer
+    pagination_class = StandardResultsSetPagination
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = MaintenanceItem.objects.all().order_by('-created_at')
@@ -40,6 +51,29 @@ class MaintenanceItemViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(next_maintenance_date__range=[today, thirty_days_later])
             
         return queryset
+    
+    @action(detail=True, methods=['get'])
+    def item_records(self, request, pk=None):
+        """
+        Return paginated maintenance records for a specific item
+        """
+        try:
+            item = self.get_object()
+            records = item.records.all().order_by('-maintenance_date')
+            
+            # Apply pagination
+            page = self.paginate_queryset(records)
+            if page is not None:
+                serializer = MaintenanceRecordSerializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            
+            serializer = MaintenanceRecordSerializer(records, many=True)
+            return Response(serializer.data)
+        except MaintenanceItem.DoesNotExist:
+            return Response(
+                {"error": f"Maintenance item with ID {pk} not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
     
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
@@ -83,6 +117,9 @@ class MaintenanceRecordViewSet(viewsets.ModelViewSet):
     """ViewSet for MaintenanceRecord model"""
     queryset = MaintenanceRecord.objects.all()
     serializer_class = MaintenanceRecordSerializer
+    pagination_class = StandardResultsSetPagination
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = MaintenanceRecord.objects.all().order_by('-maintenance_date')
