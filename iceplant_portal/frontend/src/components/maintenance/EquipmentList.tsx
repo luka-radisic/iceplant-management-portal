@@ -40,12 +40,13 @@ import {
   MaintenanceRecord
 } from '../../types/api';
 import { formatDate, formatCurrency } from '../../utils/formatters';
-import { 
-  sampleMaintenanceItems, 
-  equipmentTypes, 
-  locations,
-  sampleMaintenanceRecords
-} from '../../data/sampleMaintenanceData';
+import { useSnackbar } from 'notistack';
+import apiService from '../../services/api';
+import { endpoints } from '../../services/endpoints';
+
+// For equipment type and location dropdown options
+const equipmentTypes = ['Compressor', 'Condenser', 'Evaporator', 'Ice Maker', 'Storage Tank', 'Pump', 'Generator', 'Cooler', 'Conveyor', 'Control System', 'Other'];
+const locations = ['Main Plant', 'Storage Area', 'Production Line', 'Office', 'Delivery Vehicle', 'External Site', 'Other'];
 
 enum ModalType {
   ADD,
@@ -78,28 +79,27 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     notes: '',
   });
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     const fetchEquipment = async () => {
       try {
         setLoading(true);
-        // In real implementation, we would fetch from the API
-        // const data = await apiService.get(endpoints.maintenanceItems);
-        
-        // Using sample data for now
-        setEquipment(sampleMaintenanceItems);
+        const data = await apiService.get(endpoints.maintenanceItems);
+        setEquipment(Array.isArray(data) ? data : data.results || []);
       } catch (err) {
         console.error('Error fetching equipment:', err);
         setError('Failed to load equipment data');
+        enqueueSnackbar('Failed to load equipment data', { variant: 'error' });
       } finally {
         setLoading(false);
       }
     };
 
     fetchEquipment();
-  }, []);
+  }, [enqueueSnackbar]);
 
-  const handleOpenModal = (type: ModalType, item?: MaintenanceItem) => {
+  const handleOpenModal = async (type: ModalType, item?: MaintenanceItem) => {
     setModalType(type);
     
     if (type === ModalType.ADD) {
@@ -131,11 +131,17 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
       });
     } else if (item && type === ModalType.HISTORY) {
       setCurrentItem(item);
-      // Filter sample maintenance records for this equipment
-      const records = sampleMaintenanceRecords.filter(
-        record => record.equipment_name === item.equipment_name
-      );
-      setMaintenanceRecords(records);
+      try {
+        setLoading(true);
+        // Fetch maintenance records for this equipment item
+        const records = await apiService.get(`${endpoints.maintenanceRecords}?item_id=${item.id}`);
+        setMaintenanceRecords(Array.isArray(records) ? records : records.results || []);
+      } catch (err) {
+        console.error('Error fetching maintenance records:', err);
+        enqueueSnackbar('Failed to load maintenance history', { variant: 'error' });
+      } finally {
+        setLoading(false);
+      }
     }
     
     setModalOpen(true);
@@ -143,6 +149,7 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
 
   const handleCloseModal = () => {
     setModalOpen(false);
+    setMaintenanceRecords([]);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
@@ -156,36 +163,14 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
   const handleAddEquipment = async () => {
     try {
       setLoading(true);
-      // In real implementation, we would post to the API
-      // const response = await apiService.post(endpoints.maintenanceItems, formData);
+      const response = await apiService.post(endpoints.maintenanceItems, formData);
       
-      // Mock add for demo
-      const newItem: MaintenanceItem = {
-        id: Math.max(...equipment.map(e => e.id)) + 1,
-        equipment_name: formData.equipment_name,
-        equipment_type: formData.equipment_type,
-        model_number: formData.model_number,
-        serial_number: formData.serial_number,
-        location: formData.location,
-        installation_date: formData.installation_date,
-        maintenance_frequency: formData.maintenance_frequency,
-        frequency_unit: formData.frequency_unit as 'days' | 'weeks' | 'months' | 'hours',
-        next_maintenance_date: new Date(
-          new Date().setMonth(
-            new Date().getMonth() + formData.maintenance_frequency
-          )
-        ).toISOString().split('T')[0],
-        status: 'operational',
-        notes: formData.notes,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      
-      setEquipment([...equipment, newItem]);
+      setEquipment([...equipment, response]);
+      enqueueSnackbar('Equipment added successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
       console.error('Error adding equipment:', err);
-      setError('Failed to add equipment');
+      enqueueSnackbar('Failed to add equipment', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -196,31 +181,19 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     
     try {
       setLoading(true);
-      // In real implementation, we would put to the API
-      // const response = await apiService.put(`${endpoints.maintenanceItems}${currentItem.id}/`, formData);
+      const response = await apiService.put(`${endpoints.maintenanceItems}${currentItem.id}/`, formData);
       
-      // Mock edit for demo
-      const updatedItem: MaintenanceItem = {
-        ...currentItem,
-        equipment_name: formData.equipment_name,
-        equipment_type: formData.equipment_type,
-        model_number: formData.model_number,
-        serial_number: formData.serial_number,
-        location: formData.location,
-        installation_date: formData.installation_date,
-        maintenance_frequency: formData.maintenance_frequency,
-        frequency_unit: formData.frequency_unit as 'days' | 'weeks' | 'months' | 'hours',
-        notes: formData.notes,
-        updated_at: new Date().toISOString(),
-      };
+      // Update the equipment list
+      const updatedEquipment = equipment.map(item => 
+        item.id === currentItem.id ? response : item
+      );
       
-      setEquipment(equipment.map(item => 
-        item.id === currentItem.id ? updatedItem : item
-      ));
+      setEquipment(updatedEquipment);
+      enqueueSnackbar('Equipment updated successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
-      console.error('Error updating equipment:', err);
-      setError('Failed to update equipment');
+      console.error('Error editing equipment:', err);
+      enqueueSnackbar('Failed to update equipment', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -231,15 +204,35 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     
     try {
       setLoading(true);
-      // In real implementation, we would delete from the API
-      // await apiService.delete(`${endpoints.maintenanceItems}${currentItem.id}/`);
+      await apiService.delete(`${endpoints.maintenanceItems}${currentItem.id}/`);
       
-      // Mock delete for demo
-      setEquipment(equipment.filter(item => item.id !== currentItem.id));
+      // Remove the deleted item from the equipment list
+      const updatedEquipment = equipment.filter(item => item.id !== currentItem.id);
+      
+      setEquipment(updatedEquipment);
+      enqueueSnackbar('Equipment deleted successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
       console.error('Error deleting equipment:', err);
-      setError('Failed to delete equipment');
+      enqueueSnackbar('Failed to delete equipment', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!currentItem) return;
+    
+    try {
+      setLoading(true);
+      await apiService.post(endpoints.clearMaintenanceHistory(currentItem.id), {});
+      
+      // Clear the maintenance records
+      setMaintenanceRecords([]);
+      enqueueSnackbar('Maintenance history cleared successfully', { variant: 'success' });
+    } catch (err) {
+      console.error('Error clearing maintenance history:', err);
+      enqueueSnackbar('Failed to clear maintenance history', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -428,7 +421,6 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
                     required
                   />
                 </Grid>
-                {/* Same form fields as ADD */}
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
                     <InputLabel id="equipment-type-label">Equipment Type</InputLabel>

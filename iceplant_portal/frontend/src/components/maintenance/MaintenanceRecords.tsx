@@ -39,10 +39,9 @@ import {
   MaintenanceItem 
 } from '../../types/api';
 import { formatDate, formatCurrency, formatDuration } from '../../utils/formatters';
-import { 
-  sampleMaintenanceRecords,
-  sampleMaintenanceItems 
-} from '../../data/sampleMaintenanceData';
+import { useSnackbar } from 'notistack';
+import apiService from '../../services/api';
+import { endpoints } from '../../services/endpoints';
 
 enum ModalType {
   ADD,
@@ -76,28 +75,30 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     recommendations: '',
     status: 'scheduled',
   });
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // In real implementation, we would fetch from the API
-        // const recordsData = await apiService.get(endpoints.maintenanceRecords);
-        // const equipmentData = await apiService.get(endpoints.maintenanceItems);
+        // Fetch maintenance records
+        const recordsData = await apiService.get(endpoints.maintenanceRecords);
+        setRecords(Array.isArray(recordsData) ? recordsData : recordsData.results || []);
         
-        // Using sample data for now
-        setRecords(sampleMaintenanceRecords);
-        setEquipment(sampleMaintenanceItems);
+        // Fetch equipment items for the dropdown
+        const equipmentData = await apiService.get(endpoints.maintenanceItems);
+        setEquipment(Array.isArray(equipmentData) ? equipmentData : equipmentData.results || []);
       } catch (err) {
         console.error('Error fetching maintenance data:', err);
         setError('Failed to load maintenance records');
+        enqueueSnackbar('Failed to load maintenance data', { variant: 'error' });
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [enqueueSnackbar]);
 
   const handleOpenModal = (type: ModalType, record?: MaintenanceRecord) => {
     setModalType(type);
@@ -156,36 +157,14 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
   const handleAddRecord = async () => {
     try {
       setLoading(true);
-      // In real implementation, we would post to the API
-      // const response = await apiService.post(endpoints.maintenanceRecords, formData);
+      const response = await apiService.post(endpoints.maintenanceRecords, formData);
       
-      // Find the selected equipment name
-      const selectedEquipment = equipment.find(eq => eq.id === formData.maintenance_item);
-      
-      // Mock add for demo
-      const newRecord: MaintenanceRecord = {
-        id: Math.max(...records.map(r => r.id)) + 1,
-        maintenance_item: formData.maintenance_item,
-        equipment_name: selectedEquipment?.equipment_name || 'Unknown Equipment',
-        maintenance_date: formData.maintenance_date,
-        maintenance_type: formData.maintenance_type as 'scheduled' | 'emergency' | 'preventive' | 'corrective',
-        performed_by: formData.performed_by,
-        cost: formData.cost,
-        parts_replaced: formData.parts_replaced,
-        duration: formData.duration,
-        issues_found: formData.issues_found,
-        actions_taken: formData.actions_taken,
-        recommendations: formData.recommendations,
-        status: formData.status as 'completed' | 'in_progress' | 'scheduled',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      
-      setRecords([...records, newRecord]);
+      setRecords([...records, response]);
+      enqueueSnackbar('Maintenance record added successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
       console.error('Error adding maintenance record:', err);
-      setError('Failed to add maintenance record');
+      enqueueSnackbar('Failed to add maintenance record', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -196,37 +175,19 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     
     try {
       setLoading(true);
-      // In real implementation, we would put to the API
-      // const response = await apiService.put(`${endpoints.maintenanceRecords}${currentRecord.id}/`, formData);
+      const response = await apiService.put(`${endpoints.maintenanceRecords}${currentRecord.id}/`, formData);
       
-      // Find the selected equipment name
-      const selectedEquipment = equipment.find(eq => eq.id === formData.maintenance_item);
+      // Update the records list
+      const updatedRecords = records.map(record => 
+        record.id === currentRecord.id ? response : record
+      );
       
-      // Mock edit for demo
-      const updatedRecord: MaintenanceRecord = {
-        ...currentRecord,
-        maintenance_item: formData.maintenance_item,
-        equipment_name: selectedEquipment?.equipment_name || currentRecord.equipment_name,
-        maintenance_date: formData.maintenance_date,
-        maintenance_type: formData.maintenance_type as 'scheduled' | 'emergency' | 'preventive' | 'corrective',
-        performed_by: formData.performed_by,
-        cost: formData.cost,
-        parts_replaced: formData.parts_replaced,
-        duration: formData.duration,
-        issues_found: formData.issues_found,
-        actions_taken: formData.actions_taken,
-        recommendations: formData.recommendations,
-        status: formData.status as 'completed' | 'in_progress' | 'scheduled',
-        updated_at: new Date().toISOString(),
-      };
-      
-      setRecords(records.map(record => 
-        record.id === currentRecord.id ? updatedRecord : record
-      ));
+      setRecords(updatedRecords);
+      enqueueSnackbar('Maintenance record updated successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
       console.error('Error updating maintenance record:', err);
-      setError('Failed to update maintenance record');
+      enqueueSnackbar('Failed to update maintenance record', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -237,15 +198,17 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     
     try {
       setLoading(true);
-      // In real implementation, we would delete from the API
-      // await apiService.delete(`${endpoints.maintenanceRecords}${currentRecord.id}/`);
+      await apiService.delete(`${endpoints.maintenanceRecords}${currentRecord.id}/`);
       
-      // Mock delete for demo
-      setRecords(records.filter(record => record.id !== currentRecord.id));
+      // Remove the deleted record from the list
+      const updatedRecords = records.filter(record => record.id !== currentRecord.id);
+      
+      setRecords(updatedRecords);
+      enqueueSnackbar('Maintenance record deleted successfully', { variant: 'success' });
       handleCloseModal();
     } catch (err) {
       console.error('Error deleting maintenance record:', err);
-      setError('Failed to delete maintenance record');
+      enqueueSnackbar('Failed to delete maintenance record', { variant: 'error' });
     } finally {
       setLoading(false);
     }

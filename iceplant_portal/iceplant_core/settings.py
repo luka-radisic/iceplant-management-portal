@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'tools',
     'buyers',
     'companyconfig',
+    'maintenance',
 ]
 
 MIDDLEWARE = [
