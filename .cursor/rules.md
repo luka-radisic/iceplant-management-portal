@@ -247,6 +247,194 @@ Before considering an API implementation complete, verify:
 7. ✅ Data transformation logic is implemented where needed
 8. ✅ Authentication and permissions are properly configured
 
+## Pagination Implementation Guidelines
+
+Based on our implementation in the maintenance module, follow these guidelines to implement pagination in both backend and frontend components for all list views.
+
+### Backend Pagination (Django)
+
+1. **Pagination Class:**
+   * Define a standard pagination class in the app's `views.py`:
+   ```python
+   class StandardResultsSetPagination(PageNumberPagination):
+       page_size = 10
+       page_size_query_param = 'page_size'
+       max_page_size = 100
+   ```
+
+2. **ViewSet Configuration:**
+   * Add pagination to ViewSets:
+   ```python
+   class MaintenanceItemViewSet(viewsets.ModelViewSet):
+       queryset = MaintenanceItem.objects.all()
+       serializer_class = MaintenanceItemSerializer
+       pagination_class = StandardResultsSetPagination
+   ```
+
+3. **Custom Action Pagination:**
+   * For custom `@action` endpoints that return lists, implement pagination explicitly:
+   ```python
+   @action(detail=True, methods=['get'])
+   def item_records(self, request, pk=None):
+       # Get the object
+       item = self.get_object()
+       records = item.records.all().order_by('-maintenance_date')
+       
+       # Apply pagination
+       page = self.paginate_queryset(records)
+       if page is not None:
+           serializer = RecordSerializer(page, many=True)
+           return self.get_paginated_response(serializer.data)
+       
+       # Fallback if pagination isn't applied
+       serializer = RecordSerializer(records, many=True)
+       return Response(serializer.data)
+   ```
+
+4. **Authentication & Permissions:**
+   * Ensure authentication doesn't interfere with pagination:
+   ```python
+   authentication_classes = [TokenAuthentication, SessionAuthentication]
+   permission_classes = [AllowAny]  # Adjust based on security requirements
+   ```
+
+### Frontend Pagination (React/TypeScript)
+
+1. **State Management:**
+   * Add pagination state variables:
+   ```typescript
+   // Pagination state
+   const [page, setPage] = useState(1);
+   const [totalItems, setTotalItems] = useState(0);
+   const [pageSize] = useState(10);  // Match backend page_size
+   ```
+
+2. **Data Fetching:**
+   * Update the fetch function to include pagination parameters:
+   ```typescript
+   const fetchData = async (pageNumber = 1) => {
+     try {
+       setLoading(true);
+       // Add pagination parameters to URL
+       const url = `${endpoints.maintenanceItems}?page=${pageNumber}&page_size=${pageSize}`;
+       const response = await apiService.get(url);
+       
+       // Handle paginated response format
+       if (response && typeof response === 'object') {
+         if (response.results) {
+           setItems(response.results);
+           setTotalItems(response.count || 0);
+         } else {
+           setItems(Array.isArray(response) ? response : []);
+           setTotalItems(Array.isArray(response) ? response.length : 0);
+         }
+       }
+     } catch (err) {
+       console.error('Error fetching data:', err);
+       setError('Failed to load data');
+     } finally {
+       setLoading(false);
+     }
+   };
+   ```
+
+3. **Effect Hook:**
+   * Trigger data fetch when page changes:
+   ```typescript
+   useEffect(() => {
+     fetchData(page);
+   }, [page]);
+   ```
+
+4. **Page Change Handler:**
+   * Create a handler for pagination events:
+   ```typescript
+   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+     setPage(value);
+   };
+   ```
+
+5. **Pagination Component:**
+   * Add the MUI Pagination component to your UI:
+   ```typescript
+   const renderPagination = () => {
+     return totalItems > 0 ? (
+       <Box display="flex" justifyContent="center" mt={2}>
+         <Pagination 
+           count={Math.ceil(totalItems / pageSize)} 
+           page={page} 
+           onChange={handlePageChange}
+           color="primary"
+         />
+       </Box>
+     ) : null;
+   };
+   ```
+   * Include the pagination component in your JSX:
+   ```jsx
+   <TableContainer component={Paper}>
+     {/* Table content */}
+   </TableContainer>
+   
+   {renderPagination()}
+   ```
+
+6. **CRUD Operations:**
+   * Refresh data after add/edit/delete operations:
+   ```typescript
+   const handleAddItem = async () => {
+     try {
+       await apiService.post(endpoints.items, formData);
+       // Refresh the current page after adding
+       fetchData(page);
+       enqueueSnackbar('Item added successfully', { variant: 'success' });
+     } catch (err) {
+       console.error('Error adding item:', err);
+     }
+   };
+   ```
+
+### Best Practices
+
+1. **Consistency:**
+   * Use the same pagination approach across all list views
+   * Keep page size consistent (10 items per page is standard)
+   * Position pagination components at the bottom of lists
+
+2. **User Experience:**
+   * Show loading state while fetching new pages
+   * Keep table headers visible during pagination
+   * Maintain filters and sorting across page changes
+   * Return to first page when filters change
+
+3. **Error Handling:**
+   * Handle API errors properly during pagination
+   * Provide fallback UI when pagination fails
+   * Log specific pagination errors in console for debugging
+
+4. **Performance:**
+   * Don't fetch all pages at once
+   * Implement debounce for rapid page changes
+   * Only fetch necessary fields for list views
+
+5. **Accessibility:**
+   * Ensure pagination controls are keyboard navigable
+   * Add proper ARIA attributes to pagination components
+   * Maintain focus position when changing pages
+
+### Pagination Checklist
+
+Before considering pagination implementation complete, verify:
+
+1. ✅ Backend pagination class is correctly configured
+2. ✅ ViewSets apply pagination to all list endpoints
+3. ✅ Frontend components include pagination state variables
+4. ✅ Data fetching includes pagination parameters
+5. ✅ Page change handler is properly implemented
+6. ✅ Pagination UI component is rendered correctly
+7. ✅ CRUD operations refresh the current page
+8. ✅ Error states are handled appropriately
+
 ## Frontend Structure Guidelines (React + TypeScript)
 
 *   **Directory Structure:** Adhere strictly to the established `frontend/src` structure:
