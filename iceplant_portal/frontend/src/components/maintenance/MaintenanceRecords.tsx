@@ -15,6 +15,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  SelectChangeEvent,
   Table,
   TableBody,
   TableCell,
@@ -33,8 +34,10 @@ import {
   ConstructionOutlined as PreventiveIcon,
   BuildCircle as CorrectiveIcon,
 } from '@mui/icons-material';
-import { apiService, endpoints } from '../../services/api';
-import { MaintenanceRecord, MaintenanceItem } from '../../types/api';
+import {
+  MaintenanceRecord, 
+  MaintenanceItem 
+} from '../../types/api';
 import { formatDate, formatCurrency, formatDuration } from '../../utils/formatters';
 import { 
   sampleMaintenanceRecords,
@@ -142,7 +145,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     setModalOpen(false);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,

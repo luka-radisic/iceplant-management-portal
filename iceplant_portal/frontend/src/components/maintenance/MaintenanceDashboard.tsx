@@ -15,8 +15,10 @@ import {
   ConstructionOutlined as PreventiveIcon,
   BuildCircle as CorrectiveIcon,
 } from '@mui/icons-material';
-import { apiService, endpoints } from '../../services/api';
-import { MaintenanceItem, MaintenanceRecord } from '../../types/api';
+import { 
+  MaintenanceItem, 
+  MaintenanceRecord 
+} from '../../types/api';
 import { formatCurrency } from '../../utils/formatters';
 import { sampleMaintenanceDashboard } from '../../data/sampleMaintenanceData';
 

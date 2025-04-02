@@ -18,6 +18,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  SelectChangeEvent,
   Table,
   TableBody,
   TableCell,
@@ -34,8 +35,9 @@ import {
   Build as MaintenanceIcon,
   History as HistoryIcon,
 } from '@mui/icons-material';
-import { apiService, endpoints } from '../../services/api';
-import { MaintenanceItem } from '../../types/api';
+import { 
+  MaintenanceItem 
+} from '../../types/api';
 import { formatDate } from '../../utils/formatters';
 import { 
   sampleMaintenanceItems, 
@@ -135,7 +137,7 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     setModalOpen(false);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
