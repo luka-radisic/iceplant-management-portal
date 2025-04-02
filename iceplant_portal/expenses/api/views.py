@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth, TruncDate
 from django.utils import timezone
@@ -24,6 +25,11 @@ class IsAdminUserOrReadOnly(permissions.BasePermission):
         # Write permissions only for admin or staff
         return bool(request.user and (request.user.is_staff or request.user.is_superuser))
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class ExpenseCategoryViewSet(viewsets.ModelViewSet):
     """
     API endpoint for Expense Categories
@@ -40,6 +46,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminUserOrReadOnly]
+    pagination_class = StandardResultsSetPagination
     filterset_fields = ['category', 'payee', 'date', 'approved']
     search_fields = ['description', 'payee', 'reference_number', 'notes']
     
