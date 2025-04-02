@@ -266,7 +266,7 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
       case ModalType.ADD:
         return (
           <>
-            <DialogTitle>Add New Equipment</DialogTitle>
+            <DialogTitle id="equipment-dialog-title">Add New Equipment</DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12}>
@@ -405,7 +405,7 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
       case ModalType.EDIT:
         return (
           <>
-            <DialogTitle>Edit Equipment</DialogTitle>
+            <DialogTitle id="equipment-dialog-title">Edit Equipment</DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12}>
@@ -545,7 +545,7 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
       case ModalType.DELETE:
         return (
           <>
-            <DialogTitle>Delete Equipment</DialogTitle>
+            <DialogTitle id="equipment-dialog-title">Delete Equipment</DialogTitle>
             <DialogContent>
               <Typography>
                 Are you sure you want to delete <strong>{currentItem?.equipment_name}</strong>?
@@ -659,6 +659,9 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
         onClose={handleCloseModal}
         maxWidth="md"
         fullWidth
+        aria-labelledby="equipment-dialog-title"
+        disablePortal={false}
+        keepMounted={false}
       >
         {renderModalContent()}
       </Dialog>
