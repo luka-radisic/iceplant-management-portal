@@ -519,13 +519,13 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Type</Typography>
-                  <Typography variant="body1" gutterBottom>
+                  <Typography variant="body1" component="div" gutterBottom>
                     {getMaintenanceTypeChip(currentRecord.maintenance_type)}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Status</Typography>
-                  <Typography variant="body1" gutterBottom>
+                  <Typography variant="body1" component="div" gutterBottom>
                     {getStatusChip(currentRecord.status)}
                   </Typography>
                 </Grid>

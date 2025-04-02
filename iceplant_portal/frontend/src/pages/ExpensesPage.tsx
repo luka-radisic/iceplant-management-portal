@@ -1073,7 +1073,7 @@ const ExpensesPage: React.FC = () => {
                     </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="body2">
+                    <Typography variant="body2" component="div">
                       <strong>Approval Status:</strong> {' '}
                       <Chip 
                         label={selectedExpense.approved ? 'Approved' : 'Pending'} 
