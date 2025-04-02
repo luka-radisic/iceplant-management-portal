@@ -314,7 +314,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       case ModalType.EDIT:
         return (
           <>
-            <DialogTitle>
+            <DialogTitle id="maintenance-dialog-title">
               {modalType === ModalType.ADD ? 'Add New Maintenance Record' : 'Edit Maintenance Record'}
             </DialogTitle>
             <DialogContent>
@@ -477,7 +477,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       case ModalType.DELETE:
         return (
           <>
-            <DialogTitle>Delete Maintenance Record</DialogTitle>
+            <DialogTitle id="maintenance-dialog-title">Delete Maintenance Record</DialogTitle>
             <DialogContent>
               <Typography>
                 Are you sure you want to delete the maintenance record for
@@ -503,7 +503,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
         if (!currentRecord) return null;
         return (
           <>
-            <DialogTitle>Maintenance Record Details</DialogTitle>
+            <DialogTitle id="maintenance-dialog-title">Maintenance Record Details</DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12} sm={6}>
@@ -665,6 +665,9 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
         onClose={handleCloseModal}
         maxWidth="md"
         fullWidth
+        aria-labelledby="maintenance-dialog-title"
+        disablePortal={false}
+        keepMounted={false}
       >
         {renderModalContent()}
       </Dialog>
