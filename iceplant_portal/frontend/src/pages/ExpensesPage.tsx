@@ -31,6 +31,7 @@ import {
   CardContent,
   InputAdornment,
   Alert,
+  Pagination,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -187,6 +188,12 @@ const ExpensesPage: React.FC = () => {
   const [viewReceiptDialogOpen, setViewReceiptDialogOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  
   // Form state
   const [formData, setFormData] = useState(initialExpenseFormData);
   const [searchQuery, setSearchQuery] = useState('');
@@ -214,36 +221,41 @@ const ExpensesPage: React.FC = () => {
   const canDeleteExpense = isAdmin; // Previously: hasPermission('expenses_delete')
   const canApproveExpense = isAdmin; // Previously: hasPermission('expenses_approve')
   
-  // Fetch data on component mount
-  useEffect(() => {
-    fetchExpenses();
-    fetchCategories();
-    fetchSummaries();
-  }, []);
-  
-  // Apply filters whenever filter state changes
-  useEffect(() => {
-    applyFilters();
-  }, [expenses, searchQuery, dateRange, categoryFilter, payeeFilter, showApprovedOnly]);
-  
-  // Fetch all expenses
-  const fetchExpenses = async () => {
+  // Fetch expenses with pagination
+  const fetchExpenses = async (page = 1) => {
     try {
       setIsLoading(true);
-      const response = await apiService.get(endpoints.expenses);
-      // Check if response is an object with results property or already an array
-      const expensesData = Array.isArray(response) ? response : 
-                          response.results ? response.results : [];
+      const response = await apiService.get(`${endpoints.expenses}?page=${page}&page_size=${itemsPerPage}`);
       
-      console.log('Expenses data structure:', expensesData);
-      setExpenses(expensesData);
-      setFilteredExpenses(expensesData);
+      // Check if response has pagination info
+      if (response.results && Array.isArray(response.results)) {
+        setExpenses(response.results);
+        setFilteredExpenses(response.results);
+        
+        // Set pagination info
+        if (response.count) {
+          setTotalItems(response.count);
+          setTotalPages(Math.ceil(response.count / itemsPerPage));
+        }
+      } else if (Array.isArray(response)) {
+        // Fallback for non-paginated API
+        setExpenses(response);
+        setFilteredExpenses(response);
+        setTotalItems(response.length);
+        setTotalPages(Math.ceil(response.length / itemsPerPage));
+      }
     } catch (error) {
       console.error('Error fetching expenses:', error);
       enqueueSnackbar('Failed to load expenses', { variant: 'error' });
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Handle page change
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
+    setCurrentPage(page);
+    fetchExpenses(page);
   };
   
   // Fetch expense categories
@@ -292,7 +304,19 @@ const ExpensesPage: React.FC = () => {
     }
   };
   
-  // Apply all filters to expenses
+  // Modify useEffect to include currentPage
+  useEffect(() => {
+    fetchExpenses(currentPage);
+    fetchCategories();
+    fetchSummaries();
+  }, [currentPage]);
+  
+  // Apply filters when filter states change
+  useEffect(() => {
+    applyFilters();
+  }, [expenses, searchQuery, dateRange, categoryFilter, payeeFilter, showApprovedOnly]);
+  
+  // Apply filters and reset to page 1
   const applyFilters = () => {
     if (!Array.isArray(expenses)) {
       console.warn('Expenses is not an array', expenses);
@@ -350,6 +374,11 @@ const ExpensesPage: React.FC = () => {
     );
     
     setFilteredExpenses(filtered);
+    
+    // Reset to page 1 when filters change
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
   };
   
   // Handle tab change
@@ -526,7 +555,13 @@ const ExpensesPage: React.FC = () => {
     }
   };
   
-  // Reset all filters
+  // Handle apply filters (update to reset page)
+  const handleApplyFilters = () => {
+    setCurrentPage(1); // Reset to page 1 when applying filters
+    setFilterDialogOpen(false);
+  };
+  
+  // Handle reset filters (update to reset page)
   const handleResetFilters = () => {
     setSearchQuery('');
     setDateRange({
@@ -536,13 +571,8 @@ const ExpensesPage: React.FC = () => {
     setCategoryFilter('all');
     setPayeeFilter('all');
     setShowApprovedOnly(false);
+    setCurrentPage(1); // Reset to page 1 when resetting filters
     setFilterDialogOpen(false);
-  };
-  
-  // Apply filters and close dialog
-  const handleApplyFilters = () => {
-    setFilterDialogOpen(false);
-    applyFilters();
   };
   
   // Build unique list of payees for filtering
@@ -752,6 +782,29 @@ const ExpensesPage: React.FC = () => {
                   )}
                 </TableBody>
               </Table>
+              
+              {/* Pagination */}
+              {!isLoading && totalPages > 1 && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    p: 2,
+                    '& .MuiPagination-ul': {
+                      justifyContent: 'center',
+                    },
+                  }}
+                >
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                    showFirstButton
+                    showLastButton
+                  />
+                </Box>
+              )}
             </TableContainer>
           )}
         </TabPanel>
