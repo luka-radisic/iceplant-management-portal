@@ -309,24 +309,20 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = () => {
               <List>
                 {dashboardData.upcomingMaintenance.map((item) => (
                   <ListItem key={item.id} divider>
-                    <ListItemText
-                      primary={item.equipment_name}
-                      secondary={
-                        <Box component="div">
-                          <Typography variant="body2" component="span" display="block">
-                            {`Next Maintenance: ${new Date(item.next_maintenance_date).toLocaleDateString()}`}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                            {getStatusIcon(item.status)}
-                            <Chip 
-                              size="small" 
-                              label={getStatusText(item.status)} 
-                              sx={{ ml: 1 }}
-                            />
-                          </Box>
-                        </Box>
-                      }
-                    />
+                    <Box width="100%">
+                      <Typography variant="body1">{item.equipment_name}</Typography>
+                      <Typography variant="body2" component="span" display="block" sx={{ mt: 1 }}>
+                        {`Next Maintenance: ${new Date(item.next_maintenance_date).toLocaleDateString()}`}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                        {getStatusIcon(item.status)}
+                        <Chip 
+                          size="small" 
+                          label={getStatusText(item.status)} 
+                          sx={{ ml: 1 }}
+                        />
+                      </Box>
+                    </Box>
                   </ListItem>
                 ))}
               </List>
@@ -348,24 +344,20 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = () => {
               <List>
                 {dashboardData.recentMaintenance.map((record) => (
                   <ListItem key={record.id} divider>
-                    <ListItemText
-                      primary={record.equipment_name}
-                      secondary={
-                        <Box component="div">
-                          <Typography variant="body2" component="span" display="block">
-                            {`Date: ${new Date(record.maintenance_date).toLocaleDateString()} - ${record.duration} hours`}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                            {getMaintenanceTypeIcon(record.maintenance_type)}
-                            <Chip 
-                              size="small" 
-                              label={getMaintenanceTypeText(record.maintenance_type)} 
-                              sx={{ ml: 1 }}
-                            />
-                          </Box>
-                        </Box>
-                      }
-                    />
+                    <Box width="100%">
+                      <Typography variant="body1">{record.equipment_name}</Typography>
+                      <Typography variant="body2" component="span" display="block" sx={{ mt: 1 }}>
+                        {`Date: ${new Date(record.maintenance_date).toLocaleDateString()} - ${record.duration} hours`}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                        {getMaintenanceTypeIcon(record.maintenance_type)}
+                        <Chip 
+                          size="small" 
+                          label={getMaintenanceTypeText(record.maintenance_type)} 
+                          sx={{ ml: 1 }}
+                        />
+                      </Box>
+                    </Box>
                   </ListItem>
                 ))}
               </List>
