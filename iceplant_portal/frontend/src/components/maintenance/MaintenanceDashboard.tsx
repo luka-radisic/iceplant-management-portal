@@ -312,8 +312,8 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = () => {
                     <ListItemText
                       primary={item.equipment_name}
                       secondary={
-                        <>
-                          <Typography variant="body2" component="span">
+                        <Box component="div">
+                          <Typography variant="body2" component="span" display="block">
                             {`Next Maintenance: ${new Date(item.next_maintenance_date).toLocaleDateString()}`}
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
@@ -324,7 +324,7 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = () => {
                               sx={{ ml: 1 }}
                             />
                           </Box>
-                        </>
+                        </Box>
                       }
                     />
                   </ListItem>
@@ -351,8 +351,8 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = () => {
                     <ListItemText
                       primary={record.equipment_name}
                       secondary={
-                        <>
-                          <Typography variant="body2" component="span">
+                        <Box component="div">
+                          <Typography variant="body2" component="span" display="block">
                             {`Date: ${new Date(record.maintenance_date).toLocaleDateString()} - ${record.duration} hours`}
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
@@ -363,7 +363,7 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = () => {
                               sx={{ ml: 1 }}
                             />
                           </Box>
-                        </>
+                        </Box>
                       }
                     />
                   </ListItem>
