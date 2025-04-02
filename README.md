@@ -39,6 +39,8 @@ For advanced debugging, you can start the servers in debug mode:
 
 ```
 iceplant-management-portal/       # This directory (project root)
+├── .cursor/                      # Cursor-specific project rules and config
+│   └── rules.md
 ├── iceplant_portal/              # Main application directory
 │   ├── attendance/               # Django app for attendance tracking
 │   ├── expenses/                 # Django app for expense management
@@ -47,13 +49,15 @@ iceplant-management-portal/       # This directory (project root)
 │   │   └── src/                  # React source code
 │   │       ├── components/       # Reusable UI components
 │   │       ├── contexts/         # React contexts
+│   │       ├── hooks/            # Custom React hooks
 │   │       ├── layouts/          # Page layouts
-│   │       ├── pages/            # Main application pages
-│   │       ├── services/         # API services
+│   │       ├── pages/            # Main application pages/features
+│   │       ├── services/         # API interaction services
 │   │       ├── theme/            # UI theme configuration
 │   │       ├── types/            # TypeScript type definitions
 │   │       └── utils/            # Utility functions
 │   ├── inventory/                # Django app for inventory management
+│   ├── maintenance/              # Django app for equipment maintenance
 │   ├── sales/                    # Django app for sales tracking
 │   ├── iceplant_portal/          # Main Django project settings
 │   └── templates/                # Django templates
