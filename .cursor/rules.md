@@ -49,6 +49,204 @@ This document outlines specific rules and guidelines to follow when working on t
 *   **Filtering:** Use `django-filter` for complex filtering capabilities.
 *   **Authentication:** Ensure API endpoints are protected using appropriate authentication methods (e.g., SessionAuthentication, TokenAuthentication).
 
+## Comprehensive API Implementation Guidelines
+
+Based on our work with the IcePlant Management Portal, follow these detailed guidelines for backend-frontend API integration:
+
+### Backend (Django) API Implementation
+
+1. **File Organization:**
+   * **Models:** Define data models in `<app_name>/models.py` with clear field definitions, defaults, and relationships
+   * **Serializers:** Create serializers in `<app_name>/serializers.py` to transform model instances to JSON
+   * **Views:** Implement ViewSets in `<app_name>/views.py` to handle CRUD operations and custom endpoints
+   * **URLs:** Register URL routes in `<app_name>/api_urls.py` and include them in the main `urls.py`
+
+2. **Model Design:**
+   * Make fields nullable (`null=True, blank=True`) when appropriate to avoid migration issues
+   * Add appropriate validators, defaults, and constraints
+   * Use descriptive field names that match frontend usage
+   * Define `__str__` methods for admin display
+
+3. **ViewSet Implementation:**
+   * Base CRUD operations:
+     ```python
+     class MaintenanceItemViewSet(viewsets.ModelViewSet):
+         queryset = MaintenanceItem.objects.all()
+         serializer_class = MaintenanceItemSerializer
+     ```
+   * Add filtering with query parameters in `get_queryset()`:
+     ```python
+     def get_queryset(self):
+         queryset = MaintenanceItem.objects.all().order_by('-created_at')
+         status = self.request.query_params.get('status', None)
+         if status:
+             queryset = queryset.filter(status=status)
+         return queryset
+     ```
+   * Implement custom actions with `@action` decorator:
+     ```python
+     @action(detail=False, methods=['get'])
+     def dashboard(self, request):
+         # Dashboard aggregation logic
+         return Response({"data": result})
+     ```
+
+4. **URL Registration:**
+   * Register ViewSets with routers:
+     ```python
+     router = DefaultRouter()
+     router.register(r'items', MaintenanceItemViewSet, basename='maintenanceitem')
+     
+     urlpatterns = [
+         path('', include(router.urls)),
+     ]
+     ```
+   * Add custom endpoints outside the router pattern:
+     ```python
+     urlpatterns = [
+         path('', include(router.urls)),
+         path('dashboard/', MaintenanceItemViewSet.as_view({'get': 'dashboard'})),
+     ]
+     ```
+
+5. **Response Data Structure:**
+   * Use consistent response structures
+   * For collection endpoints, include count, pagination data, and results array
+   * For dashboard endpoints, use clearly named sections:
+     ```json
+     {
+       "upcomingMaintenance": [...],
+       "recentMaintenance": [...],
+       "stats": {
+         "totalItems": 42,
+         "itemsByStatus": [
+           {"status": "operational", "count": 30}
+         ]
+       }
+     }
+     ```
+
+### Frontend API Integration
+
+1. **Service Layer:**
+   * Define API endpoints in `services/endpoints.ts`:
+     ```typescript
+     export const endpoints = {
+       maintenanceItems: '/api/maintenance/items/',
+       maintenanceDashboard: '/api/maintenance/dashboard/'
+     };
+     ```
+   * Use central API service (`services/api.ts`) for making HTTP requests:
+     ```typescript
+     const apiService = {
+       async get(url: string, params?: any): Promise<any>,
+       async post(url: string, data: any): Promise<any>,
+       // other HTTP methods...
+     };
+     ```
+
+2. **Data Fetching in Components:**
+   * Use React hooks (useState, useEffect) for data fetching
+   * Implement loading and error states:
+     ```typescript
+     const [data, setData] = useState<DataType | null>(null);
+     const [loading, setLoading] = useState(true);
+     const [error, setError] = useState<string | null>(null);
+     
+     useEffect(() => {
+       const fetchData = async () => {
+         try {
+           setLoading(true);
+           const response = await apiService.get(endpoints.maintenanceItems);
+           setData(response);
+         } catch (err) {
+           console.error('Error fetching data:', err);
+           setError('Failed to load data');
+         } finally {
+           setLoading(false);
+         }
+       };
+       
+       fetchData();
+     }, [dependencies]);
+     ```
+
+3. **Data Transformation:**
+   * When API responses don't match component needs, transform data in the component:
+     ```typescript
+     // Define expected interfaces
+     interface ApiResponse {
+       stats: {
+         totalItems: number;
+         itemsByStatus: Array<{ status: string; count: number }>;
+       };
+     }
+     
+     interface ComponentData {
+       totalEquipment: number;
+       equipmentByStatus: {
+         operational: number;
+         requires_maintenance: number;
+       };
+     }
+     
+     // Transform data
+     const transformedData: ComponentData = {
+       totalEquipment: apiData.stats.totalItems,
+       equipmentByStatus: {
+         operational: apiData.stats.itemsByStatus.find(
+           item => item.status === 'operational'
+         )?.count || 0,
+         requires_maintenance: apiData.stats.itemsByStatus.find(
+           item => item.status === 'requires_maintenance'
+         )?.count || 0
+       }
+     };
+     ```
+
+4. **Error Handling:**
+   * Always implement error handling in API calls
+   * Use toast/snackbar notifications for user-friendly error messages
+   * Add fallbacks for missing/null data (use default values or empty arrays)
+   * Handle loading states with proper UI indicators
+
+5. **Type Safety:**
+   * Define TypeScript interfaces for all API request and response data
+   * Keep interfaces in sync with backend serializer definitions
+   * Explicitly type API responses to catch type mismatches
+
+### API Testing and Debugging
+
+1. **Backend Testing:**
+   * Verify API responses with Django shell or Django REST framework browsable API
+   * Test with curl commands or tools like Postman
+   * Add unit tests for ViewSets and serializers
+
+2. **Frontend Testing:**
+   * Use browser devtools (MCP Browser Tools) to inspect network requests
+   * Check request/response data in Network tab
+   * Analyze console errors
+   * Create test fixtures for common API responses
+
+3. **Common Issues and Solutions:**
+   * **404 Not Found:** Check URL paths, validate endpoint registration in `api_urls.py`
+   * **TypeError: Cannot read property of undefined:** Add null checks, default values
+   * **CORS errors:** Verify CORS settings in Django settings
+   * **Authentication failures:** Check token validity, permissions, session expiration
+
+### Integration Checklist
+
+Before considering an API implementation complete, verify:
+
+1. ✅ Models and migrations are properly created and applied
+2. ✅ Serializers correctly represent model data
+3. ✅ ViewSets implement required CRUD operations and custom endpoints
+4. ✅ URLs are properly registered and accessible
+5. ✅ Frontend interfaces match backend data structures
+6. ✅ Components handle loading, error, and empty states
+7. ✅ Data transformation logic is implemented where needed
+8. ✅ Authentication and permissions are properly configured
+
 ## Frontend Structure Guidelines (React + TypeScript)
 
 *   **Directory Structure:** Adhere strictly to the established `frontend/src` structure:
