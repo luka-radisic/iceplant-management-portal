@@ -8,4 +8,5 @@ router.register(r'records', MaintenanceRecordViewSet, basename='maintenancerecor
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('dashboard/', MaintenanceItemViewSet.as_view({'get': 'dashboard'})),
 ] 
