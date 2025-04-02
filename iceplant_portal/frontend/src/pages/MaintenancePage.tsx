@@ -11,7 +11,6 @@ import {
   Dashboard as DashboardIcon,
   Inventory as EquipmentIcon,
   ReceiptLong as RecordsIcon,
-  Build as TemplatesIcon,
 } from '@mui/icons-material';
 import MaintenanceDashboard from '../components/maintenance/MaintenanceDashboard';
 import EquipmentList from '../components/maintenance/EquipmentList';
