@@ -44,6 +44,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import { useSnackbar } from 'notistack';
 import SalesForm from '../components/sales/SalesForm';
+import StatusChip from '../components/common/StatusChip';
 import { apiService, endpoints } from '../services/api';
 import { Sale } from '../types/sales';
 import { BuyerLight } from '../types/buyers';
@@ -141,6 +142,10 @@ const SalesPage: React.FC = () => {
     try {
         await apiService.updateSaleStatus(saleIdToUpdate, newStatus);
         enqueueSnackbar(`Sale ${selectedSale.si_number} status updated to ${newStatus}.`, { variant: 'success' });
+        
+        // Clear cache to ensure we get fresh data on next fetch
+        clearSalesCache();
+        
         // Force refresh of filtered data
         await fetchSales();
     } catch (err) {
@@ -193,9 +198,30 @@ const SalesPage: React.FC = () => {
         ? `${query}&${filterParams.toString()}`
         : query;
       
-      console.log(`[SalesPage] Fetching sales with query: ${queryString}`);
-      const response = await apiService.get(`${endpoints.sales}${queryString}`);
-      console.log('[SalesPage] Raw API Response:', JSON.stringify(response, null, 2));
+      // Check if we have cached data for this exact query
+      const cacheKey = `sales_${queryString}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      
+      let response;
+      
+      if (cachedData) {
+        // Use cached data if available
+        console.log('[SalesPage] Using cached data for query:', queryString);
+        response = JSON.parse(cachedData);
+      } else {
+        // Fetch fresh data if no cache is available
+        console.log(`[SalesPage] Fetching sales with query: ${queryString}`);
+        response = await apiService.get(`${endpoints.sales}${queryString}`);
+        console.log('[SalesPage] Raw API Response:', JSON.stringify(response, null, 2));
+        
+        // Cache the response for future use (expires in 2 minutes)
+        sessionStorage.setItem(cacheKey, JSON.stringify(response));
+        
+        // Set cache expiration in 2 minutes
+        setTimeout(() => {
+          sessionStorage.removeItem(cacheKey);
+        }, 2 * 60 * 1000);
+      }
       
       if (response && response.results) {
         setSales(response.results);
@@ -226,6 +252,20 @@ const SalesPage: React.FC = () => {
   useEffect(() => {
     fetchSales();
   }, [page, pageSize, sortField, sortDirection, fetchSales]);
+
+  // Load buyers for filter autocomplete
+  useEffect(() => {
+    const loadBuyersForFilter = async () => {
+      try {
+        const response = await apiService.getActiveBuyers();
+        setBuyers(response);
+      } catch (error) {
+        console.error("Failed to load buyers for filter:", error);
+      }
+    };
+    
+    loadBuyersForFilter();
+  }, []);
 
   // Calculate summary data from sales
   const calculateSummary = (salesData: Sale[]) => {
@@ -300,11 +340,6 @@ const SalesPage: React.FC = () => {
     setFilterStatus(event.target.value as string);
   };
 
-  const handleBuyerFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Store the value as is, but it will be trimmed when actually used in the API call
-    setFilterBuyer(event.target.value);
-  };
-
   const handleDateFromChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFilterDateFrom(event.target.value);
   };
@@ -322,40 +357,28 @@ const SalesPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [filterStatus, filterBuyer, filterDateFrom, filterDateTo, applyFilters]);
 
+  // Function to clear sales cache
+  const clearSalesCache = () => {
+    // Find all sales cache keys and remove them
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('sales_')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
   const handleSaleAdded = () => {
+    // Clear cache to ensure we get fresh data
+    clearSalesCache();
+    
     // Reset to page 1 to ensure the new sale is visible
     setPage(1);
     // fetchSales will be called via the page change useEffect
   };
 
-  // Render status with appropriate color
+  // Use our new StatusChip component instead of renderStatus function
   const renderStatus = (status: string) => {
-    let color = 'default';
-    let icon = null;
-    
-    switch(status) {
-      case 'processed':
-        color = 'success';
-        icon = <CheckCircleIcon fontSize="small" />;
-        break;
-      case 'canceled':
-        color = 'warning';
-        icon = <CancelIcon fontSize="small" />;
-        break;
-      case 'error':
-        color = 'error';
-        icon = <ErrorIcon fontSize="small" />;
-        break;
-    }
-    
-    return (
-      <Chip 
-        size="small"
-        label={status.charAt(0).toUpperCase() + status.slice(1)} 
-        color={color as any}
-        icon={icon as any}
-      />
-    );
+    return <StatusChip status={status} />;
   };
 
   // Toggle summary dialog
@@ -397,9 +420,22 @@ const SalesPage: React.FC = () => {
     checkForAdminEdit();
   }, [location.pathname, enqueueSnackbar]);
 
+  // Validate the edit form
+  const validateEditForm = (sale?: Sale | null): boolean => {
+    if (!sale) return false;
+    if (!sale.si_number || !sale.buyer_name || !sale.sale_date) return false;
+    return true;
+  };
+
   // Handle editing a sale
   const handleEditSale = async (updatedSale: Partial<Sale>) => {
     if (!editableSale) return;
+    
+    // Validate the form before submission
+    if (!validateEditForm(editableSale as Sale)) {
+      enqueueSnackbar("Please fill in all required fields", { variant: 'error' });
+      return;
+    }
     
     try {
       const dataToSend: any = { ...updatedSale };
@@ -425,6 +461,10 @@ const SalesPage: React.FC = () => {
       
       await apiService.put(`${endpoints.sales}${editableSale.id}/`, dataToSend);
       enqueueSnackbar(`Sale ${editableSale.si_number} updated successfully`, { variant: 'success' });
+      
+      // Clear cache to ensure we get fresh data
+      clearSalesCache();
+      
       fetchSales(); // Refresh sales list
       handleCloseEditDialog();
     } catch (err) {
@@ -516,7 +556,7 @@ const SalesPage: React.FC = () => {
         setEditableSale({
           ...editableSale,
           buyer_name: newValue,
-          buyer: null
+          buyer: undefined // Use undefined instead of null to match the type
         });
       }
       setSelectedEditBuyer(null);
@@ -542,7 +582,7 @@ const SalesPage: React.FC = () => {
       // Clear buyer reference but keep the name (user might be typing)
       setEditableSale({
         ...editableSale,
-        buyer: null,
+        buyer: undefined, // Use undefined instead of null
         buyer_name: editableSale.buyer_name, // preserve the buyer name when clearing buyer object
       });
     }
@@ -603,14 +643,53 @@ const SalesPage: React.FC = () => {
             </Grid>
             
             <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
+              <Autocomplete
                 size="small"
-                label="Buyer Name"
+                freeSolo
+                options={buyers}
+                getOptionLabel={(option) => {
+                  if (typeof option === 'string') {
+                    return option;
+                  }
+                  return option.name;
+                }}
+                renderOption={(props, option) => (
+                  <li {...props} key={typeof option === 'string' ? option : option.id}>
+                    <div>
+                      <div style={{ fontWeight: 'bold' }}>
+                        {typeof option === 'string' ? option : option.name}
+                      </div>
+                      {typeof option !== 'string' && option.company_name && (
+                        <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>
+                          {option.company_name}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                )}
                 value={filterBuyer}
-                onChange={handleBuyerFilterChange}
-                margin="normal"
-                variant="outlined"
+                onChange={(_event, newValue) => {
+                  if (typeof newValue === 'string') {
+                    setFilterBuyer(newValue);
+                  } else if (newValue) {
+                    setFilterBuyer(newValue.name);
+                  } else {
+                    setFilterBuyer('');
+                  }
+                }}
+                onInputChange={(_event, newInputValue) => {
+                  setFilterBuyer(newInputValue);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Buyer Name"
+                    margin="normal"
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ mt: 0 }}
+                  />
+                )}
               />
             </Grid>
             
@@ -892,7 +971,13 @@ const SalesPage: React.FC = () => {
                      value={selectedEditBuyer}
                      onChange={handleEditBuyerChange}
                      options={buyers}
-                     getOptionLabel={(option) => option.name}
+                     getOptionLabel={(option) => {
+                       // Handle both string and BuyerLight types
+                       if (typeof option === 'string') {
+                         return option;
+                       }
+                       return option.name;
+                     }}
                      filterOptions={(options, state) => {
                        const inputValue = state.inputValue.toLowerCase().trim();
                        if (!inputValue) return [];
@@ -1047,7 +1132,7 @@ const SalesPage: React.FC = () => {
                onClick={() => handleEditSale(editableSale as Sale)} 
                variant="contained" 
                color="primary"
-               disabled={!editableSale}
+               disabled={!validateEditForm(editableSale as Sale)}
              >
                Save Changes
              </Button>
