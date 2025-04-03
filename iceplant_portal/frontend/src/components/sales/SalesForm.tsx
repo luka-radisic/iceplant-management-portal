@@ -125,21 +125,35 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       });
     }
     
-    // Remove any non-digit characters except decimal point
-    const cleanValue = value.replace(/[^\d.]/g, '');
+    // Allow any digits and one decimal point
+    let cleanValue = value;
+    
+    // For empty input, set as empty string
+    if (cleanValue === '') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: '',
+      }));
+      return;
+    }
+    
+    // For non-empty input, ensure it's a valid number format
+    // Remove any non-numeric characters except decimal
+    cleanValue = cleanValue.replace(/[^\d.]/g, '');
     
     // Ensure only one decimal point
     const parts = cleanValue.split('.');
-    const formattedValue = parts.length > 1 
-      ? `${parts[0]}.${parts.slice(1).join('')}`
-      : cleanValue;
+    if (parts.length > 2) {
+      cleanValue = `${parts[0]}.${parts.slice(1).join('')}`;
+    }
     
-    // Store numeric value in state
-    const numericValue = formattedValue === '' ? '' : Number(formattedValue);
+    // Convert to number if valid
+    const numericValue = isNaN(Number(cleanValue)) ? 0 : Number(cleanValue);
     
+    // Update the form data
     setFormData(prev => ({
       ...prev,
-      [name]: numericValue,
+      [name]: cleanValue === '' ? '' : numericValue,
     }));
   };
 
@@ -184,15 +198,28 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       });
     }
     
-    // Allow multi-digit numbers
-    const cleanValue = value.replace(/[^\d]/g, '');
+    // Allow any digits
+    let cleanValue = value;
     
-    // Store numeric value in state - don't parse as int to preserve original input
-    const numericValue = cleanValue === '' ? '' : Number(cleanValue);
+    // For empty input, set as empty string
+    if (cleanValue === '') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: '',
+      }));
+      return;
+    }
     
+    // For non-empty input, ensure it's only digits
+    cleanValue = cleanValue.replace(/\D/g, '');
+    
+    // Convert to number if valid
+    const numericValue = isNaN(Number(cleanValue)) ? 0 : Number(cleanValue);
+    
+    // Update the form data
     setFormData(prev => ({
       ...prev,
-      [name]: numericValue,
+      [name]: cleanValue === '' ? '' : numericValue,
     }));
   };
 
@@ -250,37 +277,6 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       ...prev,
       buyer_name: newInputValue
     }));
-  };
-
-  // Function to format the display of a field while keeping the numeric value
-  const CurrencyDisplay = ({ value, ...props }: { value: number | string; [key: string]: any }) => {
-    const formattedValue = formatCurrency(value);
-    return (
-      <Box sx={{ position: 'relative' }}>
-        <TextField
-          {...props}
-          InputProps={{
-            ...props.InputProps,
-            inputProps: {
-              ...props.InputProps?.inputProps,
-              inputMode: 'decimal',
-            },
-          }}
-        />
-        {value !== '' && (
-          <Box sx={{ 
-            position: 'absolute', 
-            top: '15px', 
-            right: '14px',
-            pointerEvents: 'none',
-            color: 'text.secondary',
-            fontSize: '0.9rem',
-          }}>
-            {formattedValue}
-          </Box>
-        )}
-      </Box>
-    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -626,18 +622,24 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
           />
         </Grid>
         <Grid item xs={12} sm={4}>
-          <CurrencyDisplay
+          <TextField
             required
             fullWidth
             label="Price Per Block"
             name="price_per_block"
-            value={formData.price_per_block}
-            onChange={handleCurrencyChange}
             type="text"
             inputMode="decimal"
+            value={formData.price_per_block}
+            onChange={handleCurrencyChange}
             disabled={isSubmitting}
             error={!!errors.price_per_block}
             helperText={errors.price_per_block}
+            InputProps={{
+              endAdornment: formData.price_per_block !== '' ? 
+                <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>
+                  {formatCurrency(formData.price_per_block)}
+                </Box> : null
+            }}
           />
         </Grid>
         
@@ -667,33 +669,45 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
 
         {/* Row 5: Cash Amount, PO Amount */}
         <Grid item xs={12} sm={6}>
-          <CurrencyDisplay
+          <TextField
             required
             fullWidth
             label="Cash Amount Paid"
             name="cash_amount"
-            value={formData.cash_amount}
-            onChange={handleCurrencyChange}
             type="text"
             inputMode="decimal"
+            value={formData.cash_amount}
+            onChange={handleCurrencyChange}
             disabled={isSubmitting}
             error={!!errors.cash_amount}
             helperText={errors.cash_amount}
+            InputProps={{
+              endAdornment: formData.cash_amount !== '' ? 
+                <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>
+                  {formatCurrency(formData.cash_amount)}
+                </Box> : null
+            }}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <CurrencyDisplay
+          <TextField
             required
             fullWidth
             label="PO Amount Paid"
             name="po_amount"
-            value={formData.po_amount}
-            onChange={handleCurrencyChange}
             type="text"
             inputMode="decimal"
+            value={formData.po_amount}
+            onChange={handleCurrencyChange}
             disabled={isSubmitting}
             error={!!errors.po_amount}
             helperText={errors.po_amount}
+            InputProps={{
+              endAdornment: formData.po_amount !== '' ? 
+                <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>
+                  {formatCurrency(formData.po_amount)}
+                </Box> : null
+            }}
           />
         </Grid>
         
