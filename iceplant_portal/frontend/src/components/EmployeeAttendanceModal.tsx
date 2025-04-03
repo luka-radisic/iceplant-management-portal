@@ -1,4 +1,4 @@
-import { Delete as DeleteIcon, PhotoCamera, Settings as SettingsIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, PhotoCamera, Settings as SettingsIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon, Note as NoteIcon } from '@mui/icons-material';
 import {
   Avatar,
   Badge,
@@ -952,6 +952,50 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
           {/* Filters */}
           <Box mt={3}>
+            {/* Add Quick Month Pickers Here */}
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              Quick Date Filters:
+            </Typography>
+            <Grid container spacing={1} mb={2}>
+              <Grid item>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setQuickDateFilter(1)} // 1 month = This Month
+                >
+                  This Month
+                </Button>
+              </Grid>
+              <Grid item>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setQuickDateFilter(3)}
+                >
+                  Last 3 Months
+                </Button>
+              </Grid>
+              <Grid item>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setQuickDateFilter(6)}
+                >
+                  Last 6 Months
+                </Button>
+              </Grid>
+              <Grid item>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={clearDateFilters}
+                >
+                  All Time
+                </Button>
+              </Grid>
+            </Grid>
+
+            {/* Existing Date Pickers and Status Filter */}
             <Grid container spacing={2} mb={2}>
               <Grid item xs={3}>
                 <DatePicker
@@ -983,44 +1027,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                   <MenuItem value="present">Present</MenuItem>
                   <MenuItem value="absent">Absent</MenuItem>
                 </TextField>
-              </Grid>
-            </Grid>
-            <Grid container spacing={1} mb={2}>
-              <Grid item>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setQuickDateFilter(1)}
-                >
-                  This Month
-                </Button>
-              </Grid>
-              <Grid item>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setQuickDateFilter(3)}
-                >
-                  Last 3 Months
-                </Button>
-              </Grid>
-              <Grid item>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setQuickDateFilter(6)}
-                >
-                  Last 6 Months
-                </Button>
-              </Grid>
-              <Grid item>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={clearDateFilters}
-                >
-                  All Time
-                </Button>
               </Grid>
             </Grid>
             {loading ? (
@@ -1097,9 +1103,18 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                                 </Box>
                               ) : (
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                  <Typography variant="body2" component="span">
-                                    {record.hr_notes || '-'} 
-                                  </Typography>
+                                  {record.hr_notes ? (
+                                    <Chip
+                                      icon={<NoteIcon fontSize="small" />}
+                                      label={record.hr_notes}
+                                      size="small"
+                                      variant="outlined"
+                                      color="error"
+                                      sx={{ fontWeight: 600 }}
+                                    />
+                                  ) : (
+                                    '-'
+                                  )}
                                   <IconButton size="small" onClick={() => handleEditNoteClick(record)} title="Edit Note" sx={{ ml: 1, mt: -0.5 }}>
                                     <EditIcon fontSize="small" />
                                   </IconButton>

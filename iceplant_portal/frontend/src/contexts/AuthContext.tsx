@@ -45,12 +45,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAuthenticated(true);
         setUser(userData);
         
-        // Check if user is an admin
-        setIsAdmin(userData.is_staff === true || userData.is_superuser === true);
+        // Corrected: Check only if user is a superuser for isAdmin flag
+        setIsAdmin(userData.is_superuser === true);
         
         loggerService.info('User session restored', { 
           username: userData.username,
-          isAdmin: userData.is_staff || userData.is_superuser 
+          // Corrected: Log only superuser status for isAdmin
+          isAdmin: userData.is_superuser 
         });
       } catch (error) {
         loggerService.error('Error restoring user session', error);
@@ -58,14 +59,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('user');
       }
     }
+    setLoading(false); // Ensure loading is set to false after check
   }, []);
 
   const login = async (username: string, password: string) => {
+    setLoading(true); // Set loading at the start of login
+    setError(null);   // Clear previous errors
     try {
       const response = await apiService.login(username, password);
       loggerService.info('User logged in', {
         username: response.user.username,
-        isAdmin: response.user.is_staff || response.user.is_superuser,
+        // Corrected: Log only superuser status for isAdmin
+        isAdmin: response.user.is_superuser,
         timestamp: new Date().toISOString()
       });
       localStorage.setItem('token', response.token);
@@ -73,11 +78,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthenticated(true);
       setUser(response.user);
       
-      // Set admin status based on Django's staff or superuser flag
-      setIsAdmin(response.user.is_staff === true || response.user.is_superuser === true);
-    } catch (error) {
+      // Corrected: Set admin status based ONLY on Django's is_superuser flag
+      setIsAdmin(response.user.is_superuser === true);
+
+      // Navigate based on role after successful login
+      if (response.user.is_superuser) {
+          navigate('/'); // Superuser goes to dashboard
+      } else if (response.user.group === 'HR') {
+          navigate('/attendance'); // HR goes to attendance
+      } else {
+          navigate('/'); // Default to dashboard for others (e.g., Office)
+      }
+
+    } catch (error: any) {
       loggerService.error('Error logging in', error);
-      setError('An error occurred while logging in. Please try again later.');
+      let errorMessage = 'Login failed. Please check your username and password.';
+      if (error.response && error.response.data && error.response.data.non_field_errors) {
+          errorMessage = error.response.data.non_field_errors[0];
+      }
+      setError(errorMessage);
+      // Ensure state reflects failed login attempt
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+      setUser(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } finally {
+        setLoading(false); // Ensure loading is set to false after attempt
     }
   };
 
