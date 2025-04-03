@@ -101,7 +101,7 @@ function TabPanel(props: TabPanelProps) {
       hidden={value !== index}
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
-      style={{ width: '100%' }}
+      style={{ width: '100%', display: 'block' }}
       {...other}
     >
       {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
@@ -713,7 +713,7 @@ const ExpensesPage: React.FC = () => {
             </Box>
           ) : (
             <TableContainer>
-              <Table size="small">
+              <Table size="small" sx={{ tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Date</TableCell>
@@ -834,7 +834,7 @@ const ExpensesPage: React.FC = () => {
         {/* Categories Tab */}
         <TabPanel value={tabValue} index={1}>
           <TableContainer>
-            <Table size="small">
+            <Table size="small" sx={{ tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Category</TableCell>
@@ -875,7 +875,7 @@ const ExpensesPage: React.FC = () => {
         {/* Monthly Tab */}
         <TabPanel value={tabValue} index={2}>
           <TableContainer>
-            <Table size="small">
+            <Table size="small" sx={{ tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Month</TableCell>
@@ -911,7 +911,7 @@ const ExpensesPage: React.FC = () => {
         {/* Payees Tab */}
         <TabPanel value={tabValue} index={3}>
           <TableContainer>
-            <Table size="small">
+            <Table size="small" sx={{ tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Payee</TableCell>

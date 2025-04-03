@@ -32,6 +32,9 @@ import { format as formatTZ } from 'date-fns-tz';
 import { useSnackbar } from 'notistack';
 import { useEffect, useState } from 'react';
 import apiService from '../services/api';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 // Shift configuration type
 interface ShiftConfig {
@@ -560,6 +563,29 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   };
   // --- End copied function --- 
 
+  // Update filter change handler for dates
+  const handleFilterDateChange = (filterName: 'start_date' | 'end_date', newValue: Date | null) => {
+    let formattedValue = '';
+    if (newValue) {
+      try {
+        formattedValue = format(newValue, 'yyyy-MM-dd');
+      } catch (error) {
+        console.error('Error formatting date:', error);
+      }
+    }
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: formattedValue,
+    }));
+  };
+
+  const handleFilterStatusChange = (newValue: string) => {
+    setFilters(prev => ({
+      ...prev,
+      status: newValue,
+    }));
+  };
+
   useEffect(() => {
     if (open && employeeId) {
       fetchEmployeeProfile();
@@ -802,306 +828,306 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
           </Box>
         </Box>
       </DialogTitle>
-      <DialogContent dividers>
-        {/* Statistics Summary - Show different stats based on shift tracking */}
-        <Box mb={3}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography component="div" variant="h6" gutterBottom>
-                Attendance Statistics for Selected Period
-              </Typography>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <DialogContent dividers>
+          {/* Statistics Summary - Show different stats based on shift tracking */}
+          <Box mb={3}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Typography component="div" variant="h6" gutterBottom>
+                  Attendance Statistics for Selected Period
+                </Typography>
+              </Grid>
+              {trackShifts && (
+                // Show shift-based statistics
+                <>
+                  <Grid item xs={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography component="div" variant="body2" color="textSecondary">
+                        Morning Shifts
+                      </Typography>
+                      <Typography component="div" variant="h6">
+                        {stats.morningShifts}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography component="div" variant="body2" color="textSecondary">
+                        Night Shifts
+                      </Typography>
+                      <Typography component="div" variant="h6">
+                        {stats.nightShifts}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  {(stats.dayRotatingShifts > 0 || stats.nightRotatingShifts > 0) && (
+                    <>
+                      <Grid item xs={3}>
+                        <Paper sx={{ p: 2, textAlign: 'center' }}>
+                          <Typography component="div" variant="body2" color="textSecondary">
+                            12h Day Shifts
+                          </Typography>
+                          <Typography component="div" variant="h6">
+                            {stats.dayRotatingShifts}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Paper sx={{ p: 2, textAlign: 'center' }}>
+                          <Typography component="div" variant="body2" color="textSecondary">
+                            12h Night Shifts
+                          </Typography>
+                          <Typography component="div" variant="h6">
+                            {stats.nightRotatingShifts}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    </>
+                  )}
+                  <Grid item xs={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography component="div" variant="body2" color="textSecondary">
+                        No Shows
+                      </Typography>
+                      <Typography component="div" variant="h6">
+                        {stats.noShows}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography component="div" variant="body2" color="textSecondary">
+                        Attendance Rate
+                      </Typography>
+                      <Typography component="div" variant="h6">
+                        {((stats.presentDays / stats.totalDays) * 100).toFixed(1)}%
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography component="div" variant="body2" color="textSecondary">
+                        Late Arrivals
+                      </Typography>
+                      <Typography component="div" variant="h6">
+                        {stats.lateArrivals}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography component="div" variant="body2" color="textSecondary">
+                        Missing Checkouts
+                      </Typography>
+                      <Typography component="div" variant="h6">
+                        {stats.missingCheckouts}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography component="div" variant="body2" color="textSecondary">
+                        Avg. Check-in
+                      </Typography>
+                      <Typography component="div" variant="h6">
+                        {stats.avgCheckIn}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography component="div" variant="body2" color="textSecondary">
+                        Avg. Check-out
+                      </Typography>
+                      <Typography component="div" variant="h6">
+                        {stats.avgCheckOut}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </>
+              )}
             </Grid>
-            {trackShifts && (
-              // Show shift-based statistics
-              <>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Morning Shifts
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.morningShifts}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Night Shifts
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.nightShifts}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                {(stats.dayRotatingShifts > 0 || stats.nightRotatingShifts > 0) && (
-                  <>
-                    <Grid item xs={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography component="div" variant="body2" color="textSecondary">
-                          12h Day Shifts
-                        </Typography>
-                        <Typography component="div" variant="h6">
-                          {stats.dayRotatingShifts}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography component="div" variant="body2" color="textSecondary">
-                          12h Night Shifts
-                        </Typography>
-                        <Typography component="div" variant="h6">
-                          {stats.nightRotatingShifts}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  </>
-                )}
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      No Shows
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.noShows}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Attendance Rate
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {((stats.presentDays / stats.totalDays) * 100).toFixed(1)}%
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Late Arrivals
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.lateArrivals}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Missing Checkouts
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.missingCheckouts}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Avg. Check-in
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.avgCheckIn}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={3}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography component="div" variant="body2" color="textSecondary">
-                      Avg. Check-out
-                    </Typography>
-                    <Typography component="div" variant="h6">
-                      {stats.avgCheckOut}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              </>
-            )}
-          </Grid>
-        </Box>
+          </Box>
 
-        {/* Filters */}
-        <Box mt={3}>
-          <Grid container spacing={2} mb={2}>
-            <Grid item xs={3}>
-              <TextField
-                label="Start Date"
-                type="date"
-                value={filters.start_date}
-                onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
+          {/* Filters */}
+          <Box mt={3}>
+            <Grid container spacing={2} mb={2}>
+              <Grid item xs={3}>
+                <DatePicker
+                  label="Start Date"
+                  value={filters.start_date ? new Date(filters.start_date + 'T00:00:00') : null}
+                  onChange={(newValue) => handleFilterDateChange('start_date', newValue)}
+                  slotProps={{ textField: { fullWidth: true, InputLabelProps: { shrink: true } } }}
+                  format="yyyy-MM-dd"
+                />
+              </Grid>
+              <Grid item xs={3}>
+                <DatePicker
+                  label="End Date"
+                  value={filters.end_date ? new Date(filters.end_date + 'T00:00:00') : null}
+                  onChange={(newValue) => handleFilterDateChange('end_date', newValue)}
+                  slotProps={{ textField: { fullWidth: true, InputLabelProps: { shrink: true } } }}
+                  format="yyyy-MM-dd"
+                />
+              </Grid>
+              <Grid item xs={3}>
+                <TextField
+                  select
+                  label="Status"
+                  value={filters.status}
+                  onChange={(e) => handleFilterStatusChange(e.target.value)}
+                  fullWidth
+                >
+                  <MenuItem value="all">All</MenuItem>
+                  <MenuItem value="present">Present</MenuItem>
+                  <MenuItem value="absent">Absent</MenuItem>
+                </TextField>
+              </Grid>
             </Grid>
-            <Grid item xs={3}>
-              <TextField
-                label="End Date"
-                type="date"
-                value={filters.end_date}
-                onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
+            <Grid container spacing={1} mb={2}>
+              <Grid item>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setQuickDateFilter(1)}
+                >
+                  This Month
+                </Button>
+              </Grid>
+              <Grid item>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setQuickDateFilter(3)}
+                >
+                  Last 3 Months
+                </Button>
+              </Grid>
+              <Grid item>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setQuickDateFilter(6)}
+                >
+                  Last 6 Months
+                </Button>
+              </Grid>
+              <Grid item>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={clearDateFilters}
+                >
+                  All Time
+                </Button>
+              </Grid>
             </Grid>
-            <Grid item xs={3}>
-              <TextField
-                select
-                label="Status"
-                value={filters.status}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                fullWidth
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="present">Present</MenuItem>
-                <MenuItem value="absent">Absent</MenuItem>
-              </TextField>
-            </Grid>
-          </Grid>
-          <Grid container spacing={1} mb={2}>
-            <Grid item>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setQuickDateFilter(1)}
-              >
-                This Month
-              </Button>
-            </Grid>
-            <Grid item>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setQuickDateFilter(3)}
-              >
-                Last 3 Months
-              </Button>
-            </Grid>
-            <Grid item>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setQuickDateFilter(6)}
-              >
-                Last 6 Months
-              </Button>
-            </Grid>
-            <Grid item>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={clearDateFilters}
-              >
-                All Time
-              </Button>
-            </Grid>
-          </Grid>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <TableContainer component={Paper} sx={{ mt: 2 }}>
-              <Table stickyHeader size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Check In</TableCell>
-                    <TableCell>Check Out</TableCell>
-                    <TableCell>Duration</TableCell>
-                    <TableCell>Shift Type</TableCell>
-                    <TableCell>Status</TableCell>
-                    {isHrUser && <TableCell>HR Notes</TableCell>}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {records.map((record) => {
-                    const isNoShow = record.department === 'NO SHOW';
-                    const isMissingCheckout = !isNoShow && !record.check_out;
-                    const isEditing = record.id === editingRecordId;
-                    return (
-                      <TableRow 
-                        key={record.id} 
-                        hover 
-                        sx={{
-                          bgcolor: isNoShow 
-                            ? 'error.lighter' 
-                            : isMissingCheckout 
-                              ? 'warning.lighter' 
-                              : 'inherit'
-                        }}
-                      >
-                        <TableCell>{formatDateStr(record.check_in)}</TableCell>
-                        <TableCell>{formatTime(record.check_in)}</TableCell>
-                        <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
-                        <TableCell>{record.duration || '-'}</TableCell>
-                        <TableCell>{record.shiftType}</TableCell>
-                        <TableCell>{getStatusChip(record)}</TableCell>
-                        {isHrUser && (
-                          <TableCell 
-                            sx={{ 
-                              whiteSpace: 'pre-wrap', 
-                              maxWidth: 250, // Increased max width slightly
-                              overflowWrap: 'break-word',
-                              verticalAlign: 'top' // Align content top for multi-line notes
-                            }}
-                          >
-                            {isEditing ? (
-                              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                <TextField
-                                  multiline
-                                  fullWidth
-                                  variant="outlined"
-                                  size="small"
-                                  value={editingNote}
-                                  onChange={(e) => setEditingNote(e.target.value)}
-                                  disabled={savingNote}
-                                  autoFocus
-                                  sx={{ mb: 1 }}
-                                />
-                                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                  <IconButton size="small" onClick={handleCancelEditNote} disabled={savingNote} title="Cancel">
-                                    <CancelIcon fontSize="small" />
-                                  </IconButton>
-                                  <IconButton size="small" onClick={handleSaveNoteClick} disabled={savingNote} title="Save">
-                                    {savingNote ? <CircularProgress size={16} /> : <SaveIcon fontSize="small" color="primary" />}
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <TableContainer component={Paper} sx={{ mt: 2 }}>
+                <Table stickyHeader size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Check In</TableCell>
+                      <TableCell>Check Out</TableCell>
+                      <TableCell>Duration</TableCell>
+                      <TableCell>Shift Type</TableCell>
+                      <TableCell>Status</TableCell>
+                      {isHrUser && <TableCell>HR Notes</TableCell>}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {records.map((record) => {
+                      const isNoShow = record.department === 'NO SHOW';
+                      const isMissingCheckout = !isNoShow && !record.check_out;
+                      const isEditing = record.id === editingRecordId;
+                      return (
+                        <TableRow 
+                          key={record.id} 
+                          hover 
+                          sx={{
+                            bgcolor: isNoShow 
+                              ? 'error.lighter' 
+                              : isMissingCheckout 
+                                ? 'warning.lighter' 
+                                : 'inherit'
+                          }}
+                        >
+                          <TableCell>{formatDateStr(record.check_in)}</TableCell>
+                          <TableCell>{formatTime(record.check_in)}</TableCell>
+                          <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
+                          <TableCell>{record.duration || '-'}</TableCell>
+                          <TableCell>{record.shiftType}</TableCell>
+                          <TableCell>{getStatusChip(record)}</TableCell>
+                          {isHrUser && (
+                            <TableCell 
+                              sx={{ 
+                                whiteSpace: 'pre-wrap', 
+                                maxWidth: 250, // Increased max width slightly
+                                overflowWrap: 'break-word',
+                                verticalAlign: 'top' // Align content top for multi-line notes
+                              }}
+                            >
+                              {isEditing ? (
+                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                  <TextField
+                                    multiline
+                                    fullWidth
+                                    variant="outlined"
+                                    size="small"
+                                    value={editingNote}
+                                    onChange={(e) => setEditingNote(e.target.value)}
+                                    disabled={savingNote}
+                                    autoFocus
+                                    sx={{ mb: 1 }}
+                                  />
+                                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    <IconButton size="small" onClick={handleCancelEditNote} disabled={savingNote} title="Cancel">
+                                      <CancelIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton size="small" onClick={handleSaveNoteClick} disabled={savingNote} title="Save">
+                                      {savingNote ? <CircularProgress size={16} /> : <SaveIcon fontSize="small" color="primary" />}
+                                    </IconButton>
+                                  </Box>
+                                </Box>
+                              ) : (
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                  <Typography variant="body2" component="span">
+                                    {record.hr_notes || '-'} 
+                                  </Typography>
+                                  <IconButton size="small" onClick={() => handleEditNoteClick(record)} title="Edit Note" sx={{ ml: 1, mt: -0.5 }}>
+                                    <EditIcon fontSize="small" />
                                   </IconButton>
                                 </Box>
-                              </Box>
-                            ) : (
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <Typography variant="body2" component="span">
-                                  {record.hr_notes || '-'} 
-                                </Typography>
-                                <IconButton size="small" onClick={() => handleEditNoteClick(record)} title="Edit Note" sx={{ ml: 1, mt: -0.5 }}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Box>
-                            )}
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-          <TablePagination
-            component="div"
-            count={totalCount}
-            page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-          />
-        </Box>
-      </DialogContent>
+                              )}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+            <TablePagination
+              component="div"
+              count={totalCount}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+            />
+          </Box>
+        </DialogContent>
+      </LocalizationProvider>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
