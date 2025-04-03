@@ -816,6 +816,19 @@ const SalesPage: React.FC = (): React.ReactElement => {
                   {sales.length > 0 ? (
                     sales.map((sale) => {
                       console.log('[SalesPage] Mapping sale:', JSON.stringify(sale)); 
+                      
+                      // Calculate balance if partially paid
+                      let balance = 0;
+                      let isPartiallyPaid = false;
+                      if (sale.payment_status === 'Partially Paid') {
+                        const totalCost = typeof sale.total_cost === 'string' ? parseFloat(sale.total_cost) : (sale.total_cost || 0);
+                        const totalPayment = typeof sale.total_payment === 'string' ? parseFloat(sale.total_payment) : (sale.total_payment || 0);
+                        if (!isNaN(totalCost) && !isNaN(totalPayment)) {
+                          balance = totalCost - totalPayment;
+                          isPartiallyPaid = true;
+                        }
+                      }
+                      
                       return (
                         <TableRow key={sale.id}>
                           <TableCell>
@@ -839,7 +852,14 @@ const SalesPage: React.FC = (): React.ReactElement => {
                           <TableCell>{sale.buyer_name}</TableCell>
                           <TableCell align="right">{sale.total_quantity}</TableCell>
                           <TableCell align="right">{formatCurrency(sale.total_cost)}</TableCell>
-                          <TableCell>{sale.payment_status}</TableCell>
+                          <TableCell>
+                            {sale.payment_status}
+                            {isPartiallyPaid && balance > 0 && (
+                              <Typography variant="caption" display="block" sx={{ color: 'warning.main', fontSize: '0.75rem' }}>
+                                (Balance: {formatCurrency(balance)})
+                              </Typography>
+                            )}
+                          </TableCell>
                           <TableCell>{renderStatus(sale.status)}</TableCell>
                           <TableCell padding="none">
                               <IconButton
