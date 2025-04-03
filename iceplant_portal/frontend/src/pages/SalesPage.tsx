@@ -198,6 +198,9 @@ const SalesPage: React.FC = () => {
         ? `${query}&${filterParams.toString()}`
         : query;
       
+      // Log the full query for debugging
+      console.log(`[SalesPage] Full request URL: ${endpoints.sales}${queryString}`);
+      
       // Check if we have cached data for this exact query
       const cacheKey = `sales_${queryString}`;
       const cachedData = sessionStorage.getItem(cacheKey);
@@ -224,9 +227,11 @@ const SalesPage: React.FC = () => {
       }
       
       if (response && response.results) {
+        console.log(`[SalesPage] Setting ${response.results.length} sales results from page ${page}`);
         setSales(response.results);
         setFilteredSales(response.results);
         setTotalItems(response.count || 0);
+        console.log(`[SalesPage] Total items: ${response.count}, pages: ${Math.ceil((response.count || 0) / pageSize)}`);
       } else if (Array.isArray(response)) {
         setSales(response);
         setFilteredSales(response);
@@ -250,6 +255,7 @@ const SalesPage: React.FC = () => {
 
   // Fetch sales data when page or sorting changes
   useEffect(() => {
+    console.log(`[SalesPage] Page or sort changed - page: ${page}, sort: ${sortField} ${sortDirection}`);
     fetchSales();
   }, [page, pageSize, sortField, sortDirection, fetchSales]);
 
@@ -310,27 +316,34 @@ const SalesPage: React.FC = () => {
     // which will be triggered by the useEffect watching these values
   };
 
-  // Apply filters locally - REPLACE THIS with backend filtering
+  // Apply filters - this is now separated from the page change logic
   const applyFilters = useCallback(() => {
-    // Set page back to 1 when applying new filters
+    // Reset to page 1 when applying new filters
     setPage(1);
-    // The actual filtering will be done by the backend via fetchSales
-    fetchSales();
-  }, [setPage, fetchSales]);
+    // No need to call fetchSales here since the useEffect depends on page
+  }, [setPage]);
 
   // Reset filters
   const resetFilters = () => {
+    console.log('[SalesPage] Resetting all filters');
     setFilterStatus('');
     setFilterBuyer('');
     setFilterDateFrom('');
     setFilterDateTo('');
+    
+    // Clear cache to ensure we get fresh data
+    clearSalesCache();
+    
+    // Reset to page 1
     setPage(1);
-    // After resetting filters, fetch data without filters
-    fetchSales();
+    
+    // Log that we've reset filters
+    console.log('[SalesPage] All filters reset, returning to page 1');
   };
 
   // Handle page change
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+    console.log(`[SalesPage] Changing to page ${value}`);
     setPage(value);
     // Page changes will trigger fetchSales via useEffect
   };
@@ -348,9 +361,17 @@ const SalesPage: React.FC = () => {
     setFilterDateTo(event.target.value);
   };
 
-  // Apply filters when filter values change
+  // Apply filters when filter values change - with proper debounce
   useEffect(() => {
+    console.log(`[SalesPage] Filter values changed, will apply after debounce:`, {
+      status: filterStatus,
+      buyer: filterBuyer,
+      dateFrom: filterDateFrom,
+      dateTo: filterDateTo
+    });
+    
     const timer = setTimeout(() => {
+      console.log('[SalesPage] Debounce time reached, applying filters now');
       applyFilters();
     }, 500);
     
@@ -359,12 +380,18 @@ const SalesPage: React.FC = () => {
 
   // Function to clear sales cache
   const clearSalesCache = () => {
+    console.log('[SalesPage] Clearing sales cache...');
+    let clearedCount = 0;
+    
     // Find all sales cache keys and remove them
     Object.keys(sessionStorage).forEach(key => {
       if (key.startsWith('sales_')) {
         sessionStorage.removeItem(key);
+        clearedCount++;
       }
     });
+    
+    console.log(`[SalesPage] Cleared ${clearedCount} cache entries`);
   };
 
   const handleSaleAdded = () => {
@@ -676,9 +703,11 @@ const SalesPage: React.FC = () => {
                   } else {
                     setFilterBuyer('');
                   }
+                  // Don't need to manually trigger applyFilters here as the useEffect will handle it
                 }}
                 onInputChange={(_event, newInputValue) => {
                   setFilterBuyer(newInputValue);
+                  // Don't need to manually trigger applyFilters here as the useEffect will handle it
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -846,6 +875,10 @@ const SalesPage: React.FC = () => {
                 page={page}
                 onChange={handlePageChange} 
                 color="primary"
+                siblingCount={1}
+                boundaryCount={1}
+                showFirstButton
+                showLastButton
               />
             </Box>
           </>
