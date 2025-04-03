@@ -180,6 +180,11 @@ const SalesPage: React.FC = () => {
       if (filterBuyer) {
         // Make sure to trim any whitespace or tab characters from the buyer name
         const trimmedBuyerName = filterBuyer.trim();
+        console.log('[SalesPage] Adding buyer filter:', { 
+          original: filterBuyer, 
+          trimmed: trimmedBuyerName,
+          isEmpty: trimmedBuyerName === ''
+        });
         filterParams.append('buyer_name__icontains', trimmedBuyerName);
       }
       if (filterDateFrom) filterParams.append('sale_date__gte', filterDateFrom);
@@ -372,6 +377,7 @@ const SalesPage: React.FC = () => {
     
     const timer = setTimeout(() => {
       console.log('[SalesPage] Debounce time reached, applying filters now');
+      console.log('[SalesPage] Current filterBuyer value:', filterBuyer);
       applyFilters();
     }, 500);
     
@@ -695,7 +701,8 @@ const SalesPage: React.FC = () => {
                   </li>
                 )}
                 value={filterBuyer}
-                onChange={(_event, newValue) => {
+                onChange={(event, newValue) => {
+                  console.log('[SalesPage] Buyer filter changed:', newValue);
                   if (typeof newValue === 'string') {
                     setFilterBuyer(newValue);
                   } else if (newValue) {
@@ -703,20 +710,20 @@ const SalesPage: React.FC = () => {
                   } else {
                     setFilterBuyer('');
                   }
-                  // Don't need to manually trigger applyFilters here as the useEffect will handle it
+                  // Reset to page 1 and apply filters
+                  setPage(1);
                 }}
-                onInputChange={(_event, newInputValue) => {
+                onInputChange={(event, newInputValue) => {
+                  console.log('[SalesPage] Buyer input changed:', newInputValue);
                   setFilterBuyer(newInputValue);
-                  // Don't need to manually trigger applyFilters here as the useEffect will handle it
                 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     label="Buyer Name"
-                    margin="normal"
                     variant="outlined"
                     InputLabelProps={{ shrink: true }}
-                    sx={{ mt: 0 }}
+                    placeholder="Search by buyer name"
                   />
                 )}
               />
