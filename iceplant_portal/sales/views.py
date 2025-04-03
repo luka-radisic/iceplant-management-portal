@@ -3,8 +3,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet, DateFromToRangeFilter, CharFilter, NumberFilter
-from django.db.models import Sum, F, Value, DecimalField
-from django.db.models.functions import Coalesce
+from django.db.models import Sum, F, Value, DecimalField, Count
+from django.db.models.functions import Coalesce, TruncMonth
+import calendar # Import calendar module
 
 from .models import Sale
 from .serializers import SaleSerializer
@@ -36,32 +37,62 @@ class SaleViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def summary(self, request):
-        # Filter queryset
-        queryset = self.filter_queryset(self.get_queryset())
+        # Get date range from query parameters, default to current month if not provided
+        start_date_str = request.query_params.get('start_date', None)
+        end_date_str = request.query_params.get('end_date', None)
         
-        # Calculate summary data
-        total_count = queryset.count()
-        processed_count = queryset.filter(status='processed').count()
-        canceled_count = queryset.filter(status='canceled').count()
-        error_count = queryset.filter(status='error').count()
+        # Base queryset - only consider processed sales for revenue/monthly data
+        base_queryset = self.filter_queryset(self.get_queryset()).filter(status='processed')
+
+        # Apply date filtering if parameters are provided
+        if start_date_str and end_date_str:
+            queryset = base_queryset.filter(sale_date__range=[start_date_str, end_date_str])
+        else:
+            # Default to current month or handle as needed if no dates
+            # For simplicity, let's use the base_queryset if no dates are specified
+            queryset = base_queryset 
+            # Alternatively, you could default to current month:
+            # from django.utils import timezone
+            # now = timezone.now()
+            # start_date = now.replace(day=1)
+            # end_date = (start_date + timezone.timedelta(days=32)).replace(day=1) - timezone.timedelta(days=1)
+            # queryset = base_queryset.filter(sale_date__range=[start_date.date(), end_date.date()])
+            
+        # Calculate overall summary data for the period
+        total_revenue = queryset.aggregate(
+            total=Coalesce(Sum(F('price_per_block') * (F('pickup_quantity') + F('delivery_quantity'))), Value(0), output_field=DecimalField())
+        )['total'] or 0
+
+        # Calculate previous period's revenue (simple example: same range last year/month - adjust as needed)
+        # This part needs refinement based on the exact definition of "previous_period"
+        previous_total_revenue = 0 # Placeholder - implement proper previous period logic if needed
+
+        # Calculate monthly breakdown within the specified range
+        monthly_sales = queryset.annotate(
+            month_date=TruncMonth('sale_date') # Truncate to month
+        ).values(
+            'month_date' # Group by month
+        ).annotate(
+            total=Sum(F('price_per_block') * (F('pickup_quantity') + F('delivery_quantity'))) # Sum sales for the month
+        ).order_by(
+            'month_date' # Order by month
+        )
         
-        # Calculate revenue from processed sales
-        total_revenue = queryset.filter(status='processed').aggregate(
-            total_revenue=Coalesce(Sum(F('price_per_block') * (F('pickup_quantity') + F('delivery_quantity'))), Value(0), output_field=DecimalField())
-        )['total_revenue'] or 0
-        
-        # Calculate average sale value
-        avg_sale_value = 0
-        if processed_count > 0:
-            avg_sale_value = total_revenue / processed_count
+        # Format monthly data for the chart
+        formatted_monthly_data = [
+            {
+                'month': calendar.month_abbr[sale['month_date'].month], # Get short month name
+                'total': float(sale['total'] or 0) # Ensure it's a float for chart
+            }
+            for sale in monthly_sales
+        ]
         
         summary_data = {
-            'total_sales': total_count,
-            'total_revenue': total_revenue,
-            'average_sale_value': avg_sale_value,
-            'active_count': processed_count,
-            'canceled_count': canceled_count,
-            'error_count': error_count
+            'current_total': total_revenue,
+            'previous_total': previous_total_revenue, # Include previous period if calculated
+            'monthly_data': formatted_monthly_data, # Add monthly breakdown
+            # Add other stats if needed (counts etc., calculated from base_queryset maybe?)
+            # 'total_sales': queryset.count(), # Count for the period
         }
         
         return Response(summary_data) 

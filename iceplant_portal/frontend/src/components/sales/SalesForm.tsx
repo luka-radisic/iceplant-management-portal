@@ -6,6 +6,8 @@ import {
   Grid,
   CircularProgress,
   Autocomplete,
+  AutocompleteChangeReason,
+  AutocompleteChangeDetails
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { apiService, endpoints } from '../../services/api';
@@ -89,7 +91,7 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     };
     
     fetchBuyers();
-  }, [enqueueSnackbar]);
+  }, []);
 
   // Regular change handler for text fields
   const handleChange = (
@@ -175,16 +177,6 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     return `₱${formattedNumber}`;
   };
 
-  // Function to format number without currency symbol
-  const formatNumber = (value: number | string): string => {
-    if (value === '' || value === null || value === undefined) return '';
-    
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(numValue)) return '';
-    
-    return numValue.toLocaleString('en-PH');
-  };
-
   // Handle numeric input for quantities
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -224,8 +216,13 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   };
 
   // Handle buyer selection from autocomplete
-  const handleBuyerChange = (event: React.SyntheticEvent, newValue: BuyerLight | null) => {
-    setSelectedBuyer(newValue);
+  const handleBuyerChange = (
+    _event: React.SyntheticEvent,
+    newValue: string | BuyerLight | null,
+    reason: AutocompleteChangeReason,
+    _details?: AutocompleteChangeDetails<BuyerLight>
+  ) => {
+    console.log(`[SalesForm] Buyer changed. Reason: ${reason}, Value:`, newValue);
     
     // Clear buyer_name error if it exists
     if (errors.buyer_name) {
@@ -236,43 +233,37 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       });
     }
     
-    if (newValue) {
-      // Update form with selected buyer's info
-      setFormData(prev => {
-        // Prepare contact info - use phone as default, fallback to email
-        const contactInfo = newValue.phone || newValue.email || prev.buyer_contact || '';
-        
-        // If this is a repeat customer, try to use their previous PO number if we don't have one yet
-        const poNumber = prev.po_number || '';
-        
-        return {
-          ...prev,
-          buyer_id: newValue.id,
-          buyer_name: newValue.name,
-          buyer_contact: contactInfo,
-          // No need to override PO number if it's already set
-          po_number: poNumber,
-        };
-      });
-      
-      // Show a notification that buyer info was loaded
-      enqueueSnackbar(`Buyer "${newValue.name}" selected`, { 
-        variant: 'success',
-        autoHideDuration: 2000 
-      });
+    if (newValue === null) {
+      // Input was cleared
+      setSelectedBuyer(null);
+      setFormData(prev => ({ 
+        ...prev, 
+        buyer_name: '', 
+        buyer_id: undefined 
+      }));
+    } else if (typeof newValue === 'string') {
+      // User typed a new name (freeSolo) or selected the typed string
+      setSelectedBuyer(null); // Cannot select an object if it's a string
+      setFormData(prev => ({ 
+        ...prev, 
+        buyer_name: newValue, // Use the string value as the name
+        buyer_id: undefined // No ID associated with the typed string yet
+      }));
     } else {
-      // Clear buyer-related fields if selection is cleared
-      setFormData(prev => ({
-        ...prev,
-        buyer_id: undefined,
-        // Don't clear buyer name if user is typing
-        // buyer_name: '',
+      // If it's not null and not string, it MUST be BuyerLight
+      setSelectedBuyer(newValue); 
+      setFormData(prev => ({ 
+        ...prev, 
+        // @ts-ignore - Linter struggles with type guard here
+        buyer_name: newValue.name, 
+        buyer_id: newValue.id,     
+        buyer_contact: prev.buyer_contact || newValue.phone || newValue.email || '' 
       }));
     }
   };
 
   // Handle buyer input change (when typing in autocomplete)
-  const handleBuyerInputChange = (event: React.SyntheticEvent, newInputValue: string) => {
+  const handleBuyerInputChange = (_event: React.SyntheticEvent, newInputValue: string) => {
     setFormData(prev => ({
       ...prev,
       buyer_name: newInputValue
@@ -281,116 +272,84 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic form validation
+    const currentErrors: Record<string, string> = {};
+    if (!formData.si_number) currentErrors.si_number = "SI Number is required";
+    if (!formData.buyer_name) currentErrors.buyer_name = "Buyer Name is required";
+    if (!formData.price_per_block) currentErrors.price_per_block = "Price per Block is required";
+    if ((formData.pickup_quantity || 0) + (formData.delivery_quantity || 0) <= 0) {
+      currentErrors.quantity = "At least Pickup or Delivery Quantity must be greater than 0";
+    }
+
+    // ---> Add Overpayment Validation <--- 
+    const totalQuantity = (Number(formData.pickup_quantity) || 0) + (Number(formData.delivery_quantity) || 0);
+    const pricePerBlock = Number(formData.price_per_block) || 0;
+    const totalCost = totalQuantity * pricePerBlock;
+    
+    const cashAmount = Number(formData.cash_amount) || 0;
+    const poAmount = Number(formData.po_amount) || 0;
+    const totalPayment = cashAmount + poAmount;
+
+    if (totalPayment > totalCost && totalCost > 0) { // Check only if totalCost is calculated and positive
+      currentErrors.payment = `Total payment (${formatCurrency(totalPayment)}) cannot exceed total cost (${formatCurrency(totalCost)}).`;
+      enqueueSnackbar("Overpayment detected. Please correct Cash or PO Amount.", { variant: 'error' });
+    }
+    // ---> End Overpayment Validation <---
+    
+    // Check if there are any validation errors
+    if (Object.keys(currentErrors).length > 0) {
+      setErrors(currentErrors);
+      console.error("Validation Errors:", currentErrors);
+      enqueueSnackbar("Please fix the errors in the form.", { variant: 'warning' });
+      return; // Stop submission if there are errors
+    }
+
     setIsSubmitting(true);
-    
-    // Clear previous errors
-    setErrors({});
+    setErrors({}); // Clear previous errors
 
-    // Validate form
-    let hasErrors = false;
-    const newErrors: Record<string, string> = {};
-
-    const requiredFields: (keyof SaleFormData)[] = [
-      'si_number', 'sale_date', 'sale_time', 'buyer_name', 
-      'pickup_quantity', 'delivery_quantity', 'price_per_block', 
-      'cash_amount', 'po_amount'
-    ];
-    
-    for (const field of requiredFields) {
-      if (formData[field] === '' || formData[field] === null) {
-        newErrors[field] = `${field.replace(/_/g, ' ')} is required`;
-        hasErrors = true;
-      }
-    }
-
-    if (hasErrors) {
-      setErrors(newErrors);
-      enqueueSnackbar(`Please fix the errors in the form.`, { variant: 'error' });
-      setIsSubmitting(false);
-      return;
-    }
-    
+    // Prepare data for API
     const dataToSend = {
       ...formData,
-      // Ensure all numeric fields are sent as numbers
-      pickup_quantity: Number(formData.pickup_quantity || 0),
-      delivery_quantity: Number(formData.delivery_quantity || 0),
-      price_per_block: Number(formData.price_per_block || 0),
-      cash_amount: Number(formData.cash_amount || 0),
-      po_amount: Number(formData.po_amount || 0),
-      // Keep optional fields as null if empty
-      buyer_contact: formData.buyer_contact || null,
-      po_number: formData.po_number || null,
-      brine1_identifier: formData.brine1_identifier || null,
-      brine2_identifier: formData.brine2_identifier || null,
-      notes: formData.notes || null,
+      pickup_quantity: Number(formData.pickup_quantity) || 0,
+      delivery_quantity: Number(formData.delivery_quantity) || 0,
+      price_per_block: Number(formData.price_per_block) || 0,
+      cash_amount: Number(formData.cash_amount) || 0,
+      po_amount: Number(formData.po_amount) || 0,
+      // Ensure buyer_id is set if a buyer was selected
+      buyer_id: selectedBuyer ? selectedBuyer.id : undefined,
     };
-
-    console.log('Submitting Data:', dataToSend);
+    
+    console.log("Submitting sale data:", dataToSend);
 
     try {
-      // If no buyer_id is present but we have a buyer_name, try to find or create a buyer
-      if (!formData.buyer_id && formData.buyer_name) {
-        try {
-          // Use the enhanced search method that also checks for UUID format
-          const buyerResponse = await apiService.searchOrCreateBuyerWithId(formData.buyer_name);
-          if (buyerResponse && buyerResponse.id) {
-            dataToSend.buyer_id = buyerResponse.id;
-            
-            // Update the buyers list with the new buyer
-            if (!buyers.some(b => b.id === buyerResponse.id)) {
-              setBuyers(prev => [...prev, buyerResponse]);
-            }
-          }
-        } catch (err) {
-          console.error("Error finding/creating buyer:", err);
-          // Continue with the sale even if buyer creation fails
+      const response = await apiService.post(endpoints.sales, dataToSend);
+      enqueueSnackbar(`Sale ${response.si_number} added successfully!`, { variant: 'success' });
+      setFormData(initialFormData); // Reset form after successful submission
+      setSelectedBuyer(null); // Reset selected buyer
+      onSaleAdded(); // Call the callback prop
+    } catch (error: any) { // Use 'any' or a more specific error type
+      console.error("Error adding sale:", error);
+      let errorMessage = "Failed to add sale.";
+      
+      // Check if error response has detailed messages
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        // Combine multiple error messages if they exist
+        const messages = Object.entries(errorData)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('; ');
+        if (messages) {
+          errorMessage += ` Details: ${messages}`;
         }
       }
-
-      await apiService.post(endpoints.sales, dataToSend);
-      enqueueSnackbar('Sale recorded successfully!', { variant: 'success' });
-      setFormData(initialFormData);
-      setSelectedBuyer(null);
-      onSaleAdded();
-    } catch (error: any) {
-      console.error('Failed to submit sale:', error);
-      let errorMessage = 'Failed to record sale. Please check console for details.';
       
-      // Clear previous field errors
-      setErrors({});
+      enqueueSnackbar(errorMessage, { variant: 'error' });
       
-      // Try to get more specific error from backend response
-      if (error.response && error.response.data) {
-          const errors = error.response.data;
-          // Format Django Rest Framework validation errors (check if it's an object)
-          if (typeof errors === 'object' && errors !== null) {
-            // Set field-specific errors
-            const fieldErrors: Record<string, string> = {};
-            
-            Object.entries(errors).forEach(([field, messages]) => {
-              // Ensure messages is an array before joining
-              const messageString = Array.isArray(messages) ? messages.join(', ') : String(messages);
-              fieldErrors[field] = messageString;
-            });
-            
-            setErrors(fieldErrors);
-            
-            // Format a general error message
-            const formattedErrors = Object.entries(errors).map(([field, messages]) => {
-              const messageString = Array.isArray(messages) ? messages.join(', ') : String(messages);
-              return `${field}: ${messageString}`;
-            }).join('; ');
-            
-            if (formattedErrors) {
-                 errorMessage = formattedErrors;
-            }
-          } else if (typeof errors === 'string') {
-             // Handle plain string error response
-             errorMessage = errors;
-          }
+      // Optionally set form errors based on response
+      if (error.response && error.response.data && typeof error.response.data === 'object') {
+        setErrors(error.response.data);
       }
-      enqueueSnackbar(errorMessage, { variant: 'error', persist: true }); // Keep error message until dismissed
     } finally {
       setIsSubmitting(false);
     }
@@ -454,8 +413,16 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
             id="buyer-autocomplete"
             value={selectedBuyer}
             onChange={handleBuyerChange}
+            onInputChange={handleBuyerInputChange}
             options={buyers}
-            getOptionLabel={(option) => option.name}
+            getOptionLabel={(option) => {
+              // Needed for freeSolo: option might be a string or BuyerLight
+              if (typeof option === 'string') {
+                return option;
+              }
+              // Otherwise, it's a BuyerLight object
+              return option.name;
+            }}
             filterOptions={(options, state) => {
               const inputValue = state.inputValue.toLowerCase().trim();
               // Don't show any options if the user hasn't typed anything
@@ -499,10 +466,9 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
               });
             }}
             renderOption={(props, option) => {
-              // Extract key from props
-              const { key, ...otherProps } = props;
+              // Fix redundant key: Remove manual key handling
               return (
-                <li key={key} {...otherProps} style={{ padding: '8px 16px' }}>
+                <li {...props} style={{ padding: '8px 16px' }}>  {/* Use props directly */} 
                   <div>
                     <div style={{ fontWeight: 'bold' }}>{option.name}</div>
                     {option.company_name && (
@@ -527,24 +493,10 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
                 {...params}
                 label="Buyer Name"
                 required
-                onChange={(e) => {
-                  setFormData({...formData, buyer_name: e.target.value});
-                  if (e.target.value === '') {
-                    setSelectedBuyer(null);
-                  }
-                }}
                 fullWidth
                 error={!!errors.buyer_name}
                 helperText={errors.buyer_name || "Start typing to search for buyers by name or ID"}
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {loadingBuyers ? <CircularProgress color="inherit" size={20} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
+                InputProps={{ ...params.InputProps /* Keep existing InputProps */ }}
               />
             )}
           />
