@@ -93,16 +93,48 @@ const MaintenancePrintPage: React.FC = () => {
 
   // Print layout for multiple records
   return (
-    <Container maxWidth="md" sx={{ mt: 2, mb: 2 }}>
+    <Container maxWidth="md" sx={{ mt: 2, mb: 2 }} className="print-container">
       {/* Add styles for printing - page breaks */}
       <style>
         {`
+          @page {
+            size: A4;
+            margin: 20mm; /* Adjust margins as needed */
+          }
+
           @media print {
+            body {
+              -webkit-print-color-adjust: exact; /* Ensure colors print */
+              font-size: 10pt; /* Slightly reduce base font size for print */
+            }
+            .print-container {
+                max-width: 100% !important; /* Override MUI max-width for print */
+                padding: 0 !important; /* Remove container padding for print */
+            }
+            .print-paper {
+                border: none !important; /* Remove border for cleaner print */
+                box-shadow: none !important; /* Remove shadow */
+                padding: 10px 0 !important; /* Adjust padding for print */
+            }
             .print-page-break {
               page-break-after: always;
-              margin-top: 20px; /* Add space before the next record */
+              margin-top: 15px; /* Adjust space before the next record */
             }
-            body { -webkit-print-color-adjust: exact; } /* Ensure colors print */
+            /* Optional: Reduce grid spacing for print */
+            .print-grid-container {
+                /* Add specific spacing overrides if needed */
+            }
+            /* Optional: Adjust specific typography variants */
+            h5 {
+                font-size: 14pt !important;
+            }
+            .MuiTypography-subtitle2 {
+                 font-size: 9pt !important;
+                 font-weight: bold !important; /* Ensure subtitles stand out */
+            }
+             .MuiTypography-body1, .MuiTypography-body2 {
+                 font-size: 9pt !important;
+            }
           }
         `}
       </style>
@@ -110,13 +142,12 @@ const MaintenancePrintPage: React.FC = () => {
         <Paper
            key={record.id || index} // Use record ID if available, otherwise index
            elevation={0} // Remove shadow for printing
+           // Add print-paper class and adjust base styles
+           className={`print-paper ${index < records.length - 1 ? 'print-page-break' : ''}`}
            sx={{
              p: 2,
-             border: '1px solid #eee', // Optional border for separation
-             // Add margin bottom except for the last item
+             border: '1px solid #eee',
              mb: index < records.length - 1 ? 4 : 0,
-             // Apply page break class except for the last item
-             ...(index < records.length - 1 && { className: 'print-page-break' })
            }}
          >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -126,8 +157,8 @@ const MaintenancePrintPage: React.FC = () => {
           </Box>
           <Divider sx={{ mb: 2 }} />
 
-          {/* Grid layout for record details - same as before */}
-          <Grid container spacing={2}>
+          {/* Add print-grid-container class if specific grid overrides are needed */}
+          <Grid container spacing={2} className="print-grid-container">
             <Grid item xs={6}>
               <Typography variant="subtitle2">Equipment:</Typography>
               <Typography>{record.maintenance_item?.equipment_name || 'N/A'}</Typography>
