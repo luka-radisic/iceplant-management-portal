@@ -36,6 +36,7 @@ import {
 } from 'recharts';
 import apiService from '../services/api';
 import EmployeeAttendanceModal from './EmployeeAttendanceModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AttendanceStats {
   status_distribution: { name: string; value: number }[];
@@ -45,6 +46,7 @@ interface AttendanceStats {
 
 export default function AttendanceList() {
   const theme = useTheme();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [records, setRecords] = useState<any[]>([]);
@@ -60,6 +62,8 @@ export default function AttendanceList() {
     department: '',
   });
   const [departments, setDepartments] = useState<string[]>([]);
+
+  const isHrUser = useMemo(() => user?.group === 'HR', [user]);
 
   const fetchDepartments = async () => {
     try {
@@ -505,6 +509,7 @@ export default function AttendanceList() {
           onClose={() => setSelectedEmployee(null)}
           employeeId={selectedEmployee.id}
           employeeName={selectedEmployee.name}
+          isHrUser={isHrUser}
         />
       )}
     </Box>

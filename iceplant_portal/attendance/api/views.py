@@ -40,6 +40,28 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     max_page_size = 500  # Maximum allowed page size
     filter_backends = []
     
+    # Override perform_update to control hr_notes access
+    def perform_update(self, serializer):
+        user = self.request.user
+        is_hr = user.groups.filter(name='HR').exists()
+
+        validated_data = serializer.validated_data
+        
+        if not is_hr and 'hr_notes' in validated_data:
+            # If user is not HR, remove hr_notes from data before saving
+            validated_data.pop('hr_notes')
+            print(f"User {user.username} (not HR) attempted to update hr_notes. Field removed before save.")
+
+        # Check if instance exists before saving
+        # instance = serializer.instance
+        # if instance:
+        #    print(f"Saving instance {instance.id} with data: {validated_data}")
+        # else:
+        #    print("Attempting to save a new instance during update?") # Should not happen in standard update
+        
+        serializer.save()
+        print(f"Attendance record update performed by user {user.username}. HR status: {is_hr}")
+
     def _get_filtered_queryset(self, params):
         """ Helper function to get base queryset based on filters """
         queryset = Attendance.objects.all()

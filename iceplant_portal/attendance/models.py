@@ -77,6 +77,8 @@ class Attendance(models.Model):
     check_out = models.DateTimeField(null=True, blank=True)
     department = models.CharField(max_length=50)
     import_date = models.DateTimeField(auto_now_add=True)
+    # Add HR-only notes field
+    hr_notes = models.TextField(blank=True, null=True, help_text='Internal notes visible only to HR')
     
     def save(self, *args, **kwargs):
         # Ensure times are stored in UTC
@@ -188,7 +190,6 @@ class EmployeeShift(models.Model):
         
         check_in_date = check_in_time.date()
         check_in_hour = check_in_time.hour
-        check_in_minute = check_in_time.minute
         
         # For rotating 12-hour shifts
         if self.is_rotating_shift:
