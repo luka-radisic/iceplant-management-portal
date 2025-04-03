@@ -24,6 +24,7 @@ import {
   Stack,
   FormControlLabel,
   Switch,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,6 +36,7 @@ import { useSnackbar } from 'notistack';
 import { apiService } from '../services/api';
 import { Buyer } from '../types/buyers';
 import { useAuth } from '../contexts/AuthContext';
+import { styled } from '@mui/material/styles';
 
 const BuyersPage: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
@@ -76,6 +78,9 @@ const BuyersPage: React.FC = () => {
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  
+  // Calculate colSpan based on admin status
+  const tableColSpan = isAdmin ? 7 : 6;
   
   // Fetch buyers data
   const fetchBuyers = useCallback(async () => {
@@ -245,26 +250,10 @@ const BuyersPage: React.FC = () => {
   
   // Render buyers table
   const renderBuyersTable = () => {
-    if (loading) {
-      return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-    
-    if (error) {
-      return <Alert severity="error">{error}</Alert>;
-    }
-    
-    if (filteredBuyers.length === 0) {
-      return <Alert severity="info">No buyers found. Create a new buyer to get started.</Alert>;
-    }
-    
     return (
       <>
         <TableContainer>
-          <Table>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
@@ -277,57 +266,87 @@ const BuyersPage: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedBuyers.map((buyer) => (
-                <TableRow key={buyer.id}>
-                  <TableCell>{buyer.name}</TableCell>
-                  <TableCell>{buyer.company_name || '-'}</TableCell>
-                  <TableCell>
-                    <Stack>
-                      {buyer.email && <Typography variant="body2">{buyer.email}</Typography>}
-                      {buyer.phone && <Typography variant="body2">{buyer.phone}</Typography>}
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    {buyer.city && buyer.state ? `${buyer.city}, ${buyer.state}` : (buyer.city || buyer.state || '-')}
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={buyer.is_active ? 'Active' : 'Inactive'} 
-                      color={buyer.is_active ? 'success' : 'default'} 
-                      size="small" 
-                    />
-                  </TableCell>
-                  {isAdmin && (
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                        {buyer.id}
-                      </Typography>
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    <IconButton size="small" color="primary" onClick={() => handleOpenEdit(buyer)}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    {isAdmin && (
-                      <IconButton size="small" color="error" onClick={() => handleOpenDelete(buyer)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={tableColSpan} align="center">
+                    <CircularProgress />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={tableColSpan} align="center">
+                    <Alert severity="error" sx={{ width: '100%', justifyContent: 'center' }}>{error}</Alert>
+                  </TableCell>
+                </TableRow>
+              ) : filteredBuyers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={tableColSpan} align="center">
+                    No buyers found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedBuyers.map((buyer, index) => (
+                  <TableRow
+                    key={buyer.id}
+                    hover
+                    sx={{
+                      '&:nth-of-type(odd)': {
+                        backgroundColor: (theme) => theme.palette.action.hover,
+                      },
+                    }}
+                  >
+                    <TableCell>{buyer.name}</TableCell>
+                    <TableCell>{buyer.company_name || '-'}</TableCell>
+                    <TableCell>
+                      <Stack>
+                        {buyer.email && <Typography variant="body2">{buyer.email}</Typography>}
+                        {buyer.phone && <Typography variant="body2">{buyer.phone}</Typography>}
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      {buyer.city && buyer.state ? `${buyer.city}, ${buyer.state}` : (buyer.city || buyer.state || '-')}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={buyer.is_active ? 'Active' : 'Inactive'}
+                        color={buyer.is_active ? 'success' : 'default'}
+                        size="small"
+                      />
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                          {buyer.id}
+                        </Typography>
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <IconButton size="small" color="primary" onClick={() => handleOpenEdit(buyer)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      {isAdmin && (
+                        <IconButton size="small" color="error" onClick={() => handleOpenDelete(buyer)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
         
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-          <Pagination 
-            count={Math.ceil(totalBuyers / pageSize)} 
-            page={page} 
-            onChange={handlePageChange} 
-            color="primary"
-          />
-        </Box>
+        {!loading && !error && filteredBuyers.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+            <Pagination
+              count={Math.ceil(totalBuyers / pageSize)}
+              page={page}
+              onChange={handlePageChange}
+              color="primary"
+            />
+          </Box>
+        )}
       </>
     );
   };
@@ -337,39 +356,40 @@ const BuyersPage: React.FC = () => {
       <Typography variant="h4" gutterBottom>Buyers Management</Typography>
       
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={6}>
             <TextField
+              fullWidth
+              label="Search buyers..."
               variant="outlined"
-              size="small"
-              placeholder="Search buyers..."
               value={searchQuery}
               onChange={handleSearchChange}
               InputProps={{
-                startAdornment: <SearchIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
               }}
-              sx={{ mr: 2 }}
             />
+          </Grid>
+          <Grid item xs={12} sm={4}>
             <FormControlLabel
-              control={
-                <Switch 
-                  checked={showInactive} 
-                  onChange={(e) => setShowInactive(e.target.checked)} 
-                  color="primary"
-                />
-              }
+              control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
               label="Show inactive"
             />
-          </Box>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreate}
-          >
-            New Buyer
-          </Button>
-        </Box>
+          </Grid>
+          <Grid item xs={12} sm={2} sx={{ textAlign: 'right' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreate}
+            >
+              New Buyer
+            </Button>
+          </Grid>
+        </Grid>
         
         {renderBuyersTable()}
       </Paper>
