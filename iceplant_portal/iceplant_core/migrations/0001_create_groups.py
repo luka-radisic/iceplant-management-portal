@@ -139,7 +139,7 @@ class Migration(migrations.Migration):
         # Add dependency on the auth app's migrations that create Permission model
         ('auth', '__latest__'), 
         # Add dependencies on the latest migration of each app whose models we need permissions for
-        ('attendance', '__latest__'),
+        ('attendance', '0017_alter_importlog_options_importlog_user'),
         ('sales', '__latest__'),
         ('inventory', '__latest__'),
         ('expenses', '__latest__'),

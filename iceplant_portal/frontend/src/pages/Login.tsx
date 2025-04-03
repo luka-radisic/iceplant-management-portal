@@ -81,11 +81,15 @@ export default function Login() {
       navigate('/', { replace: true });
     } catch (error: any) {
       console.error('Login error:', error);
+      let errorMessage = 'Login failed. Please try again.'; // Default error message
       if (error.response?.status === 400) {
-        setError('Invalid username or password');
-      } else {
-        setError('Login failed. Please try again.');
+        errorMessage = 'Invalid username or password';
+      } else if (error.message) {
+         // Use a more specific message if available from the error object
+        errorMessage = `Login failed: ${error.message}`;
       }
+      setError(errorMessage); // Update the Alert component message
+      enqueueSnackbar(errorMessage, { variant: 'error' }); // Add snackbar notification for error
     } finally {
       setLoading(false);
     }
