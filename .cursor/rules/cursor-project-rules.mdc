@@ -465,21 +465,32 @@ To ensure proper access control and security, the application utilizes Django's 
 ### Standard Roles
 
 1.  **Admin (Superuser):**
-    *   **Responsibilities:** Full system configuration, user management, group/permission setup, potentially sensitive operations (e.g., expense approval if implemented).
-    *   **Assignment:** Users needing full control should be marked as 'superuser'.
+    *   **Responsibilities:** Full system configuration, user management, group/permission setup, potentially sensitive operations.
+    *   **Assignment:** Users needing full control should be marked as 'superuser'. Assign to this role sparingly.
 
 2.  **Office Group:**
-    *   **Responsibilities:** General day-to-day operations - sales entry, inventory checks, expense recording (not approval), maintenance logging, buyer management.
-    *   **Permissions (General):** `ADD`, `VIEW`, `CHANGE` permissions for core operational models (`Sale`, `Buyer`, `Expense`, `ExpenseCategory`, `Inventory`, `InventoryAdjustment`, `MaintenanceItem`, `MaintenanceRecord`). Specifically excludes `DELETE` permissions for these models and any approval permissions.
-    *   **Assignment:** Create a Django Group named "Office" and assign relevant permissions. Assign operational staff users to this group.
+    *   **Apps/Modules:** Sales, Buyers, Inventory, Expenses, Maintenance, Company Settings (View only).
+    *   **Permissions:** `ADD`, `VIEW`, `CHANGE` permissions for models within these apps.
+    *   **Restrictions:** **NO `DELETE` permissions** for any models. **NO ACCESS** to the `attendance` app (no permissions assigned). **NO `approve_expense`** permission.
+    *   **Assignment:** Assign operational staff involved in general record keeping to this group.
 
 3.  **HR Group:**
-    *   **Responsibilities:** Managing employee attendance, shifts, profiles, and related HR-specific notes.
-    *   **Permissions (General):** Full CRUD (`ADD`, `VIEW`, `CHANGE`, `DELETE`) permissions for HR-related models (`EmployeeProfile`, `EmployeeShift`, `DepartmentShift`). `VIEW`, `CHANGE` for `Attendance`. The `attendance.import_attendance` permission for uploads. Access to HR-only notes fields (requires custom logic).
-    *   **Assignment:** Create a Django Group named "HR" and assign relevant permissions. Assign HR staff users to this group.
+    *   **Apps/Modules:** Attendance (`EmployeeProfile`, `EmployeeShift`, `DepartmentShift`, `Attendance`).
+    *   **Permissions:** Full CRUD (`ADD`, `VIEW`, `CHANGE`, `DELETE`) permissions for these models. Must have the `attendance.import_attendance` permission. Will have access to special `hr_notes` field on Attendance (requires custom logic).
+    *   **Restrictions:** **NO ACCESS** to the `maintenance` app. **NO ACCESS** to core admin/auth apps (`admin`, `auth`, `contenttypes`, `sessions`, `authtoken`).
+    *   **Assignment:** Assign HR personnel to this group.
+
+4.  **Sales Group:**
+    *   **Apps/Modules:** Sales, Buyers, Inventory, Expenses, Maintenance, Company Settings (View only).
+    *   **Permissions:** `ADD`, `VIEW`, `CHANGE` permissions for models within these apps.
+    *   **Restrictions:** **NO `DELETE` permissions** for any models. **NO ACCESS** to the `attendance` app. **NO `approve_expense`** permission. **NO ACCESS** to core admin/auth apps.
+    *   **Assignment:** Assign sales-focused staff to this group.
+
+*(Note: The 'Employee' group is currently unused.)*
 
 ### Guidelines
 
 *   **Assign Permissions to Groups:** Avoid assigning permissions directly to individual users whenever possible. Use Groups to manage roles.
 *   **Principle of Least Privilege:** Assign only the permissions necessary for a group to perform its designated responsibilities.
-*   **Review Regularly:** Periodically review group assignments and permissions as application features evolve. 
+*   **Review Regularly:** Periodically review group assignments and permissions as application features evolve.
+*   **Custom Permissions:** Define custom permissions in model `Meta` classes when needed for specific actions not covered by default CRUD permissions. 

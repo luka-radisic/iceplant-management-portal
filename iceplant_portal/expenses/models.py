@@ -71,9 +71,6 @@ class Expense(models.Model):
         ordering = ['date']
         verbose_name = 'Expense'
         verbose_name_plural = 'Expenses'
-        permissions = [
-            ('approve_expense', 'Can approve expenses'),
-        ]
     
     def __str__(self):
         return f"{self.date} - {self.category} - {self.payee} - {self.amount}"
