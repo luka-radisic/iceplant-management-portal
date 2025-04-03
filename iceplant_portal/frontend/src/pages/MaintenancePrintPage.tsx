@@ -9,7 +9,6 @@ import {
 } from '@mui/material';
 import { MaintenanceRecord } from '../types/api'; // Assuming types are in ../types/api
 import { formatDate, formatCurrency, formatDuration } from '../utils/formatters';
-import PrintIcon from '@mui/icons-material/Print';
 
 const MaintenancePrintPage: React.FC = () => {
   // State to hold an array of records
@@ -112,7 +111,7 @@ const MaintenancePrintPage: React.FC = () => {
            key={record.id || index} // Use record ID if available, otherwise index
            elevation={0} // Remove shadow for printing
            sx={{
-             p: 3,
+             p: 2,
              border: '1px solid #eee', // Optional border for separation
              // Add margin bottom except for the last item
              mb: index < records.length - 1 ? 4 : 0,
@@ -124,7 +123,6 @@ const MaintenancePrintPage: React.FC = () => {
             <Typography variant="h5" component="h1">
               Maintenance Record {records.length > 1 ? `(${index + 1} of ${records.length})` : ''}
             </Typography>
-            <PrintIcon color="action" />
           </Box>
           <Divider sx={{ mb: 2 }} />
 
