@@ -193,6 +193,7 @@ const SalesPage: React.FC = () => {
         ? `${query}&${filterParams.toString()}`
         : query;
       
+      console.log(`[SalesPage] Fetching sales with query: ${queryString}`);
       const response = await apiService.get(`${endpoints.sales}${queryString}`);
       console.log('[SalesPage] Raw API Response:', JSON.stringify(response, null, 2));
       
@@ -300,6 +301,7 @@ const SalesPage: React.FC = () => {
   };
 
   const handleBuyerFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Store the value as is, but it will be trimmed when actually used in the API call
     setFilterBuyer(event.target.value);
   };
 
@@ -351,7 +353,7 @@ const SalesPage: React.FC = () => {
         size="small"
         label={status.charAt(0).toUpperCase() + status.slice(1)} 
         color={color as any}
-        icon={icon}
+        icon={icon as any}
       />
     );
   };
@@ -400,10 +402,10 @@ const SalesPage: React.FC = () => {
     if (!editableSale) return;
     
     try {
-      const dataToSend = { ...updatedSale };
+      const dataToSend: any = { ...updatedSale };
       
       // If no buyer_id is present but we have a buyer_name, try to find or create a buyer
-      if (!updatedSale.buyer_id && updatedSale.buyer_name) {
+      if (!updatedSale.buyer?.id && updatedSale.buyer_name) {
         try {
           // Use the enhanced search method that also checks for UUID format
           const buyerResponse = await apiService.searchOrCreateBuyerWithId(updatedSale.buyer_name);
@@ -507,15 +509,27 @@ const SalesPage: React.FC = () => {
   };
 
   // Handle buyer selection from autocomplete in edit dialog
-  const handleEditBuyerChange = (_event: React.SyntheticEvent, newValue: BuyerLight | null) => {
-    setSelectedEditBuyer(newValue);
+  const handleEditBuyerChange = (_event: React.SyntheticEvent, newValue: BuyerLight | string | null) => {
+    if (typeof newValue === 'string') {
+      // Handle the case when newValue is a string
+      if (editableSale) {
+        setEditableSale({
+          ...editableSale,
+          buyer_name: newValue,
+          buyer: null
+        });
+      }
+      setSelectedEditBuyer(null);
+      return;
+    }
     
-    if (newValue && editableSale) {
+    setSelectedEditBuyer(newValue as BuyerLight | null);
+    
+    if (newValue && editableSale && typeof newValue !== 'string') {
       // Update form with selected buyer's info
       setEditableSale({
         ...editableSale,
         buyer: newValue,
-        buyer_id: newValue.id,
         buyer_name: newValue.name,
         buyer_contact: newValue.phone || newValue.email || editableSale.buyer_contact || '',
       });
@@ -529,7 +543,7 @@ const SalesPage: React.FC = () => {
       setEditableSale({
         ...editableSale,
         buyer: null,
-        buyer_id: undefined,
+        buyer_name: editableSale.buyer_name, // preserve the buyer name when clearing buyer object
       });
     }
   };
@@ -914,7 +928,7 @@ const SalesPage: React.FC = () => {
                        });
                      }}
                      renderOption={(props, option) => (
-                       <li {...props} style={{ padding: '8px 16px' }}>
+                       <li {...props} key={option.id} style={{ padding: '8px 16px' }}>
                          <div>
                            <div style={{ fontWeight: 'bold' }}>{option.name}</div>
                            {option.company_name && (
