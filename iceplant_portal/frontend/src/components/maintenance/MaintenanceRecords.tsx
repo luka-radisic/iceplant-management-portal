@@ -25,6 +25,9 @@ import {
   TextField,
   Typography,
   Pagination,
+  Autocomplete,
+  Checkbox,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,6 +38,7 @@ import {
   ConstructionOutlined as PreventiveIcon,
   BuildCircle as CorrectiveIcon,
   Print as PrintIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import {
   MaintenanceRecord, 
@@ -87,6 +91,10 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
   // Filtering state
   const [filterMonth, setFilterMonth] = useState<string>(''); // '' for All, '1'-'12' for months
   const [filterYear, setFilterYear] = useState<string>(''); // '' for All, e.g., '2024'
+  const [filterEquipmentId, setFilterEquipmentId] = useState<string>(''); // '' for All, ID for specific item
+
+  // Selection state
+  const [selectedRecordIds, setSelectedRecordIds] = useState<number[]>([]);
 
   useEffect(() => {
     fetchData(page);
@@ -102,6 +110,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       });
       if (filterMonth) params.append('month', filterMonth);
       if (filterYear) params.append('year', filterYear);
+      if (filterEquipmentId) params.append('item_id', filterEquipmentId); // Add equipment filter param
 
       const url = `${endpoints.maintenanceRecords}?${params.toString()}`;
       console.log(`[MaintenanceRecords] Fetching: ${url}`); // Log the URL
@@ -135,18 +144,23 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
 
   // useEffect to refetch data when filters change (and reset page)
   useEffect(() => {
-      console.log(`[MaintenanceRecords] Filters changed: Month=${filterMonth}, Year=${filterYear}. Fetching page 1.`);
+      console.log(`[MaintenanceRecords] Filters changed: Month=${filterMonth}, Year=${filterYear}, Equip=${filterEquipmentId}. Fetching page 1.`);
       if (page !== 1) {
           setPage(1); // Reset page, which triggers the other useEffect
       } else {
           fetchData(1); // Fetch directly if already on page 1
       }
-  }, [filterMonth, filterYear]);
+  }, [filterMonth, filterYear, filterEquipmentId]);
   
   // useEffect to fetch data when page changes
   useEffect(() => {
     fetchData(page);
   }, [page]); // Keep original page change fetch
+
+  // Clear selection when data reloads (filters, page change)
+  useEffect(() => {
+    setSelectedRecordIds([]);
+  }, [records]);
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
@@ -641,15 +655,138 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     setFilterYear(event.target.value as string);
   };
 
+  const handleEquipmentFilterChange = (event: React.SyntheticEvent, newValue: MaintenanceItem | null) => {
+    setFilterEquipmentId(newValue ? newValue.id.toString() : '');
+  };
+
   const resetFilters = () => {
     setFilterMonth('');
     setFilterYear('');
-    // Fetching will be triggered by the useEffect watching filters
+    setFilterEquipmentId(''); // Reset equipment filter
   };
 
   // Generate year options (e.g., last 5 years + current year)
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 6 }, (_, i) => (currentYear - i).toString());
+
+  // Handlers for selection
+  const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const newSelectedIds = records.map((record) => record.id);
+      setSelectedRecordIds(newSelectedIds);
+      return;
+    }
+    setSelectedRecordIds([]);
+  };
+
+  const handleCheckboxClick = (event: React.MouseEvent<unknown>, id: number) => {
+    const selectedIndex = selectedRecordIds.indexOf(id);
+    let newSelected: number[] = [];
+
+    if (selectedIndex === -1) {
+      newSelected = newSelected.concat(selectedRecordIds, id);
+    } else if (selectedIndex === 0) {
+      newSelected = newSelected.concat(selectedRecordIds.slice(1));
+    } else if (selectedIndex === selectedRecordIds.length - 1) {
+      newSelected = newSelected.concat(selectedRecordIds.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelected = newSelected.concat(
+        selectedRecordIds.slice(0, selectedIndex),
+        selectedRecordIds.slice(selectedIndex + 1),
+      );
+    }
+    setSelectedRecordIds(newSelected);
+  };
+
+  const isSelected = (id: number) => selectedRecordIds.indexOf(id) !== -1;
+
+  // Handler for Export to CSV
+  const handleExportCsv = () => {
+    if (selectedRecordIds.length === 0) {
+      enqueueSnackbar('Please select records to export.', { variant: 'warning' });
+      return;
+    }
+
+    const selectedRecords = records.filter(record => selectedRecordIds.includes(record.id));
+    
+    if (selectedRecords.length === 0) {
+        enqueueSnackbar('No matching selected records found in current view.', { variant: 'warning' });
+        return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      'Record ID', 'Equipment Name', 'Maintenance Date', 'Type', 'Performed By',
+      'Cost', 'Duration (Hrs)', 'Status', 'Parts Replaced', 'Issues Found', 
+      'Actions Taken', 'Recommendations'
+    ];
+    
+    // Function to escape CSV data
+    const escapeCsv = (value: any): string => {
+        const stringValue = String(value === null || value === undefined ? '' : value);
+        if (stringValue.includes(',') || stringValue.includes('\"\') || stringValue.includes('\n')) {
+            return `\"${stringValue.replace(/\"/g, '\"\"\')}\"`
+        }
+        return stringValue;
+    };
+
+    // Convert selected data to CSV rows
+    const csvRows = selectedRecords.map(record => [
+        escapeCsv(record.id),
+        escapeCsv(record.maintenance_item?.equipment_name || 'N/A'),
+        escapeCsv(formatDate(record.maintenance_date)),
+        escapeCsv(record.maintenance_type),
+        escapeCsv(record.performed_by),
+        escapeCsv(record.cost),
+        escapeCsv(record.duration),
+        escapeCsv(record.status),
+        escapeCsv(record.parts_replaced),
+        escapeCsv(record.issues_found),
+        escapeCsv(record.actions_taken),
+        escapeCsv(record.recommendations),
+    ].join(','));
+
+    // Combine headers and rows
+    const csvString = [headers.join(','), ...csvRows].join('\n');
+
+    // Create blob and trigger download
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    // Generate filename with date
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `maintenance_records_${dateStr}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    enqueueSnackbar(`Exported ${selectedRecords.length} records to CSV.`, { variant: 'success' });
+  };
+
+  // Placeholder for Print Selected (implement next)
+  const handlePrintSelected = () => {
+    if (selectedRecordIds.length === 0) {
+      enqueueSnackbar('Please select records to print.', { variant: 'warning' });
+      return;
+    }
+
+    const selectedRecordsData = records.filter(record => selectedRecordIds.includes(record.id));
+    
+    if (selectedRecordsData.length === 0) {
+        enqueueSnackbar('No matching selected records found in current view.', { variant: 'warning' });
+        return;
+    }
+
+    // Store the array of selected records
+    localStorage.setItem('printSelectedMaintenanceRecords', JSON.stringify(selectedRecordsData));
+    
+    // Open a generic print route for selected items
+    window.open(`/maintenance/print/selected`, '_blank');
+    
+    enqueueSnackbar(`Preparing print view for ${selectedRecordsData.length} records...`, { variant: 'info' });
+  };
 
   if (loading && records.length === 0) {
     return (
@@ -669,16 +806,51 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
 
   return (
     <Box sx={{ mt: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Maintenance Records</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenModal(ModalType.ADD)}
-        >
-          Add Record
-        </Button>
+        <Box>
+          {/* Export Button */}
+          <Tooltip title="Export Selected Records to CSV">
+            <span> {/* Span needed for Tooltip when Button is disabled */}
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<DownloadIcon />}
+                onClick={handleExportCsv}
+                disabled={selectedRecordIds.length === 0}
+                sx={{ mr: 1 }}
+              >
+                Export Selected
+              </Button>
+            </span>
+          </Tooltip>
+          
+          {/* Print Button */}
+          <Tooltip title="Print Selected Records">
+             <span> {/* Span needed for Tooltip when Button is disabled */}
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<PrintIcon />}
+                onClick={handlePrintSelected}
+                disabled={selectedRecordIds.length === 0}
+                sx={{ mr: 1 }}
+              >
+                Print Selected
+              </Button>
+            </span>
+          </Tooltip>
+          
+          {/* Add Record Button */}
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenModal(ModalType.ADD)}
+          >
+            Add Record
+          </Button>
+        </Box>
       </Box>
       
       {/* Filter Section */}
@@ -721,9 +893,25 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
               </Select>
             </FormControl>
           </Grid>
+          <Grid item xs={12} sm={4}>
+            <Autocomplete
+              options={equipment} // Use the fetched equipment list
+              getOptionLabel={(option) => option.equipment_name}
+              value={equipment.find(eq => eq.id.toString() === filterEquipmentId) || null}
+              onChange={handleEquipmentFilterChange}
+              size="small"
+              renderInput={(params) => (
+                <TextField 
+                  {...params} 
+                  label="Filter by Equipment" 
+                  placeholder="All Equipment" 
+                />
+              )}
+            />
+          </Grid>
           <Grid item>
             <Button variant="outlined" size="small" onClick={resetFilters}>
-              Reset Date Filter
+              Reset Filters
             </Button>
           </Grid>
         </Grid>
@@ -733,6 +921,20 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
         <Table>
           <TableHead>
             <TableRow>
+              {/* Select All Checkbox */}
+              <TableCell padding="checkbox">
+                <Checkbox
+                  color="primary"
+                  indeterminate={
+                    selectedRecordIds.length > 0 && selectedRecordIds.length < records.length
+                  }
+                  checked={records.length > 0 && selectedRecordIds.length === records.length}
+                  onChange={handleSelectAllClick}
+                  inputProps={{
+                    'aria-label': 'select all maintenance records',
+                  }}
+                />
+              </TableCell>
               <TableCell>Equipment</TableCell>
               <TableCell>Date</TableCell>
               <TableCell>Type</TableCell>
@@ -744,48 +946,73 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {records.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell 
-                  onClick={() => handleOpenModal(ModalType.VIEW, record)} 
-                  sx={{
-                    cursor: 'pointer', 
-                    '&:hover': { 
-                      textDecoration: 'underline', 
-                      color: 'primary.main' 
-                    }
-                  }}
-                  title="View Record Details"
+            {records.map((record) => {
+              const isItemSelected = isSelected(record.id);
+              const labelId = `maintenance-record-checkbox-${record.id}`;
+              return (
+                <TableRow 
+                  key={record.id}
+                  hover
+                  onClick={(event) => handleCheckboxClick(event, record.id)} // Allow row click for selection
+                  role="checkbox"
+                  aria-checked={isItemSelected}
+                  tabIndex={-1}
+                  selected={isItemSelected}
+                  sx={{ cursor: 'pointer' }} // Indicate row is clickable
                 >
-                  {record.maintenance_item?.equipment_name || 'N/A'}
-                </TableCell>
-                <TableCell>{record.maintenance_item?.equipment_name || 'N/A'}</TableCell>
-                <TableCell>{formatDate(record.maintenance_date)}</TableCell>
-                <TableCell>{getMaintenanceTypeChip(record.maintenance_type)}</TableCell>
-                <TableCell>{record.performed_by}</TableCell>
-                <TableCell>{formatCurrency(record.cost)}</TableCell>
-                <TableCell>{formatDuration(record.duration)}</TableCell>
-                <TableCell>{getStatusChip(record.status)}</TableCell>
-                <TableCell align="center">
-                  <IconButton 
-                    size="small" 
-                    color="primary"
-                    onClick={() => handleOpenModal(ModalType.EDIT, record)}
-                    title="Edit"
+                  {/* Row Checkbox */}
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      color="primary"
+                      checked={isItemSelected}
+                      inputProps={{
+                        'aria-labelledby': labelId,
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell 
+                    // Keep existing onClick for VIEW modal, but prevent event propagation
+                    onClick={(e) => { e.stopPropagation(); handleOpenModal(ModalType.VIEW, record); }} 
+                    sx={{
+                      cursor: 'pointer', 
+                      '&:hover': { 
+                        textDecoration: 'underline', 
+                        color: 'primary.main' 
+                      }
+                    }}
+                    title="View Record Details"
+                    id={labelId} // Add id for aria-labelledby
                   >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    size="small" 
-                    color="error"
-                    onClick={() => handleOpenModal(ModalType.DELETE, record)}
-                    title="Delete"
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+                    {record.maintenance_item?.equipment_name || 'N/A'}
+                  </TableCell>
+                  <TableCell>{record.maintenance_item?.equipment_name || 'N/A'}</TableCell>
+                  <TableCell>{formatDate(record.maintenance_date)}</TableCell>
+                  <TableCell>{getMaintenanceTypeChip(record.maintenance_type)}</TableCell>
+                  <TableCell>{record.performed_by}</TableCell>
+                  <TableCell>{formatCurrency(record.cost)}</TableCell>
+                  <TableCell>{formatDuration(record.duration)}</TableCell>
+                  <TableCell>{getStatusChip(record.status)}</TableCell>
+                  <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                    <IconButton 
+                      size="small" 
+                      color="primary"
+                      onClick={(e) => { e.stopPropagation(); handleOpenModal(ModalType.EDIT, record); }}
+                      title="Edit"
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={(e) => { e.stopPropagation(); handleOpenModal(ModalType.DELETE, record); }}
+                      title="Delete"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>

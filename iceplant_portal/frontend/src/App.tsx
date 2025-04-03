@@ -78,6 +78,7 @@ function App() {
 
                   {/* Print route - remove ProtectedRoute */}
                   <Route path="/maintenance/print/:id" element={<MaintenancePrintPage />} />
+                  <Route path="/maintenance/print/selected" element={<MaintenancePrintPage />} />
 
                   {/* Catch all route */}
                   <Route path="*" element={<Navigate to="/" replace />} />
