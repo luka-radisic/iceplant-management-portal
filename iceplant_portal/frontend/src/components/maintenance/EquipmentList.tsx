@@ -173,7 +173,8 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
 
   const handleCloseModal = () => {
     setModalOpen(false);
-    setMaintenanceRecords([]);
+    // Delay resetting records until transition ends
+    // setMaintenanceRecords([]); 
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
@@ -744,18 +745,16 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
       {/* Modal */}
       <Dialog 
         open={modalOpen} 
-        onClose={handleCloseModal}
-        maxWidth="md"
+        onClose={handleCloseModal} 
+        maxWidth="md" 
         fullWidth
-        aria-labelledby="equipment-dialog-title"
-        disablePortal={false}
-        container={() => document.getElementById('root') || document.body}
-        keepMounted={false}
-        disableEnforceFocus
-        disableRestoreFocus
-        disableAutoFocus
-        BackdropProps={{
-          onClick: handleCloseModal
+        // Add TransitionProps with onExited
+        TransitionProps={{
+          onExited: () => {
+            // Reset records state *after* the dialog has fully closed
+            setMaintenanceRecords([]);
+            setCurrentItem(null); // Also reset current item here
+          }
         }}
       >
         {renderModalContent()}
