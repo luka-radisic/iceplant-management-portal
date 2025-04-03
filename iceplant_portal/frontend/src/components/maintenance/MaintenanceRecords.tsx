@@ -724,8 +724,10 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     // Function to escape CSV data
     const escapeCsv = (value: any): string => {
         const stringValue = String(value === null || value === undefined ? '' : value);
-        if (stringValue.includes(',') || stringValue.includes('\"\') || stringValue.includes('\n')) {
-            return `\"${stringValue.replace(/\"/g, '\"\"\')}\"`
+        // Correctly check for comma, double quote, or newline
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+            // Correctly escape double quotes by doubling them and wrap in quotes
+            return `"${stringValue.replace(/"/g, '""')}"`
         }
         return stringValue;
     };
