@@ -172,7 +172,11 @@ const SalesPage: React.FC = () => {
       // Add filter parameters if they exist
       const filterParams = new URLSearchParams();
       if (filterStatus) filterParams.append('status', filterStatus);
-      if (filterBuyer) filterParams.append('buyer_name__icontains', filterBuyer);
+      if (filterBuyer) {
+        // Make sure to trim any whitespace or tab characters from the buyer name
+        const trimmedBuyerName = filterBuyer.trim();
+        filterParams.append('buyer_name__icontains', trimmedBuyerName);
+      }
       if (filterDateFrom) filterParams.append('sale_date__gte', filterDateFrom);
       if (filterDateTo) filterParams.append('sale_date__lte', filterDateTo);
       
