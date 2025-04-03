@@ -176,6 +176,9 @@ const SalesPage: React.FC = () => {
       if (filterDateFrom) filterParams.append('sale_date__gte', filterDateFrom);
       if (filterDateTo) filterParams.append('sale_date__lte', filterDateTo);
       
+      // Add timestamp to prevent caching
+      filterParams.append('_t', Date.now().toString());
+      
       const queryString = filterParams.toString() 
         ? `${query}&${filterParams.toString()}`
         : query;
@@ -334,6 +337,9 @@ const SalesPage: React.FC = () => {
   }, [filterStatus, filterBuyer, filterDateFrom, filterDateTo, sales, sortField, sortDirection]);
 
   const handleSaleAdded = () => {
+    // Reset to page 1 to ensure the new sale is visible
+    setPage(1);
+    // Then fetch sales
     fetchSales();
   };
 

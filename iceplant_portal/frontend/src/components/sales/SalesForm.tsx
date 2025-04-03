@@ -498,19 +498,23 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
                 return nameParts.some(part => part.startsWith(inputValue));
               });
             }}
-            renderOption={(props, option) => (
-              <li {...props} style={{ padding: '8px 16px' }}>
-                <div>
-                  <div style={{ fontWeight: 'bold' }}>{option.name}</div>
-                  {option.company_name && (
-                    <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.company_name}</div>
-                  )}
-                  {option.phone && (
-                    <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.phone}</div>
-                  )}
-                </div>
-              </li>
-            )}
+            renderOption={(props, option) => {
+              // Extract key from props
+              const { key, ...otherProps } = props;
+              return (
+                <li key={key} {...otherProps} style={{ padding: '8px 16px' }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold' }}>{option.name}</div>
+                    {option.company_name && (
+                      <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.company_name}</div>
+                    )}
+                    {option.phone && (
+                      <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.phone}</div>
+                    )}
+                  </div>
+                </li>
+              );
+            }}
             freeSolo
             autoHighlight
             clearOnEscape
