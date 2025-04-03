@@ -44,6 +44,10 @@ import { formatDate, formatCurrency } from '../../utils/formatters';
 import { useSnackbar } from 'notistack';
 import apiService from '../../services/api';
 import { endpoints } from '../../services/endpoints';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { format } from 'date-fns';
 
 // For equipment type and location dropdown options
 const equipmentTypes = ['Compressor', 'Condenser', 'Evaporator', 'Ice Maker', 'Storage Tank', 'Pump', 'Generator', 'Cooler', 'Conveyor', 'Control System', 'Other'];
@@ -185,6 +189,21 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     });
   };
 
+  const handleDateChange = (newValue: Date | null) => {
+    let formattedValue = '';
+    if (newValue) {
+      try {
+        formattedValue = format(newValue, 'yyyy-MM-dd');
+      } catch (error) {
+        console.error('Error formatting date:', error);
+      }
+    }
+    setFormData({
+      ...formData,
+      installation_date: formattedValue,
+    });
+  };
+
   const handleAddEquipment = async () => {
     try {
       setLoading(true);
@@ -288,7 +307,7 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
     switch (modalType) {
       case ModalType.ADD:
         return (
-          <>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DialogTitle id="equipment-dialog-title">Add New Equipment</DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -359,14 +378,12 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    type="date"
+                  <DatePicker
                     label="Installation Date"
-                    name="installation_date"
-                    value={formData.installation_date}
-                    onChange={handleInputChange}
-                    InputLabelProps={{ shrink: true }}
+                    value={formData.installation_date ? new Date(formData.installation_date + 'T00:00:00') : null}
+                    onChange={handleDateChange}
+                    slotProps={{ textField: { fullWidth: true, InputLabelProps: { shrink: true } } }}
+                    format="yyyy-MM-dd"
                   />
                 </Grid>
                 <Grid item xs={6} sm={3}>
@@ -422,12 +439,12 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
                 Add Equipment
               </Button>
             </DialogActions>
-          </>
+          </LocalizationProvider>
         );
       
       case ModalType.EDIT:
         return (
-          <>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DialogTitle id="equipment-dialog-title">Edit Equipment</DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -498,14 +515,12 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    type="date"
+                  <DatePicker
                     label="Installation Date"
-                    name="installation_date"
-                    value={formData.installation_date}
-                    onChange={handleInputChange}
-                    InputLabelProps={{ shrink: true }}
+                    value={formData.installation_date ? new Date(formData.installation_date + 'T00:00:00') : null}
+                    onChange={handleDateChange}
+                    slotProps={{ textField: { fullWidth: true, InputLabelProps: { shrink: true } } }}
+                    format="yyyy-MM-dd"
                   />
                 </Grid>
                 <Grid item xs={6} sm={3}>
@@ -561,7 +576,7 @@ const EquipmentList: React.FC<EquipmentListProps> = () => {
                 Update Equipment
               </Button>
             </DialogActions>
-          </>
+          </LocalizationProvider>
         );
       
       case ModalType.DELETE:

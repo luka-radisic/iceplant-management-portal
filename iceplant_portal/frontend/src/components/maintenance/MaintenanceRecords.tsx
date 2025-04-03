@@ -48,6 +48,10 @@ import { formatDate, formatCurrency, formatDuration } from '../../utils/formatte
 import { useSnackbar } from 'notistack';
 import apiService from '../../services/api';
 import { endpoints } from '../../services/endpoints';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { format } from 'date-fns';
 
 enum ModalType {
   ADD,
@@ -220,6 +224,21 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     });
   };
 
+  const handleDateChange = (newValue: Date | null) => {
+    let formattedValue = '';
+    if (newValue) {
+      try {
+        formattedValue = format(newValue, 'yyyy-MM-dd');
+      } catch (error) {
+        console.error('Error formatting date:', error);
+      }
+    }
+    setFormData({
+      ...formData,
+      maintenance_date: formattedValue,
+    });
+  };
+
   const handleAddRecord = async () => {
     try {
       setLoading(true);
@@ -340,7 +359,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       case ModalType.ADD:
       case ModalType.EDIT:
         return (
-          <>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DialogTitle id="maintenance-dialog-title">
               {modalType === ModalType.ADD ? 'Add New Maintenance Record' : 'Edit Maintenance Record'}
             </DialogTitle>
@@ -365,15 +384,12 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    type="date"
+                  <DatePicker
                     label="Maintenance Date"
-                    name="maintenance_date"
-                    value={formData.maintenance_date}
-                    onChange={handleInputChange}
-                    InputLabelProps={{ shrink: true }}
-                    required
+                    value={formData.maintenance_date ? new Date(formData.maintenance_date + 'T00:00:00') : null}
+                    onChange={handleDateChange}
+                    slotProps={{ textField: { fullWidth: true, required: true, InputLabelProps: { shrink: true } } }}
+                    format="yyyy-MM-dd"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -498,7 +514,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
                 {modalType === ModalType.ADD ? 'Add Record' : 'Update Record'}
               </Button>
             </DialogActions>
-          </>
+          </LocalizationProvider>
         );
       
       case ModalType.DELETE:

@@ -50,6 +50,10 @@ import { Sale } from '../types/sales';
 import { BuyerLight } from '../types/buyers';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { format } from 'date-fns';
 
 interface SaleSummary {
   totalSales: number;
@@ -83,8 +87,8 @@ const SalesPage: React.FC = (): React.ReactElement => {
   // Filtering state
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterBuyer, setFilterBuyer] = useState<string>('');
-  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
-  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | null>(null);
+  const [filterDateTo, setFilterDateTo] = useState<Date | null>(null);
   
   // Sorting state
   const [sortField, setSortField] = useState<keyof Sale>('sale_date');
@@ -158,57 +162,40 @@ const SalesPage: React.FC = (): React.ReactElement => {
     setLoading(true);
     setError(null);
     try {
-      // Build query with pagination parameters
       const query = `?page=${page}&page_size=${pageSize}`;
-      
-      // Add filter parameters if they exist
       const filterParams = new URLSearchParams();
       if (filterStatus) filterParams.append('status', filterStatus);
       if (filterBuyer) {
-        // Make sure to trim any whitespace or tab characters from the buyer name
         const trimmedBuyerName = filterBuyer.trim();
         filterParams.append('buyer_name__icontains', trimmedBuyerName);
       }
-      if (filterDateFrom) filterParams.append('sale_date__gte', filterDateFrom);
-      if (filterDateTo) filterParams.append('sale_date__lte', filterDateTo);
+      if (filterDateFrom) filterParams.append('sale_date__gte', format(filterDateFrom, 'yyyy-MM-dd'));
+      if (filterDateTo) filterParams.append('sale_date__lte', format(filterDateTo, 'yyyy-MM-dd'));
       
-      // Add sorting parameters
       if (sortField) {
         const sortParam = sortDirection === 'asc' ? sortField : `-${sortField}`;
         filterParams.append('ordering', sortParam);
       }
-      
-      // Add timestamp to prevent caching
       filterParams.append('_t', Date.now().toString());
       
       const queryString = filterParams.toString() 
         ? `${query}&${filterParams.toString()}`
         : query;
-      
-      // Log the full query for debugging
+        
       console.log(`[SalesPage] Full request URL: ${endpoints.sales}${queryString}`);
-      
-      // Check if we have cached data for this exact query
       const cacheKey = `sales_${queryString}`;
       const cachedData = sessionStorage.getItem(cacheKey);
-      
       let response;
       
       if (cachedData) {
-        // Use cached data if available
         console.log('[SalesPage] Using cached data for query:', queryString);
         response = JSON.parse(cachedData);
       } else {
-        // Fetch fresh data if no cache is available
         console.log(`[SalesPage] Fetching sales with query: ${queryString}`);
         response = await apiService.get(`${endpoints.sales}${queryString}`);
         console.log('[SalesPage] Raw API Response:', response);
         console.log(`[SalesPage] DEBUG: API returned count: ${response?.count}, Results length: ${response?.results?.length}`);
-        
-        // Cache the response for future use (expires in 2 minutes)
         sessionStorage.setItem(cacheKey, JSON.stringify(response));
-        
-        // Set cache expiration in 2 minutes
         setTimeout(() => {
           sessionStorage.removeItem(cacheKey);
         }, 2 * 60 * 1000);
@@ -226,8 +213,6 @@ const SalesPage: React.FC = (): React.ReactElement => {
         setSales([]);
         setTotalItems(0);
       }
-      
-      // Also calculate summary
       calculateSummary(response.results || response);
       
     } catch (err) {
@@ -309,18 +294,14 @@ const SalesPage: React.FC = (): React.ReactElement => {
 
     setFilterStatus('');
     setFilterBuyer('');
-    setFilterDateFrom('');
-    setFilterDateTo('');
-    clearSalesCache(); // Good practice
+    setFilterDateFrom(null);
+    setFilterDateTo(null);
+    clearSalesCache();
 
     if (needsPageReset) {
-        setPage(1); // This will trigger the main useEffect
+        setPage(1);
     } else if (hadActiveFilters) {
-        // If already on page 1, but filters were active,
-        // changing filters to '' changes fetchSales dependency,
-        // so the main effect should re-run.
-        // To be absolutely sure, you could call fetchSales()
-        // fetchSales(); // Usually not needed if deps are correct
+        // Main effect should re-run due to changed deps
     }
     console.log('[SalesPage] Filters reset. Effect will fetch.');
   };
@@ -342,19 +323,18 @@ const SalesPage: React.FC = (): React.ReactElement => {
     }
   };
 
-  const handleDateFromChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = event.target.value;
-    console.log(`[SalesPage] Date From filter changed to: ${newDate}`);
-    setFilterDateFrom(newDate);
+  // Update date filter handlers
+  const handleDateFromChange = (newValue: Date | null) => {
+    console.log(`[SalesPage] Date From filter changed to:`, newValue);
+    setFilterDateFrom(newValue);
     if (page !== 1) {
       setPage(1); // Reset page, fetch triggered by useEffect
     }
   };
 
-  const handleDateToChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = event.target.value;
-    console.log(`[SalesPage] Date To filter changed to: ${newDate}`);
-    setFilterDateTo(newDate);
+  const handleDateToChange = (newValue: Date | null) => {
+    console.log(`[SalesPage] Date To filter changed to:`, newValue);
+    setFilterDateTo(newValue);
     if (page !== 1) {
       setPage(1); // Reset page, fetch triggered by useEffect
     }
@@ -560,15 +540,21 @@ const SalesPage: React.FC = (): React.ReactElement => {
   const handleEditSale = async (updatedSale: Partial<Sale>) => {
     if (!editableSale) return;
     
-    // Use the re-added validation function
     if (!validateEditForm(editableSale as Sale)) {
-      // Snackbar message is handled inside validateEditForm now
       return;
     }
     
     try {
-      setLoading(true); // Indicate loading state
+      setLoading(true);
       const dataToSend: any = { ...updatedSale };
+      
+      // Ensure sale_date is formatted correctly
+      if (dataToSend.sale_date && typeof dataToSend.sale_date === 'string') {
+        // Assuming it's already YYYY-MM-DD from the form
+        dataToSend.sale_date = dataToSend.sale_date.substring(0, 10);
+      } else if (dataToSend.sale_date instanceof Date) {
+        dataToSend.sale_date = format(dataToSend.sale_date, 'yyyy-MM-dd');
+      }
       
       // Ensure buyer_id is handled correctly based on selectedEditBuyer
       if (selectedEditBuyer) {
@@ -626,571 +612,567 @@ const SalesPage: React.FC = (): React.ReactElement => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Sales Entry & Overview
-      </Typography>
-      
-      {/* Sale Entry Form */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Enter New Sale
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Sales Entry & Overview
         </Typography>
-        <SalesForm onSaleAdded={handleSaleAdded} />
-      </Paper>
-      
-      {/* Sales List with Filters */}
-      <Paper sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6">
-            Recent Sales
-          </Typography>
-          <Box>
-            <IconButton onClick={toggleSummaryDialog} title="View Sales Summary">
-              <SummarizeIcon />
-            </IconButton>
-          </Box>
-        </Box>
         
-        {/* Filters Section */}
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item>
-              <Typography variant="subtitle2">
-                <FilterListIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                Filters:
-              </Typography>
-            </Grid>
-            
-            <Grid item xs={12} sm={2}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select
-                  labelId="status-filter-label"
-                  value={filterStatus}
-                  label="Status"
-                  onChange={handleStatusFilterChange}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="processed">Processed</MenuItem>
-                  <MenuItem value="canceled">Canceled</MenuItem>
-                  <MenuItem value="error">Error</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} sm={3}>
-              <Autocomplete
-                size="small"
-                freeSolo
-                options={buyers}
-                getOptionLabel={(option) => {
-                  if (typeof option === 'string') {
-                    return option;
-                  }
-                  return option.name;
-                }}
-                renderOption={(props, option) => (
-                  <li {...props} key={typeof option === 'string' ? option : option.id}>
-                    <div>
-                      <div style={{ fontWeight: 'bold' }}>
-                        {typeof option === 'string' ? option : option.name}
-                      </div>
-                      {typeof option !== 'string' && option.company_name && (
-                        <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>
-                          {option.company_name}
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                )}
-                inputValue={filterBuyer}
-                onInputChange={handleBuyerInputChange}
-                onChange={handleBuyerFilterChange}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Buyer Name"
-                    margin="normal"
-                    variant="outlined"
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ mt: 0 }}
-                  />
-                )}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="From Date"
-                type="date"
-                value={filterDateFrom}
-                onChange={handleDateFromChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={2}>
-              <TextField
-                fullWidth
-                size="small"
-                label="To Date"
-                type="date"
-                value={filterDateTo}
-                onChange={handleDateToChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            
-            <Grid item>
-              <Button 
-                variant="outlined" 
-                size="small" 
-                onClick={resetFilters}
-              >
-                Reset
-              </Button>
-            </Grid>
-          </Grid>
+        {/* Sale Entry Form */}
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Enter New Sale
+          </Typography>
+          <SalesForm onSaleAdded={handleSaleAdded} />
         </Paper>
         
-        {/* Sales Data Table */}
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error">{error}</Alert>
-        ) : (
-          <>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortField === 'si_number'}
-                        direction={sortField === 'si_number' ? sortDirection : 'asc'}
-                        onClick={() => handleSort('si_number')}
-                      >
-                        SI No.
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortField === 'sale_date'}
-                        direction={sortField === 'sale_date' ? sortDirection : 'asc'}
-                        onClick={() => handleSort('sale_date')}
-                      >
-                        Date
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>Time</TableCell>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortField === 'buyer_name'}
-                        direction={sortField === 'buyer_name' ? sortDirection : 'asc'}
-                        onClick={() => handleSort('buyer_name')}
-                      >
-                        Buyer
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell align="right">Total Qty</TableCell>
-                    <TableCell align="right">Total Cost</TableCell>
-                    <TableCell>Payment Status</TableCell>
-                    <TableCell>
-                      <TableSortLabel
-                        active={sortField === 'status'}
-                        direction={sortField === 'status' ? sortDirection : 'asc'}
-                        onClick={() => handleSort('status')}
-                      >
-                        Status
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {sales.length > 0 ? (
-                    sales.map((sale) => {
-                      console.log('[SalesPage] Mapping sale:', JSON.stringify(sale)); 
-                      
-                      // Calculate balance if partially paid
-                      let balance = 0;
-                      let isPartiallyPaid = false;
-                      if (sale.payment_status === 'Partially Paid') {
-                        const totalCost = typeof sale.total_cost === 'string' ? parseFloat(sale.total_cost) : (sale.total_cost || 0);
-                        const totalPayment = typeof sale.total_payment === 'string' ? parseFloat(sale.total_payment) : (sale.total_payment || 0);
-                        if (!isNaN(totalCost) && !isNaN(totalPayment)) {
-                          balance = totalCost - totalPayment;
-                          isPartiallyPaid = true;
-                        }
-                      }
-                      
-                      return (
-                        <TableRow key={sale.id}>
-                          <TableCell>
-                            <Button 
-                              color="primary" 
-                              onClick={() => handlePrintSale(sale)}
-                              sx={{ 
-                                textDecoration: 'none', 
-                                p: 0, 
-                                minWidth: 'auto',
-                                textAlign: 'left',
-                                fontWeight: 'inherit',
-                                fontSize: 'inherit'
-                              }}
-                            >
-                              {sale.si_number}
-                            </Button>
-                          </TableCell>
-                          <TableCell>{sale.sale_date}</TableCell>
-                          <TableCell>{sale.sale_time}</TableCell>
-                          <TableCell>{sale.buyer_name}</TableCell>
-                          <TableCell align="right">{sale.total_quantity}</TableCell>
-                          <TableCell align="right">{formatCurrency(sale.total_cost)}</TableCell>
-                          <TableCell>
-                            {sale.payment_status}
-                            {isPartiallyPaid && balance > 0 && (
-                              <Typography variant="caption" display="block" sx={{ color: 'warning.main', fontSize: '0.75rem' }}>
-                                (Balance: {formatCurrency(balance)})
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>{renderStatus(sale.status)}</TableCell>
-                          <TableCell padding="none">
-                              <IconButton
-                                  aria-label="actions"
-                                  aria-controls={`actions-menu-${sale.id}`}
-                                  aria-haspopup="true"
-                                  onClick={(event) => handleMenuOpen(event, sale)}
-                                  size="small"
-                              >
-                                  <MoreVertIcon />
-                              </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={9} align="center">
-                        No sales data available.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            
-            {/* Pagination */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-              <Pagination 
-                count={Math.ceil(totalItems / pageSize)}
-                page={page}
-                onChange={handlePageChange} 
-                color="primary"
-                siblingCount={1}
-                boundaryCount={1}
-                showFirstButton
-                showLastButton
-              />
+        {/* Sales List with Filters */}
+        <Paper sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              Recent Sales
+            </Typography>
+            <Box>
+              <IconButton onClick={toggleSummaryDialog} title="View Sales Summary">
+                <SummarizeIcon />
+              </IconButton>
             </Box>
-          </>
-        )}
-        
-        {/* Actions Menu */}
-        <Menu
-            id={`actions-menu-${selectedSale?.id}`}
-            anchorEl={anchorEl}
-            open={isMenuOpen}
-            onClose={handleMenuClose}
-            MenuListProps={{
-              'aria-labelledby': `actions-button-${selectedSale?.id}`,
-            }}
-        >
-             {selectedSale?.status !== 'canceled' && (
-                 <MenuItem onClick={() => handleStatusUpdate('canceled')}>
-                     <ListItemIcon>
-                         <CancelIcon fontSize="small" color="warning"/>
-                     </ListItemIcon>
-                     <ListItemText>Mark as Canceled</ListItemText>
-                 </MenuItem>
-             )}
-             {selectedSale?.status !== 'error' && (
-                 <MenuItem onClick={() => handleStatusUpdate('error')}>
-                     <ListItemIcon>
-                         <ErrorIcon fontSize="small" color="error"/>
-                     </ListItemIcon>
-                     <ListItemText>Mark as Error</ListItemText>
-                 </MenuItem>
-             )}
-             {selectedSale?.status !== 'processed' && (
-                 <MenuItem onClick={() => handleStatusUpdate('processed')}>
-                     <ListItemIcon>
-                         <CheckCircleIcon fontSize="small" color="success"/>
-                     </ListItemIcon>
-                     <ListItemText>Mark as Processed</ListItemText>
-                 </MenuItem>
-             )}
-             {/* Edit option only for admin users */}
-             {isAdmin && selectedSale && (
-                <MenuItem onClick={() => handleOpenEditDialog(selectedSale)}>
-                  <ListItemIcon>
-                    <EditIcon fontSize="small" color="primary"/>
-                  </ListItemIcon>
-                  <ListItemText>Edit Sale</ListItemText>
-                </MenuItem>
-             )}
-         </Menu>
-         
-         {/* Summary Dialog */}
-         <Dialog open={showSummary} onClose={toggleSummaryDialog} maxWidth="md">
-           <DialogTitle>
-             Sales Summary
-           </DialogTitle>
-           <DialogContent>
-             {summaryData ? (
-               <Grid container spacing={2} sx={{ mt: 1 }}>
-                 <Grid item xs={12} md={6}>
-                   <Card>
-                     <CardContent>
-                       <Typography variant="h6" gutterBottom>
-                         Sales Overview
-                       </Typography>
-                       <Typography variant="subtitle1">
-                         Total Sales: {summaryData.totalSales}
-                       </Typography>
-                       <Typography variant="subtitle1" color="primary">
-                         Total Revenue: ${summaryData.totalRevenue.toFixed(2)}
-                       </Typography>
-                       <Typography variant="subtitle1">
-                         Average Sale Value: ${summaryData.averageSaleValue.toFixed(2)}
-                       </Typography>
-                     </CardContent>
-                   </Card>
+          </Box>
+          
+          {/* Filters Section */}
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item>
+                <Typography variant="subtitle2">
+                  <FilterListIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                  Filters:
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} sm={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="status-filter-label">Status</InputLabel>
+                  <Select
+                    labelId="status-filter-label"
+                    value={filterStatus}
+                    label="Status"
+                    onChange={handleStatusFilterChange}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="processed">Processed</MenuItem>
+                    <MenuItem value="canceled">Canceled</MenuItem>
+                    <MenuItem value="error">Error</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              <Grid item xs={12} sm={3}>
+                <Autocomplete
+                  size="small"
+                  freeSolo
+                  options={buyers}
+                  getOptionLabel={(option) => {
+                    if (typeof option === 'string') {
+                      return option;
+                    }
+                    return option.name;
+                  }}
+                  renderOption={(props, option) => (
+                    <li {...props} key={typeof option === 'string' ? option : option.id}>
+                      <div>
+                        <div style={{ fontWeight: 'bold' }}>
+                          {typeof option === 'string' ? option : option.name}
+                        </div>
+                        {typeof option !== 'string' && option.company_name && (
+                          <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>
+                            {option.company_name}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  )}
+                  inputValue={filterBuyer}
+                  onInputChange={handleBuyerInputChange}
+                  onChange={handleBuyerFilterChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Buyer Name"
+                      margin="normal"
+                      variant="outlined"
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ mt: 0 }}
+                    />
+                  )}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={2}>
+                <DatePicker
+                  label="From Date"
+                  value={filterDateFrom}
+                  onChange={handleDateFromChange}
+                  slotProps={{ textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } } }}
+                  format="yyyy-MM-dd"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={2}>
+                <DatePicker
+                  label="To Date"
+                  value={filterDateTo}
+                  onChange={handleDateToChange}
+                  slotProps={{ textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } } }}
+                  format="yyyy-MM-dd"
+                />
+              </Grid>
+              
+              <Grid item>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  onClick={resetFilters}
+                >
+                  Reset
+                </Button>
+              </Grid>
+            </Grid>
+          </Paper>
+          
+          {/* Sales Data Table */}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error">{error}</Alert>
+          ) : (
+            <>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortField === 'si_number'}
+                          direction={sortField === 'si_number' ? sortDirection : 'asc'}
+                          onClick={() => handleSort('si_number')}
+                        >
+                          SI No.
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortField === 'sale_date'}
+                          direction={sortField === 'sale_date' ? sortDirection : 'asc'}
+                          onClick={() => handleSort('sale_date')}
+                        >
+                          Date
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>Time</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortField === 'buyer_name'}
+                          direction={sortField === 'buyer_name' ? sortDirection : 'asc'}
+                          onClick={() => handleSort('buyer_name')}
+                        >
+                          Buyer
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">Total Qty</TableCell>
+                      <TableCell align="right">Total Cost</TableCell>
+                      <TableCell>Payment Status</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortField === 'status'}
+                          direction={sortField === 'status' ? sortDirection : 'asc'}
+                          onClick={() => handleSort('status')}
+                        >
+                          Status
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {sales.length > 0 ? (
+                      sales.map((sale) => {
+                        console.log('[SalesPage] Mapping sale:', JSON.stringify(sale)); 
+                        
+                        // Calculate balance if partially paid
+                        let balance = 0;
+                        let isPartiallyPaid = false;
+                        if (sale.payment_status === 'Partially Paid') {
+                          const totalCost = typeof sale.total_cost === 'string' ? parseFloat(sale.total_cost) : (sale.total_cost || 0);
+                          const totalPayment = typeof sale.total_payment === 'string' ? parseFloat(sale.total_payment) : (sale.total_payment || 0);
+                          if (!isNaN(totalCost) && !isNaN(totalPayment)) {
+                            balance = totalCost - totalPayment;
+                            isPartiallyPaid = true;
+                          }
+                        }
+                        
+                        return (
+                          <TableRow key={sale.id}>
+                            <TableCell>
+                              <Button 
+                                color="primary" 
+                                onClick={() => handlePrintSale(sale)}
+                                sx={{ 
+                                  textDecoration: 'none', 
+                                  p: 0, 
+                                  minWidth: 'auto',
+                                  textAlign: 'left',
+                                  fontWeight: 'inherit',
+                                  fontSize: 'inherit'
+                                }}
+                              >
+                                {sale.si_number}
+                              </Button>
+                            </TableCell>
+                            <TableCell>{sale.sale_date}</TableCell>
+                            <TableCell>{sale.sale_time}</TableCell>
+                            <TableCell>{sale.buyer_name}</TableCell>
+                            <TableCell align="right">{sale.total_quantity}</TableCell>
+                            <TableCell align="right">{formatCurrency(sale.total_cost)}</TableCell>
+                            <TableCell>
+                              {sale.payment_status}
+                              {isPartiallyPaid && balance > 0 && (
+                                <Typography variant="caption" display="block" sx={{ color: 'warning.main', fontSize: '0.75rem' }}>
+                                  (Balance: {formatCurrency(balance)})
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>{renderStatus(sale.status)}</TableCell>
+                            <TableCell padding="none">
+                                <IconButton
+                                    aria-label="actions"
+                                    aria-controls={`actions-menu-${sale.id}`}
+                                    aria-haspopup="true"
+                                    onClick={(event) => handleMenuOpen(event, sale)}
+                                    size="small"
+                                >
+                                    <MoreVertIcon />
+                                </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={9} align="center">
+                          No sales data available.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              {/* Pagination */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                <Pagination 
+                  count={Math.ceil(totalItems / pageSize)}
+                  page={page}
+                  onChange={handlePageChange} 
+                  color="primary"
+                  siblingCount={1}
+                  boundaryCount={1}
+                  showFirstButton
+                  showLastButton
+                />
+              </Box>
+            </>
+          )}
+          
+          {/* Actions Menu */}
+          <Menu
+              id={`actions-menu-${selectedSale?.id}`}
+              anchorEl={anchorEl}
+              open={isMenuOpen}
+              onClose={handleMenuClose}
+              MenuListProps={{
+                'aria-labelledby': `actions-button-${selectedSale?.id}`,
+              }}
+          >
+               {selectedSale?.status !== 'canceled' && (
+                   <MenuItem onClick={() => handleStatusUpdate('canceled')}>
+                       <ListItemIcon>
+                           <CancelIcon fontSize="small" color="warning"/>
+                       </ListItemIcon>
+                       <ListItemText>Mark as Canceled</ListItemText>
+                   </MenuItem>
+               )}
+               {selectedSale?.status !== 'error' && (
+                   <MenuItem onClick={() => handleStatusUpdate('error')}>
+                       <ListItemIcon>
+                           <ErrorIcon fontSize="small" color="error"/>
+                       </ListItemIcon>
+                       <ListItemText>Mark as Error</ListItemText>
+                   </MenuItem>
+               )}
+               {selectedSale?.status !== 'processed' && (
+                   <MenuItem onClick={() => handleStatusUpdate('processed')}>
+                       <ListItemIcon>
+                           <CheckCircleIcon fontSize="small" color="success"/>
+                       </ListItemIcon>
+                       <ListItemText>Mark as Processed</ListItemText>
+                   </MenuItem>
+               )}
+               {/* Edit option only for admin users */}
+               {isAdmin && selectedSale && (
+                  <MenuItem onClick={() => handleOpenEditDialog(selectedSale)}>
+                    <ListItemIcon>
+                      <EditIcon fontSize="small" color="primary"/>
+                    </ListItemIcon>
+                    <ListItemText>Edit Sale</ListItemText>
+                  </MenuItem>
+               )}
+           </Menu>
+           
+           {/* Summary Dialog */}
+           <Dialog open={showSummary} onClose={toggleSummaryDialog} maxWidth="md">
+             <DialogTitle>
+               Sales Summary
+             </DialogTitle>
+             <DialogContent>
+               {summaryData ? (
+                 <Grid container spacing={2} sx={{ mt: 1 }}>
+                   <Grid item xs={12} md={6}>
+                     <Card>
+                       <CardContent>
+                         <Typography variant="h6" gutterBottom>
+                           Sales Overview
+                         </Typography>
+                         <Typography variant="subtitle1">
+                           Total Sales: {summaryData.totalSales}
+                         </Typography>
+                         <Typography variant="subtitle1" color="primary">
+                           Total Revenue: ${summaryData.totalRevenue.toFixed(2)}
+                         </Typography>
+                         <Typography variant="subtitle1">
+                           Average Sale Value: ${summaryData.averageSaleValue.toFixed(2)}
+                         </Typography>
+                       </CardContent>
+                     </Card>
+                   </Grid>
+                   <Grid item xs={12} md={6}>
+                     <Card>
+                       <CardContent>
+                         <Typography variant="h6" gutterBottom>
+                           Status Breakdown
+                         </Typography>
+                         <Typography variant="subtitle1" color="success.main">
+                           Processed: {summaryData.activeCount} ({((summaryData.activeCount / summaryData.totalSales) * 100).toFixed(1)}%)
+                         </Typography>
+                         <Typography variant="subtitle1" color="warning.main">
+                           Canceled: {summaryData.canceledCount} ({((summaryData.canceledCount / summaryData.totalSales) * 100).toFixed(1)}%)
+                         </Typography>
+                         <Typography variant="subtitle1" color="error.main">
+                           Error: {summaryData.errorCount} ({((summaryData.errorCount / summaryData.totalSales) * 100).toFixed(1)}%)
+                         </Typography>
+                       </CardContent>
+                     </Card>
+                   </Grid>
                  </Grid>
-                 <Grid item xs={12} md={6}>
-                   <Card>
-                     <CardContent>
-                       <Typography variant="h6" gutterBottom>
-                         Status Breakdown
-                       </Typography>
-                       <Typography variant="subtitle1" color="success.main">
-                         Processed: {summaryData.activeCount} ({((summaryData.activeCount / summaryData.totalSales) * 100).toFixed(1)}%)
-                       </Typography>
-                       <Typography variant="subtitle1" color="warning.main">
-                         Canceled: {summaryData.canceledCount} ({((summaryData.canceledCount / summaryData.totalSales) * 100).toFixed(1)}%)
-                       </Typography>
-                       <Typography variant="subtitle1" color="error.main">
-                         Error: {summaryData.errorCount} ({((summaryData.errorCount / summaryData.totalSales) * 100).toFixed(1)}%)
-                       </Typography>
-                     </CardContent>
-                   </Card>
-                 </Grid>
-               </Grid>
-             ) : (
-               <Typography>No summary data available</Typography>
-             )}
-           </DialogContent>
-           <DialogActions>
-             <Button onClick={toggleSummaryDialog}>Close</Button>
-           </DialogActions>
-         </Dialog>
-         
-         {/* Edit Sale Dialog */}
-         <Dialog open={editDialogOpen} onClose={handleCloseEditDialog} maxWidth="md" fullWidth>
-           <DialogTitle>
-             Edit Sale {editableSale?.si_number}
-           </DialogTitle>
-           <DialogContent>
-             {editableSale ? (
-               <Grid container spacing={2} sx={{ mt: 1 }}>
-                 <Grid item xs={12} md={6}>
-                   <TextField
-                     label="SI Number"
-                     fullWidth
-                     value={editableSale.si_number}
-                     onChange={(e) => setEditableSale({ ...editableSale, si_number: e.target.value })}
-                     margin="normal"
-                   />
-                   <Autocomplete
-                     id="edit-buyer-autocomplete"
-                     value={selectedEditBuyer}
-                     onChange={handleEditBuyerChange}
-                     options={buyers}
-                     getOptionLabel={(option) => {
-                       // Handle both string and BuyerLight types
-                       if (typeof option === 'string') {
-                         return option;
-                       }
-                       return option.name;
-                     }}
-                     filterOptions={(options, state) => {
-                       const inputValue = state.inputValue.toLowerCase().trim();
-                       if (!inputValue) return [];
-                       
-                       const terms = inputValue.split(/\s+/);
-                       
-                       return options.filter(option => {
-                         const fullName = option.name.toLowerCase();
-                         const nameParts = fullName.split(/\s+/);
-                         
-                         if (terms.length > 1 && terms.length <= nameParts.length) {
-                           let matchesAllTerms = true;
-                           
-                           for (let i = 0; i < terms.length; i++) {
-                             const term = terms[i];
-                             const matchesAnyPart = nameParts.some((part, index) => {
-                               if (i === 0 || index >= i) {
-                                 return part.startsWith(term);
-                               }
-                               return false;
-                             });
-                             
-                             if (!matchesAnyPart) {
-                               matchesAllTerms = false;
-                               break;
-                             }
-                           }
-                           
-                           return matchesAllTerms;
+               ) : (
+                 <Typography>No summary data available</Typography>
+               )}
+             </DialogContent>
+             <DialogActions>
+               <Button onClick={toggleSummaryDialog}>Close</Button>
+             </DialogActions>
+           </Dialog>
+           
+           {/* Edit Sale Dialog */}
+           <Dialog open={editDialogOpen} onClose={handleCloseEditDialog} maxWidth="md" fullWidth>
+             <DialogTitle>
+               Edit Sale {editableSale?.si_number}
+             </DialogTitle>
+             <DialogContent>
+               {editableSale ? (
+                 <Grid container spacing={2} sx={{ mt: 1 }}>
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       label="SI Number"
+                       fullWidth
+                       value={editableSale.si_number}
+                       onChange={(e) => setEditableSale({ ...editableSale, si_number: e.target.value })}
+                       margin="normal"
+                     />
+                     <Autocomplete
+                       id="edit-buyer-autocomplete"
+                       value={selectedEditBuyer}
+                       onChange={handleEditBuyerChange}
+                       options={buyers}
+                       getOptionLabel={(option) => {
+                         // Handle both string and BuyerLight types
+                         if (typeof option === 'string') {
+                           return option;
                          }
+                         return option.name;
+                       }}
+                       filterOptions={(options, state) => {
+                         const inputValue = state.inputValue.toLowerCase().trim();
+                         if (!inputValue) return [];
                          
-                         return nameParts.some(part => part.startsWith(inputValue));
-                       });
-                     }}
-                     renderOption={(props, option) => (
-                       <li {...props} key={option.id} style={{ padding: '8px 16px' }}>
-                         <div>
-                           <div style={{ fontWeight: 'bold' }}>{option.name}</div>
-                           {option.company_name && (
-                             <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.company_name}</div>
-                           )}
-                           {option.phone && (
-                             <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.phone}</div>
-                           )}
-                         </div>
-                       </li>
-                     )}
-                     freeSolo
-                     autoHighlight
-                     clearOnEscape
-                     loading={loadingBuyers}
-                     noOptionsText="No matching buyers found"
-                     loadingText="Loading buyers..."
-                     renderInput={(params) => (
-                       <TextField
-                         {...params}
-                         label="Buyer Name"
-                         required
-                         fullWidth
-                         margin="normal"
-                         onChange={(e) => {
-                           setEditableSale({...editableSale, buyer_name: e.target.value});
-                           if (e.target.value === '') {
-                             setSelectedEditBuyer(null);
+                         const terms = inputValue.split(/\s+/);
+                         
+                         return options.filter(option => {
+                           const fullName = option.name.toLowerCase();
+                           const nameParts = fullName.split(/\s+/);
+                           
+                           if (terms.length > 1 && terms.length <= nameParts.length) {
+                             let matchesAllTerms = true;
+                             
+                             for (let i = 0; i < terms.length; i++) {
+                               const term = terms[i];
+                               const matchesAnyPart = nameParts.some((part, index) => {
+                                 if (i === 0 || index >= i) {
+                                   return part.startsWith(term);
+                                 }
+                                 return false;
+                               });
+                               
+                               if (!matchesAnyPart) {
+                                 matchesAllTerms = false;
+                                 break;
+                               }
+                             }
+                             
+                             return matchesAllTerms;
                            }
-                         }}
-                         value={editableSale.buyer_name}
-                         helperText="Start typing to search for buyers by name or ID"
-                         InputProps={{
-                           ...params.InputProps,
-                           endAdornment: (
-                             <>
-                               {loadingBuyers ? <CircularProgress color="inherit" size={20} /> : null}
-                               {params.InputProps.endAdornment}
-                             </>
-                           ),
-                         }}
-                       />
-                     )}
-                   />
-                   <TextField
-                     label="Sale Date"
-                     type="date"
-                     fullWidth
-                     value={editableSale.sale_date}
-                     onChange={(e) => setEditableSale({ ...editableSale, sale_date: e.target.value })}
-                     margin="normal"
-                     InputLabelProps={{ shrink: true }}
-                   />
-                   <TextField
-                     fullWidth
-                     label="Buyer Contact"
-                     value={editableSale.buyer_contact || ''}
-                     onChange={(e) => setEditableSale({...editableSale, buyer_contact: e.target.value})}
-                     margin="normal"
-                     placeholder="Phone or email"
-                     InputProps={{
-                       startAdornment: selectedEditBuyer && (
-                         <Box component="span" sx={{ 
-                           color: 'success.main', 
-                           fontSize: '0.8rem',
-                           position: 'absolute',
-                           top: '-20px',
-                           left: '0'
-                         }}>
-                           {selectedEditBuyer.company_name ? `${selectedEditBuyer.company_name}` : ''}
-                         </Box>
-                       ),
-                     }}
-                   />
+                           
+                           return nameParts.some(part => part.startsWith(inputValue));
+                         });
+                       }}
+                       renderOption={(props, option) => (
+                         <li {...props} key={option.id} style={{ padding: '8px 16px' }}>
+                           <div>
+                             <div style={{ fontWeight: 'bold' }}>{option.name}</div>
+                             {option.company_name && (
+                               <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.company_name}</div>
+                             )}
+                             {option.phone && (
+                               <div style={{ fontSize: '0.8rem', color: 'rgba(0,0,0,0.6)' }}>{option.phone}</div>
+                             )}
+                           </div>
+                         </li>
+                       )}
+                       freeSolo
+                       autoHighlight
+                       clearOnEscape
+                       loading={loadingBuyers}
+                       noOptionsText="No matching buyers found"
+                       loadingText="Loading buyers..."
+                       renderInput={(params) => (
+                         <TextField
+                           {...params}
+                           label="Buyer Name"
+                           required
+                           fullWidth
+                           margin="normal"
+                           onChange={(e) => {
+                             setEditableSale({...editableSale, buyer_name: e.target.value});
+                             if (e.target.value === '') {
+                               setSelectedEditBuyer(null);
+                             }
+                           }}
+                           value={editableSale.buyer_name}
+                           helperText="Start typing to search for buyers by name or ID"
+                           InputProps={{
+                             ...params.InputProps,
+                             endAdornment: (
+                               <>
+                                 {loadingBuyers ? <CircularProgress color="inherit" size={20} /> : null}
+                                 {params.InputProps.endAdornment}
+                               </>
+                             ),
+                           }}
+                         />
+                       )}
+                     />
+                     <DatePicker
+                       label="Sale Date"
+                       value={editableSale.sale_date ? new Date(editableSale.sale_date + 'T00:00:00') : null}
+                       onChange={(newValue) => setEditableSale({ ...editableSale, sale_date: newValue ? format(newValue, 'yyyy-MM-dd') : '' })}
+                       slotProps={{ textField: { fullWidth: true, margin: 'normal', InputLabelProps: { shrink: true } } }}
+                       format="yyyy-MM-dd"
+                     />
+                     <TextField
+                       fullWidth
+                       label="Buyer Contact"
+                       value={editableSale.buyer_contact || ''}
+                       onChange={(e) => setEditableSale({...editableSale, buyer_contact: e.target.value})}
+                       margin="normal"
+                       placeholder="Phone or email"
+                       InputProps={{
+                         startAdornment: selectedEditBuyer && (
+                           <Box component="span" sx={{ 
+                             color: 'success.main', 
+                             fontSize: '0.8rem',
+                             position: 'absolute',
+                             top: '-20px',
+                             left: '0'
+                           }}>
+                             {selectedEditBuyer.company_name ? `${selectedEditBuyer.company_name}` : ''}
+                           </Box>
+                         ),
+                       }}
+                     />
+                   </Grid>
+                   <Grid item xs={12} md={6}>
+                     <TextField
+                       label="Total Quantity"
+                       fullWidth
+                       value={editableSale.total_quantity}
+                       margin="normal"
+                       disabled
+                       helperText="This is calculated automatically"
+                     />
+                     <TextField
+                       label="Total Cost"
+                       fullWidth
+                       value={editableSale.total_cost}
+                       margin="normal"
+                       disabled
+                       helperText="This is calculated automatically"
+                     />
+                     <FormControl fullWidth margin="normal">
+                       <InputLabel>Status</InputLabel>
+                       <Select
+                         value={editableSale.status}
+                         label="Status"
+                         onChange={(e) => setEditableSale({ ...editableSale, status: e.target.value as 'processed' | 'canceled' | 'error' })}
+                       >
+                         <MenuItem value="processed">Processed</MenuItem>
+                         <MenuItem value="canceled">Canceled</MenuItem>
+                         <MenuItem value="error">Error</MenuItem>
+                       </Select>
+                     </FormControl>
+                   </Grid>
                  </Grid>
-                 <Grid item xs={12} md={6}>
-                   <TextField
-                     label="Total Quantity"
-                     fullWidth
-                     value={editableSale.total_quantity}
-                     margin="normal"
-                     disabled
-                     helperText="This is calculated automatically"
-                   />
-                   <TextField
-                     label="Total Cost"
-                     fullWidth
-                     value={editableSale.total_cost}
-                     margin="normal"
-                     disabled
-                     helperText="This is calculated automatically"
-                   />
-                   <FormControl fullWidth margin="normal">
-                     <InputLabel>Status</InputLabel>
-                     <Select
-                       value={editableSale.status}
-                       label="Status"
-                       onChange={(e) => setEditableSale({ ...editableSale, status: e.target.value as 'processed' | 'canceled' | 'error' })}
-                     >
-                       <MenuItem value="processed">Processed</MenuItem>
-                       <MenuItem value="canceled">Canceled</MenuItem>
-                       <MenuItem value="error">Error</MenuItem>
-                     </Select>
-                   </FormControl>
-                 </Grid>
-               </Grid>
-             ) : (
-               <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                 <CircularProgress />
-               </Box>
-             )}
-           </DialogContent>
-           <DialogActions>
-             <Button onClick={handleCloseEditDialog}>Cancel</Button>
-             <Button 
-               onClick={() => handleEditSale(editableSale as Sale)} 
-               variant="contained" 
-               color="primary"
-               disabled={!validateEditForm(editableSale as Sale)}
-             >
-               Save Changes
-             </Button>
-           </DialogActions>
-         </Dialog>
-      </Paper>
-    </Box>
+               ) : (
+                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                   <CircularProgress />
+                 </Box>
+               )}
+             </DialogContent>
+             <DialogActions>
+               <Button onClick={handleCloseEditDialog}>Cancel</Button>
+               <Button 
+                 onClick={() => handleEditSale(editableSale as Sale)} 
+                 variant="contained" 
+                 color="primary"
+                 disabled={!validateEditForm(editableSale as Sale)}
+               >
+                 Save Changes
+               </Button>
+             </DialogActions>
+           </Dialog>
+        </Paper>
+      </Box>
+    </LocalizationProvider>
   );
 };
 

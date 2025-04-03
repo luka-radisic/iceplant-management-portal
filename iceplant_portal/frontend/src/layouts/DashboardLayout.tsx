@@ -18,6 +18,7 @@ import {
   AppBar,
   Box,
   Button,
+  Container,
   Divider,
   Drawer,
   IconButton,
@@ -221,7 +222,9 @@ export default function DashboardLayout() {
       </Drawer>
       <Main open={open}>
         <Toolbar />
-        <Outlet />
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+          <Outlet />
+        </Container>
       </Main>
     </Box>
   );
