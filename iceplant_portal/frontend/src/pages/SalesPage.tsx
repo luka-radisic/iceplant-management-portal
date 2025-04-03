@@ -77,7 +77,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
 
   // Pagination state
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
   
   // Filtering state
@@ -202,7 +202,8 @@ const SalesPage: React.FC = (): React.ReactElement => {
         // Fetch fresh data if no cache is available
         console.log(`[SalesPage] Fetching sales with query: ${queryString}`);
         response = await apiService.get(`${endpoints.sales}${queryString}`);
-        console.log('[SalesPage] Raw API Response:', JSON.stringify(response, null, 2));
+        console.log('[SalesPage] Raw API Response:', response);
+        console.log(`[SalesPage] DEBUG: API returned count: ${response?.count}, Results length: ${response?.results?.length}`);
         
         // Cache the response for future use (expires in 2 minutes)
         sessionStorage.setItem(cacheKey, JSON.stringify(response));
