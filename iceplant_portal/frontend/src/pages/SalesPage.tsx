@@ -176,6 +176,12 @@ const SalesPage: React.FC = () => {
       if (filterDateFrom) filterParams.append('sale_date__gte', filterDateFrom);
       if (filterDateTo) filterParams.append('sale_date__lte', filterDateTo);
       
+      // Add sorting parameters
+      if (sortField) {
+        const sortParam = sortDirection === 'asc' ? sortField : `-${sortField}`;
+        filterParams.append('ordering', sortParam);
+      }
+      
       // Add timestamp to prevent caching
       filterParams.append('_t', Date.now().toString());
       
@@ -209,11 +215,12 @@ const SalesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, filterStatus, filterBuyer, filterDateFrom, filterDateTo]);
+  }, [page, pageSize, filterStatus, filterBuyer, filterDateFrom, filterDateTo, sortField, sortDirection]);
 
+  // Fetch sales data when page or sorting changes
   useEffect(() => {
     fetchSales();
-  }, [fetchSales]);
+  }, [page, pageSize, sortField, sortDirection, fetchSales]);
 
   // Calculate summary data from sales
   const calculateSummary = (salesData: Sale[]) => {
@@ -254,51 +261,17 @@ const SalesPage: React.FC = () => {
     setSortDirection(isAsc ? 'desc' : 'asc');
     setSortField(field);
     
-    // Apply sorting to the filtered sales
-    const sortedSales = [...filteredSales].sort((a, b) => {
-      if (a[field] < b[field]) return isAsc ? 1 : -1;
-      if (a[field] > b[field]) return isAsc ? -1 : 1;
-      return 0;
-    });
-    
-    setFilteredSales(sortedSales);
+    // Let the backend handle sorting via the fetchSales call
+    // which will be triggered by the useEffect watching these values
   };
 
-  // Apply filters locally
-  const applyFilters = () => {
-    let filtered = [...sales];
-    
-    if (filterStatus) {
-      filtered = filtered.filter(sale => sale.status === filterStatus);
-    }
-    
-    if (filterBuyer) {
-      filtered = filtered.filter(sale => 
-        sale.buyer_name.toLowerCase().includes(filterBuyer.toLowerCase())
-      );
-    }
-    
-    if (filterDateFrom) {
-      filtered = filtered.filter(sale => 
-        new Date(sale.sale_date) >= new Date(filterDateFrom)
-      );
-    }
-    
-    if (filterDateTo) {
-      filtered = filtered.filter(sale => 
-        new Date(sale.sale_date) <= new Date(filterDateTo)
-      );
-    }
-    
-    // Apply current sort
-    filtered.sort((a, b) => {
-      if (a[sortField] < b[sortField]) return sortDirection === 'asc' ? -1 : 1;
-      if (a[sortField] > b[sortField]) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-    
-    setFilteredSales(filtered);
-  };
+  // Apply filters locally - REPLACE THIS with backend filtering
+  const applyFilters = useCallback(() => {
+    // Set page back to 1 when applying new filters
+    setPage(1);
+    // The actual filtering will be done by the backend via fetchSales
+    fetchSales();
+  }, [setPage, fetchSales]);
 
   // Reset filters
   const resetFilters = () => {
@@ -307,11 +280,14 @@ const SalesPage: React.FC = () => {
     setFilterDateFrom('');
     setFilterDateTo('');
     setPage(1);
+    // After resetting filters, fetch data without filters
+    fetchSales();
   };
 
   // Handle page change
   const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
+    // Page changes will trigger fetchSales via useEffect
   };
 
   // Handle filter changes
@@ -333,14 +309,17 @@ const SalesPage: React.FC = () => {
 
   // Apply filters when filter values change
   useEffect(() => {
-    applyFilters();
-  }, [filterStatus, filterBuyer, filterDateFrom, filterDateTo, sales, sortField, sortDirection]);
+    const timer = setTimeout(() => {
+      applyFilters();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [filterStatus, filterBuyer, filterDateFrom, filterDateTo, applyFilters]);
 
   const handleSaleAdded = () => {
     // Reset to page 1 to ensure the new sale is visible
     setPage(1);
-    // Then fetch sales
-    fetchSales();
+    // fetchSales will be called via the page change useEffect
   };
 
   // Render status with appropriate color
