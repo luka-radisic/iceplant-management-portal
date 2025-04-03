@@ -24,6 +24,7 @@ import SalePrintView from './components/sales/SalePrintView';
 import InventoryPage from './pages/InventoryPage';
 import ExpensesPage from './pages/ExpensesPage';
 import MaintenancePage from './pages/MaintenancePage';
+import MaintenancePrintPage from './pages/MaintenancePrintPage';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
@@ -74,6 +75,9 @@ function App() {
                       </AdminRoute>
                     } />
                   </Route>
+
+                  {/* Print route - remove ProtectedRoute */}
+                  <Route path="/maintenance/print/:id" element={<MaintenancePrintPage />} />
 
                   {/* Catch all route */}
                   <Route path="*" element={<Navigate to="/" replace />} />
