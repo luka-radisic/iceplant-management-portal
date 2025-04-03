@@ -62,7 +62,6 @@ interface SaleSummary {
 
 const SalesPage: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
-  const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
@@ -131,8 +130,8 @@ const SalesPage: React.FC = () => {
     );
     
     // Update filteredSales directly too
-    setFilteredSales(prevFilteredSales => 
-        prevFilteredSales.map(s => 
+    setSales(prevSales => 
+        prevSales.map(s => 
             s.id === saleIdToUpdate ? { ...s, status: newStatus } : s
         )
     );
@@ -158,8 +157,8 @@ const SalesPage: React.FC = () => {
                 s.id === saleIdToUpdate ? { ...s, status: originalStatus } : s
             )
         );
-        setFilteredSales(prevFilteredSales => 
-            prevFilteredSales.map(s => 
+        setSales(prevSales => 
+            prevSales.map(s => 
                 s.id === saleIdToUpdate ? { ...s, status: originalStatus } : s
             )
         );
@@ -170,6 +169,13 @@ const SalesPage: React.FC = () => {
   const fetchSales = useCallback(async () => {
     setLoading(true);
     setError(null);
+    console.log("Applying filters:", {
+      buyer: filterBuyer,
+      status: filterStatus,
+      from: filterDateFrom,
+      to: filterDateTo,
+      page: page
+    });
     try {
       // Build query with pagination parameters
       const query = `?page=${page}&page_size=${pageSize}`;
@@ -235,16 +241,13 @@ const SalesPage: React.FC = () => {
         console.log(`[SalesPage] Setting ${response.results.length} sales results from page ${page}`);
         console.log('[SalesPage] Response contains these sales:', response.results.map((s: Sale) => s.buyer_name));
         setSales(response.results);
-        setFilteredSales(response.results);
         setTotalItems(response.count || 0);
         console.log(`[SalesPage] Total items: ${response.count}, pages: ${Math.ceil((response.count || 0) / pageSize)}`);
       } else if (Array.isArray(response)) {
         setSales(response);
-        setFilteredSales(response);
         setTotalItems(response.length);
       } else {
         setSales([]);
-        setFilteredSales([]);
         setTotalItems(0);
       }
       
@@ -322,12 +325,12 @@ const SalesPage: React.FC = () => {
     // which will be triggered by the useEffect watching these values
   };
 
-  // Apply filters - this is now separated from the page change logic
+  // Apply filters - now calls fetchSales directly
   const applyFilters = useCallback(() => {
     // Reset to page 1 when applying new filters
     setPage(1);
-    // No need to call fetchSales here since the useEffect depends on page
-  }, [setPage]);
+    fetchSales(); // ← Call fetchSales directly
+  }, [setPage, fetchSales]);
 
   // Reset filters
   const resetFilters = () => {
@@ -379,7 +382,7 @@ const SalesPage: React.FC = () => {
     const timer = setTimeout(() => {
       console.log('[SalesPage] Debounce time reached, applying filters now');
       console.log('[SalesPage] Current filterBuyer value:', filterBuyer);
-      applyFilters();
+      applyFilters(); // This will now call fetchSales() directly
     }, 500);
     
     return () => clearTimeout(timer);
@@ -781,7 +784,7 @@ const SalesPage: React.FC = () => {
                   <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
                     <TableCell colSpan={9} align="right">
                       <Typography variant="caption" color="text.secondary">
-                        Displaying {filteredSales.length} sales {filterBuyer ? `filtered by: ${filterBuyer}` : ''}
+                        Displaying {sales.length} sales {filterBuyer ? `filtered by: ${filterBuyer}` : ''}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -830,8 +833,8 @@ const SalesPage: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredSales.length > 0 ? (
-                    filteredSales.map((sale) => {
+                  {sales.length > 0 ? (
+                    sales.map((sale) => {
                       console.log('[SalesPage] Mapping sale:', JSON.stringify(sale)); 
                       return (
                         <TableRow key={sale.id}>
