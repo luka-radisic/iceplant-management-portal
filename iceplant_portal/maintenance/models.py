@@ -108,3 +108,33 @@ class MaintenanceRecord(models.Model):
     
     def __str__(self):
         return f"{self.maintenance_item.equipment_name} - {self.maintenance_date}"
+
+    def save(self, *args, **kwargs):
+        """Override save to update linked MaintenanceItem when record is completed."""
+        is_new = self._state.adding # Check if this is a new record
+        
+        # Check if the status is being set to 'completed'
+        # We might only want to update the item when the record is first marked completed
+        update_item = False
+        if self.status == 'completed':
+            if is_new:
+                update_item = True # Always update if new record is completed
+            else:
+                # If updating, only update item if status *changed* to completed
+                try:
+                    old_instance = MaintenanceRecord.objects.get(pk=self.pk)
+                    if old_instance.status != 'completed':
+                        update_item = True
+                except MaintenanceRecord.DoesNotExist:
+                    update_item = True # Should not happen if not new, but handle anyway
+        
+        super().save(*args, **kwargs) # Save the record itself first
+
+        if update_item and self.maintenance_item:
+            item = self.maintenance_item
+            item.last_maintenance_date = self.maintenance_date or timezone.now().date()
+            # Optionally update status - maybe only if it was 'requires_maintenance'?
+            if item.status in ['requires_maintenance', 'under_maintenance', 'not_operational']:
+                 item.status = 'operational' 
+            # The MaintenanceItem's save method should recalculate next_maintenance_date
+            item.save()
