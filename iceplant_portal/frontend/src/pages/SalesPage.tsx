@@ -233,6 +233,7 @@ const SalesPage: React.FC = () => {
       
       if (response && response.results) {
         console.log(`[SalesPage] Setting ${response.results.length} sales results from page ${page}`);
+        console.log('[SalesPage] Response contains these sales:', response.results.map((s: Sale) => s.buyer_name));
         setSales(response.results);
         setFilteredSales(response.results);
         setTotalItems(response.count || 0);
@@ -777,6 +778,13 @@ const SalesPage: React.FC = () => {
             <TableContainer>
               <Table size="small">
                 <TableHead>
+                  <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
+                    <TableCell colSpan={9} align="right">
+                      <Typography variant="caption" color="text.secondary">
+                        Displaying {filteredSales.length} sales {filterBuyer ? `filtered by: ${filterBuyer}` : ''}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
                   <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
                     <TableCell>
                       <TableSortLabel
