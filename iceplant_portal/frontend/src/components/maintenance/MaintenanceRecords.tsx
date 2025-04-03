@@ -531,6 +531,9 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
         
         // Function to handle printing
         const handlePrintPreview = () => {
+          // Clear the other key first
+          localStorage.removeItem('printSelectedMaintenanceRecords');
+          // Set the key for the single record
           localStorage.setItem('printMaintenanceRecord', JSON.stringify(currentRecord));
           window.open(`/maintenance/print/${currentRecord.id}`, '_blank');
           handleCloseModal(); // Optionally close modal after opening print view
@@ -781,6 +784,8 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
         return;
     }
 
+    // Clear the other key first
+    localStorage.removeItem('printMaintenanceRecord');
     // Store the array of selected records
     localStorage.setItem('printSelectedMaintenanceRecords', JSON.stringify(selectedRecordsData));
     
