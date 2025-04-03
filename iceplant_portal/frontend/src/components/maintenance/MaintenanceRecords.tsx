@@ -352,7 +352,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
                     <Select
                       labelId="equipment-label"
                       name="maintenance_item"
-                      value={formData.maintenance_item}
+                      value={equipment.some(item => item.id === formData.maintenance_item) ? formData.maintenance_item : ''}
                       onChange={handleInputChange}
                       label="Equipment"
                     >
@@ -1034,9 +1034,6 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
         disablePortal={false}
         container={() => document.getElementById('root') || document.body}
         keepMounted={false}
-        disableEnforceFocus
-        disableRestoreFocus
-        disableAutoFocus
         BackdropProps={{
           onClick: handleCloseModal
         }}
