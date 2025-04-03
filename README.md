@@ -72,6 +72,67 @@ After starting the application using the script:
 - Django Admin: http://127.0.0.1:8000/admin/
 - Frontend: http://localhost:5173/
 
+## Manual Setup & Management Commands
+
+While the `./start.sh` script handles most common setup tasks, you might need to run Django management commands manually (e.g., `makemigrations`, `migrate`, `shell`, `createsuperuser`).
+
+**1. Navigate to the Backend Directory:**
+
+All `manage.py` commands should be run from the `iceplant_portal` directory:
+
+```bash
+cd iceplant_portal
+```
+
+**2. Activate the Virtual Environment:**
+
+The project uses a virtual environment located at `iceplant_portal/venv/`. You need to activate it before running commands:
+
+```bash
+# From within the iceplant_portal directory
+source venv/bin/activate
+```
+
+Your terminal prompt should now indicate the active environment (e.g., `(venv) ...`).
+
+**3. Run Management Commands:**
+
+Once the virtual environment is active, use `python3`:
+
+```bash
+# Example: Make migrations
+python3 manage.py makemigrations
+
+# Example: Apply migrations
+python3 manage.py migrate
+
+# Example: Open Django shell
+python3 manage.py shell
+
+# Example: Create a superuser
+python3 manage.py createsuperuser
+```
+
+**Troubleshooting Activation:**
+
+If `source venv/bin/activate` doesn't seem to work correctly (e.g., you still get `ModuleNotFoundError: No module named 'django'`), you can bypass activation by running commands using the virtual environment's specific Python interpreter:
+
+```bash
+# From within the iceplant_portal directory
+venv/bin/python3 manage.py <your_command>
+
+# Example:
+venv/bin/python3 manage.py migrate
+```
+
+**4. Deactivate the Virtual Environment:**
+
+When you're finished, you can deactivate the environment:
+
+```bash
+deactivate
+```
+
 ## License
 
 This project is licensed under the MIT License. 

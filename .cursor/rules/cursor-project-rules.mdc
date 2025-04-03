@@ -456,4 +456,30 @@ Before considering pagination implementation complete, verify:
 *   **Styling:** Utilize the established UI library (likely Material UI) and theme defined in `theme/`. Use `sx` prop or `styled` components for specific overrides.
 *   **State Management:** Use React hooks (`useState`, `useReducer`) for local component state. Use Context API (`useContext`) for global or shared state.
 *   **API Calls:** Centralize API call logic within the `services/` directory. Pages/components should import and use these service functions.
-*   **Types:** Leverage TypeScript extensively. Define interfaces/types for props, state, and API data in `types/` or colocated if highly specific. 
+*   **Types:** Leverage TypeScript extensively. Define interfaces/types for props, state, and API data in `types/` or colocated if highly specific.
+
+## User Roles and Permissions Strategy
+
+To ensure proper access control and security, the application utilizes Django's built-in Groups and Permissions system. Permissions should primarily be assigned to Groups, and users should be assigned to the appropriate Group(s).
+
+### Standard Roles
+
+1.  **Admin (Superuser):**
+    *   **Responsibilities:** Full system configuration, user management, group/permission setup, potentially sensitive operations (e.g., expense approval if implemented).
+    *   **Assignment:** Users needing full control should be marked as 'superuser'.
+
+2.  **Office Group:**
+    *   **Responsibilities:** General day-to-day operations - sales entry, inventory checks, expense recording (not approval), maintenance logging, buyer management.
+    *   **Permissions (General):** `ADD`, `VIEW`, `CHANGE` permissions for core operational models (`Sale`, `Buyer`, `Expense`, `ExpenseCategory`, `Inventory`, `InventoryAdjustment`, `MaintenanceItem`, `MaintenanceRecord`). Specifically excludes `DELETE` permissions for these models and any approval permissions.
+    *   **Assignment:** Create a Django Group named "Office" and assign relevant permissions. Assign operational staff users to this group.
+
+3.  **HR Group:**
+    *   **Responsibilities:** Managing employee attendance, shifts, profiles, and related HR-specific notes.
+    *   **Permissions (General):** Full CRUD (`ADD`, `VIEW`, `CHANGE`, `DELETE`) permissions for HR-related models (`EmployeeProfile`, `EmployeeShift`, `DepartmentShift`). `VIEW`, `CHANGE` for `Attendance`. The `attendance.import_attendance` permission for uploads. Access to HR-only notes fields (requires custom logic).
+    *   **Assignment:** Create a Django Group named "HR" and assign relevant permissions. Assign HR staff users to this group.
+
+### Guidelines
+
+*   **Assign Permissions to Groups:** Avoid assigning permissions directly to individual users whenever possible. Use Groups to manage roles.
+*   **Principle of Least Privilege:** Assign only the permissions necessary for a group to perform its designated responsibilities.
+*   **Review Regularly:** Periodically review group assignments and permissions as application features evolve. 
