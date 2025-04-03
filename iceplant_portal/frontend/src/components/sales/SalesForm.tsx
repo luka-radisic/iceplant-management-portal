@@ -184,9 +184,11 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
       });
     }
     
-    // Allow only whole numbers (integers)
+    // Allow multi-digit numbers
     const cleanValue = value.replace(/[^\d]/g, '');
-    const numericValue = cleanValue === '' ? '' : parseInt(cleanValue, 10);
+    
+    // Store numeric value in state - don't parse as int to preserve original input
+    const numericValue = cleanValue === '' ? '' : Number(cleanValue);
     
     setFormData(prev => ({
       ...prev,
