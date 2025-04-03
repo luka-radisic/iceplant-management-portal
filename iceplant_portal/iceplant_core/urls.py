@@ -35,7 +35,7 @@ urlpatterns = [
     path('api/expenses/', include('expenses.api.urls')),
     path('api/tools/', include('tools.api.urls')),
     path('api/buyers/', include('buyers.api.urls')),
-    path('api/maintenance/', include('maintenance.api_urls')),
+    path('api/maintenance/', include('maintenance.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('api-token-auth/', CustomObtainAuthToken.as_view(), name='api_token_auth'),
     

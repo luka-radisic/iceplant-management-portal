@@ -138,8 +138,24 @@ class MaintenanceRecordViewSet(viewsets.ModelViewSet):
         status = self.request.query_params.get('status', None)
         if status:
             queryset = queryset.filter(status=status)
+
+        # Filter by year if provided
+        year = self.request.query_params.get('year', None)
+        if year:
+            try:
+                queryset = queryset.filter(maintenance_date__year=int(year))
+            except (ValueError, TypeError):
+                pass # Ignore invalid year parameter
+
+        # Filter by month if provided
+        month = self.request.query_params.get('month', None)
+        if month:
+            try:
+                queryset = queryset.filter(maintenance_date__month=int(month))
+            except (ValueError, TypeError):
+                pass # Ignore invalid month parameter
             
-        # Filter by date range if provided
+        # Existing date range filter (keep if needed, but month/year is separate)
         start_date = self.request.query_params.get('start_date', None)
         end_date = self.request.query_params.get('end_date', None)
         

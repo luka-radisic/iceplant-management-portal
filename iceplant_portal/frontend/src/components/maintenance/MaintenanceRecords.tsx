@@ -34,6 +34,7 @@ import {
   ErrorOutline as EmergencyIcon,
   ConstructionOutlined as PreventiveIcon,
   BuildCircle as CorrectiveIcon,
+  Print as PrintIcon,
 } from '@mui/icons-material';
 import {
   MaintenanceRecord, 
@@ -83,6 +84,10 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize] = useState(10);
 
+  // Filtering state
+  const [filterMonth, setFilterMonth] = useState<string>(''); // '' for All, '1'-'12' for months
+  const [filterYear, setFilterYear] = useState<string>(''); // '' for All, e.g., '2024'
+
   useEffect(() => {
     fetchData(page);
   }, [page]);
@@ -90,8 +95,16 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
   const fetchData = async (pageNumber = 1) => {
     try {
       setLoading(true);
-      // Fetch maintenance records with pagination
-      const url = `${endpoints.maintenanceRecords}?page=${pageNumber}&page_size=${pageSize}`;
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: pageNumber.toString(),
+        page_size: pageSize.toString(),
+      });
+      if (filterMonth) params.append('month', filterMonth);
+      if (filterYear) params.append('year', filterYear);
+
+      const url = `${endpoints.maintenanceRecords}?${params.toString()}`;
+      console.log(`[MaintenanceRecords] Fetching: ${url}`); // Log the URL
       const recordsResponse = await apiService.get(url);
       
       if (recordsResponse && typeof recordsResponse === 'object') {
@@ -119,6 +132,21 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       setLoading(false);
     }
   };
+
+  // useEffect to refetch data when filters change (and reset page)
+  useEffect(() => {
+      console.log(`[MaintenanceRecords] Filters changed: Month=${filterMonth}, Year=${filterYear}. Fetching page 1.`);
+      if (page !== 1) {
+          setPage(1); // Reset page, which triggers the other useEffect
+      } else {
+          fetchData(1); // Fetch directly if already on page 1
+      }
+  }, [filterMonth, filterYear]);
+  
+  // useEffect to fetch data when page changes
+  useEffect(() => {
+    fetchData(page);
+  }, [page]); // Keep original page change fetch
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
@@ -486,9 +514,27 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       
       case ModalType.VIEW:
         if (!currentRecord) return null;
+        
+        // Function to handle printing
+        const handlePrintPreview = () => {
+          localStorage.setItem('printMaintenanceRecord', JSON.stringify(currentRecord));
+          window.open(`/maintenance/print/${currentRecord.id}`, '_blank');
+          handleCloseModal(); // Optionally close modal after opening print view
+        };
+        
         return (
           <>
-            <DialogTitle id="maintenance-dialog-title">Maintenance Record Details</DialogTitle>
+            <DialogTitle id="maintenance-dialog-title">
+              Maintenance Record Details
+              <IconButton 
+                aria-label="print"
+                onClick={handlePrintPreview}
+                sx={{ position: 'absolute', right: 8, top: 8 }}
+                title="Print Preview"
+              >
+                <PrintIcon />
+              </IconButton>
+            </DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12} sm={6}>
@@ -550,8 +596,14 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
             <DialogActions>
               <Button onClick={handleCloseModal}>Close</Button>
               <Button 
+                onClick={handlePrintPreview}
+                color="secondary"
+                startIcon={<PrintIcon />}
+              >
+                Print Preview
+              </Button>
+              <Button 
                 onClick={() => {
-                  handleCloseModal();
                   handleOpenModal(ModalType.EDIT, currentRecord);
                 }} 
                 color="primary"
@@ -579,6 +631,25 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       </Box>
     ) : null;
   };
+
+  // Handlers for filter changes
+  const handleMonthChange = (event: SelectChangeEvent) => {
+    setFilterMonth(event.target.value as string);
+  };
+
+  const handleYearChange = (event: SelectChangeEvent) => {
+    setFilterYear(event.target.value as string);
+  };
+
+  const resetFilters = () => {
+    setFilterMonth('');
+    setFilterYear('');
+    // Fetching will be triggered by the useEffect watching filters
+  };
+
+  // Generate year options (e.g., last 5 years + current year)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 6 }, (_, i) => (currentYear - i).toString());
 
   if (loading && records.length === 0) {
     return (
@@ -610,6 +681,54 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
         </Button>
       </Box>
       
+      {/* Filter Section */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item>
+            <Typography variant="subtitle2">Filter by Date:</Typography>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="month-filter-label">Month</InputLabel>
+              <Select
+                labelId="month-filter-label"
+                value={filterMonth}
+                label="Month"
+                onChange={handleMonthChange}
+              >
+                <MenuItem value="">All Months</MenuItem>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <MenuItem key={i + 1} value={(i + 1).toString()}>
+                    {new Date(0, i).toLocaleString('en-US', { month: 'long' })}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="year-filter-label">Year</InputLabel>
+              <Select
+                labelId="year-filter-label"
+                value={filterYear}
+                label="Year"
+                onChange={handleYearChange}
+              >
+                <MenuItem value="">All Years</MenuItem>
+                {yearOptions.map(year => (
+                  <MenuItem key={year} value={year}>{year}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item>
+            <Button variant="outlined" size="small" onClick={resetFilters}>
+              Reset Date Filter
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+      
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -627,7 +746,20 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
           <TableBody>
             {records.map((record) => (
               <TableRow key={record.id}>
-                <TableCell>{record.equipment_name}</TableCell>
+                <TableCell 
+                  onClick={() => handleOpenModal(ModalType.VIEW, record)} 
+                  sx={{
+                    cursor: 'pointer', 
+                    '&:hover': { 
+                      textDecoration: 'underline', 
+                      color: 'primary.main' 
+                    }
+                  }}
+                  title="View Record Details"
+                >
+                  {record.maintenance_item?.equipment_name || 'N/A'}
+                </TableCell>
+                <TableCell>{record.maintenance_item?.equipment_name || 'N/A'}</TableCell>
                 <TableCell>{formatDate(record.maintenance_date)}</TableCell>
                 <TableCell>{getMaintenanceTypeChip(record.maintenance_type)}</TableCell>
                 <TableCell>{record.performed_by}</TableCell>
