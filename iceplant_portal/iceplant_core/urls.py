@@ -29,7 +29,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # API endpoints
     path('api/attendance/', include('attendance.api.urls')),
-    path('api/sales/', include('sales.api.urls')),
+    path('api/sales/', include('sales.urls')),
     path('api/company/', include('companyconfig.urls')),
     path('api/inventory/', include('inventory.api.urls')),
     path('api/expenses/', include('expenses.api.urls')),

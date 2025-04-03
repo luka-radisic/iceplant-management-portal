@@ -60,9 +60,8 @@ interface SaleSummary {
   errorCount: number;
 }
 
-const SalesPage: React.FC = () => {
+const SalesPage: React.FC = (): React.ReactElement => {
   const [sales, setSales] = useState<Sale[]>([]);
-  const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
@@ -130,13 +129,6 @@ const SalesPage: React.FC = () => {
         )
     );
     
-    // Update filteredSales directly too
-    setFilteredSales(prevFilteredSales => 
-        prevFilteredSales.map(s => 
-            s.id === saleIdToUpdate ? { ...s, status: newStatus } : s
-        )
-    );
-    
     handleMenuClose();
 
     try {
@@ -155,11 +147,6 @@ const SalesPage: React.FC = () => {
         // Revert the change in case of error - update both states
         setSales(prevSales => 
             prevSales.map(s => 
-                s.id === saleIdToUpdate ? { ...s, status: originalStatus } : s
-            )
-        );
-        setFilteredSales(prevFilteredSales => 
-            prevFilteredSales.map(s => 
                 s.id === saleIdToUpdate ? { ...s, status: originalStatus } : s
             )
         );
@@ -229,16 +216,13 @@ const SalesPage: React.FC = () => {
       if (response && response.results) {
         console.log(`[SalesPage] Setting ${response.results.length} sales results from page ${page}`);
         setSales(response.results);
-        setFilteredSales(response.results);
         setTotalItems(response.count || 0);
         console.log(`[SalesPage] Total items: ${response.count}, pages: ${Math.ceil((response.count || 0) / pageSize)}`);
       } else if (Array.isArray(response)) {
         setSales(response);
-        setFilteredSales(response);
         setTotalItems(response.length);
       } else {
         setSales([]);
-        setFilteredSales([]);
         setTotalItems(0);
       }
       
@@ -255,9 +239,9 @@ const SalesPage: React.FC = () => {
 
   // Fetch sales data when page or sorting changes
   useEffect(() => {
-    console.log(`[SalesPage] Page or sort changed - page: ${page}, sort: ${sortField} ${sortDirection}`);
+    console.log(`[SalesPage] Fetching data due to change in deps: page=${page}, buyer=${filterBuyer}, status=${filterStatus}, sort=${sortField}${sortDirection}`);
     fetchSales();
-  }, [page, pageSize, sortField, sortDirection, fetchSales]);
+  }, [page, pageSize, filterStatus, filterBuyer, filterDateFrom, filterDateTo, sortField, sortDirection, fetchSales]);
 
   // Load buyers for filter autocomplete
   useEffect(() => {
@@ -316,29 +300,28 @@ const SalesPage: React.FC = () => {
     // which will be triggered by the useEffect watching these values
   };
 
-  // Apply filters - this is now separated from the page change logic
-  const applyFilters = useCallback(() => {
-    // Reset to page 1 when applying new filters
-    setPage(1);
-    // No need to call fetchSales here since the useEffect depends on page
-  }, [setPage]);
-
   // Reset filters
   const resetFilters = () => {
     console.log('[SalesPage] Resetting all filters');
+    let needsPageReset = page !== 1;
+    let hadActiveFilters = filterStatus || filterBuyer || filterDateFrom || filterDateTo;
+
     setFilterStatus('');
     setFilterBuyer('');
     setFilterDateFrom('');
     setFilterDateTo('');
-    
-    // Clear cache to ensure we get fresh data
-    clearSalesCache();
-    
-    // Reset to page 1
-    setPage(1);
-    
-    // Log that we've reset filters
-    console.log('[SalesPage] All filters reset, returning to page 1');
+    clearSalesCache(); // Good practice
+
+    if (needsPageReset) {
+        setPage(1); // This will trigger the main useEffect
+    } else if (hadActiveFilters) {
+        // If already on page 1, but filters were active,
+        // changing filters to '' changes fetchSales dependency,
+        // so the main effect should re-run.
+        // To be absolutely sure, you could call fetchSales()
+        // fetchSales(); // Usually not needed if deps are correct
+    }
+    console.log('[SalesPage] Filters reset. Effect will fetch.');
   };
 
   // Handle page change
@@ -350,164 +333,29 @@ const SalesPage: React.FC = () => {
 
   // Handle filter changes
   const handleStatusFilterChange = (event: SelectChangeEvent) => {
-    setFilterStatus(event.target.value as string);
+    const newStatus = event.target.value as string;
+    console.log(`[SalesPage] Status filter changed to: ${newStatus}`);
+    setFilterStatus(newStatus);
+    if (page !== 1) {
+      setPage(1); // Reset page, fetch triggered by useEffect
+    }
   };
 
   const handleDateFromChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilterDateFrom(event.target.value);
+    const newDate = event.target.value;
+    console.log(`[SalesPage] Date From filter changed to: ${newDate}`);
+    setFilterDateFrom(newDate);
+    if (page !== 1) {
+      setPage(1); // Reset page, fetch triggered by useEffect
+    }
   };
 
   const handleDateToChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilterDateTo(event.target.value);
-  };
-
-  // Apply filters when filter values change - with proper debounce
-  useEffect(() => {
-    console.log(`[SalesPage] Filter values changed, will apply after debounce:`, {
-      status: filterStatus,
-      buyer: filterBuyer,
-      dateFrom: filterDateFrom,
-      dateTo: filterDateTo
-    });
-    
-    const timer = setTimeout(() => {
-      console.log('[SalesPage] Debounce time reached, applying filters now');
-      applyFilters();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [filterStatus, filterBuyer, filterDateFrom, filterDateTo, applyFilters]);
-
-  // Function to clear sales cache
-  const clearSalesCache = () => {
-    console.log('[SalesPage] Clearing sales cache...');
-    let clearedCount = 0;
-    
-    // Find all sales cache keys and remove them
-    Object.keys(sessionStorage).forEach(key => {
-      if (key.startsWith('sales_')) {
-        sessionStorage.removeItem(key);
-        clearedCount++;
-      }
-    });
-    
-    console.log(`[SalesPage] Cleared ${clearedCount} cache entries`);
-  };
-
-  const handleSaleAdded = () => {
-    // Clear cache to ensure we get fresh data
-    clearSalesCache();
-    
-    // Reset to page 1 to ensure the new sale is visible
-    setPage(1);
-    // fetchSales will be called via the page change useEffect
-  };
-
-  // Use our new StatusChip component instead of renderStatus function
-  const renderStatus = (status: string) => {
-    return <StatusChip status={status} />;
-  };
-
-  // Toggle summary dialog
-  const toggleSummaryDialog = () => {
-    setShowSummary(!showSummary);
-  };
-
-  // Edit in Admin handler
-  const handleEditInAdmin = (saleId: number) => {
-    handleMenuClose();
-    navigate(`/admin/sales/sale/${saleId}/change`);
-  };
-
-  // Check if we're coming from an admin edit route
-  useEffect(() => {
-    const checkForAdminEdit = async () => {
-      // Check if we have a sale ID in the URL params (from redirect)
-      const saleIdFromPath = location.pathname.match(/\/admin\/sales\/sale\/(\d+)\/change/);
-      const saleId = saleIdFromPath ? parseInt(saleIdFromPath[1]) : null;
-      
-      if (saleId) {
-        try {
-          setLoading(true);
-          // Fetch the specific sale details
-          const response = await apiService.get(`${endpoints.sales}${saleId}/`);
-          if (response) {
-            setEditableSale(response);
-            setEditDialogOpen(true);
-          }
-        } catch (err) {
-          console.error("Error fetching sale for editing:", err);
-          enqueueSnackbar("Could not load sale details for editing", { variant: 'error' });
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    
-    checkForAdminEdit();
-  }, [location.pathname, enqueueSnackbar]);
-
-  // Validate the edit form
-  const validateEditForm = (sale?: Sale | null): boolean => {
-    if (!sale) return false;
-    if (!sale.si_number || !sale.buyer_name || !sale.sale_date) return false;
-    return true;
-  };
-
-  // Handle editing a sale
-  const handleEditSale = async (updatedSale: Partial<Sale>) => {
-    if (!editableSale) return;
-    
-    // Validate the form before submission
-    if (!validateEditForm(editableSale as Sale)) {
-      enqueueSnackbar("Please fill in all required fields", { variant: 'error' });
-      return;
-    }
-    
-    try {
-      const dataToSend: any = { ...updatedSale };
-      
-      // If no buyer_id is present but we have a buyer_name, try to find or create a buyer
-      if (!updatedSale.buyer?.id && updatedSale.buyer_name) {
-        try {
-          // Use the enhanced search method that also checks for UUID format
-          const buyerResponse = await apiService.searchOrCreateBuyerWithId(updatedSale.buyer_name);
-          if (buyerResponse && buyerResponse.id) {
-            dataToSend.buyer_id = buyerResponse.id;
-            
-            // Update the buyers list with the new buyer
-            if (!buyers.some(b => b.id === buyerResponse.id)) {
-              setBuyers(prev => [...prev, buyerResponse]);
-            }
-          }
-        } catch (err) {
-          console.error("Error finding/creating buyer:", err);
-          // Continue with the sale update even if buyer creation fails
-        }
-      }
-      
-      await apiService.put(`${endpoints.sales}${editableSale.id}/`, dataToSend);
-      enqueueSnackbar(`Sale ${editableSale.si_number} updated successfully`, { variant: 'success' });
-      
-      // Clear cache to ensure we get fresh data
-      clearSalesCache();
-      
-      fetchSales(); // Refresh sales list
-      handleCloseEditDialog();
-    } catch (err) {
-      console.error("Error updating sale:", err);
-      enqueueSnackbar("Failed to update sale", { variant: 'error' });
-    }
-  };
-  
-  const handleCloseEditDialog = () => {
-    setEditDialogOpen(false);
-    setEditableSale(null);
-    setSelectedEditBuyer(null);
-    
-    // If we came from admin route, update URL to remove /admin/sales/sale/:id/change
-    if (location.pathname.includes('/admin/sales/sale/')) {
-      navigate('/sales', { replace: true });
+    const newDate = event.target.value;
+    console.log(`[SalesPage] Date To filter changed to: ${newDate}`);
+    setFilterDateTo(newDate);
+    if (page !== 1) {
+      setPage(1); // Reset page, fetch triggered by useEffect
     }
   };
 
@@ -615,6 +463,167 @@ const SalesPage: React.FC = () => {
     }
   };
 
+  // Update Autocomplete handlers
+  const handleBuyerFilterChange = (event: any, newValue: string | BuyerLight | null) => {
+    console.log('[SalesPage] Buyer filter selection changed:', newValue);
+    let buyerNameToSet = '';
+    if (typeof newValue === 'string') {
+        buyerNameToSet = newValue; // User typed something and pressed Enter (freeSolo)
+    } else if (newValue) {
+        buyerNameToSet = newValue.name; // User selected an option
+    }
+    // Else: User cleared the input (newValue is null)
+
+    setFilterBuyer(buyerNameToSet);
+    if (page !== 1) {
+        setPage(1); // Reset page, fetch triggered by useEffect
+    }
+  };
+
+  const handleBuyerInputChange = (event: any, newInputValue: string, reason: string) => {
+    console.log(`[SalesPage] Buyer input changed: '${newInputValue}', reason: ${reason}`);
+    // Only update the state for display as user types
+    // The actual filter trigger happens via onChange (handleBuyerFilterChange)
+    // when user selects, clears, or hits enter (freeSolo)
+    if (reason === 'input') {
+        setFilterBuyer(newInputValue);
+    }
+    // If you wanted search-as-you-type, you'd add debounce logic here
+    // that eventually calls setPage(1)
+  };
+
+  // Function to clear sales cache
+  const clearSalesCache = () => {
+    console.log('[SalesPage] Clearing sales cache...');
+    let clearedCount = 0;
+    
+    // Find all sales cache keys and remove them
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('sales_')) {
+        sessionStorage.removeItem(key);
+        clearedCount++;
+      }
+    });
+    
+    console.log(`[SalesPage] Cleared ${clearedCount} cache entries`);
+  };
+
+  const handleSaleAdded = () => {
+    // Clear cache to ensure we get fresh data
+    clearSalesCache();
+    
+    // Reset to page 1 to ensure the new sale is visible
+    // fetchSales will be called via the page change useEffect
+    if (page !== 1) {
+        setPage(1);
+    } else {
+        // If already on page 1, force a refetch
+        fetchSales(); 
+    }
+  };
+
+  // Use our new StatusChip component instead of renderStatus function
+  const renderStatus = (status: string) => {
+    return <StatusChip status={status} />;
+  };
+
+  // Toggle summary dialog
+  const toggleSummaryDialog = () => {
+    setShowSummary(!showSummary);
+  };
+
+  // Validate the edit form
+  const validateEditForm = (sale?: Sale | null): boolean => {
+    if (!sale) return false;
+    // Basic validation: check if required fields have values
+    if (!sale.si_number || !sale.buyer_name || !sale.sale_date) {
+      enqueueSnackbar('SI Number, Buyer Name, and Sale Date are required.', { variant: 'warning' });
+      return false;
+    }
+    // Add more specific validation rules if needed
+    return true;
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
+    setEditableSale(null);
+    setSelectedEditBuyer(null);
+    
+    // If we came from admin route, update URL to remove /admin/sales/sale/:id/change
+    if (location.pathname.includes('/admin/sales/sale/')) {
+      navigate('/sales', { replace: true });
+    }
+  };
+
+  // Handle editing a sale
+  const handleEditSale = async (updatedSale: Partial<Sale>) => {
+    if (!editableSale) return;
+    
+    // Use the re-added validation function
+    if (!validateEditForm(editableSale as Sale)) {
+      // Snackbar message is handled inside validateEditForm now
+      return;
+    }
+    
+    try {
+      setLoading(true); // Indicate loading state
+      const dataToSend: any = { ...updatedSale };
+      
+      // Ensure buyer_id is handled correctly based on selectedEditBuyer
+      if (selectedEditBuyer) {
+        dataToSend.buyer_id = selectedEditBuyer.id;
+        dataToSend.buyer_name = selectedEditBuyer.name; // Ensure name is consistent
+      } else if (updatedSale.buyer_name && !updatedSale.buyer) {
+        // If a name exists but no buyer object/ID, try to find/create
+        console.log(`[SalesPage] Attempting to find/create buyer for name: ${updatedSale.buyer_name}`);
+        try {
+          const buyerResponse = await apiService.searchOrCreateBuyerWithId(updatedSale.buyer_name);
+          if (buyerResponse && buyerResponse.id) {
+            console.log(`[SalesPage] Found/created buyer ID: ${buyerResponse.id}`);
+            dataToSend.buyer_id = buyerResponse.id;
+            // Optionally update the buyers list state if a new buyer was created
+            if (!buyers.some(b => b.id === buyerResponse.id)) {
+               setBuyers(prev => [...prev, buyerResponse].sort((a, b) => a.name.localeCompare(b.name)));
+            }
+          } else {
+             console.warn(`[SalesPage] Could not find or create buyer for name: ${updatedSale.buyer_name}`);
+             // Decide how to proceed: maybe prevent saving or save without buyer_id
+             // For now, we proceed but log a warning. Backend might handle name-only.
+             delete dataToSend.buyer_id; // Remove potentially null buyer_id
+          }
+        } catch (err) {
+          console.error("[SalesPage] Error finding/creating buyer during edit:", err);
+          // Continue saving sale without a linked buyer ID
+          delete dataToSend.buyer_id;
+        }
+      } else {
+         // No buyer selected or typed
+         dataToSend.buyer_id = null; 
+      }
+      
+      // Remove the buyer object if it exists, we only need buyer_id
+      delete dataToSend.buyer; 
+
+      console.log('[SalesPage] Sending updated sale data:', dataToSend);
+      await apiService.put(`${endpoints.sales}${editableSale.id}/`, dataToSend);
+      enqueueSnackbar(`Sale ${editableSale.si_number} updated successfully`, { variant: 'success' });
+      
+      clearSalesCache(); // Clear cache
+      fetchSales(); // Refresh sales list
+      handleCloseEditDialog(); // Close dialog
+    } catch (err: any) {
+      console.error("Error updating sale:", err);
+      let errorMessage = "Failed to update sale";
+      if (err.response && err.response.data) {
+        // Try to extract more specific error from backend response
+        errorMessage += `: ${JSON.stringify(err.response.data)}`;
+      }
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -694,21 +703,9 @@ const SalesPage: React.FC = () => {
                     </div>
                   </li>
                 )}
-                value={filterBuyer}
-                onChange={(_event, newValue) => {
-                  if (typeof newValue === 'string') {
-                    setFilterBuyer(newValue);
-                  } else if (newValue) {
-                    setFilterBuyer(newValue.name);
-                  } else {
-                    setFilterBuyer('');
-                  }
-                  // Don't need to manually trigger applyFilters here as the useEffect will handle it
-                }}
-                onInputChange={(_event, newInputValue) => {
-                  setFilterBuyer(newInputValue);
-                  // Don't need to manually trigger applyFilters here as the useEffect will handle it
-                }}
+                inputValue={filterBuyer}
+                onInputChange={handleBuyerInputChange}
+                onChange={handleBuyerFilterChange}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -815,8 +812,8 @@ const SalesPage: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredSales.length > 0 ? (
-                    filteredSales.map((sale) => {
+                  {sales.length > 0 ? (
+                    sales.map((sale) => {
                       console.log('[SalesPage] Mapping sale:', JSON.stringify(sale)); 
                       return (
                         <TableRow key={sale.id}>
