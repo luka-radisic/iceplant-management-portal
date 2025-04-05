@@ -292,8 +292,64 @@ export default function AttendanceList() {
         <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
           Attendance Records & Statistics
         </Typography>
+
         <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-          {/* ... filter controls ... */}
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6} md={3}>
+              <DatePicker
+                label="Start Date"
+                value={filters.start_date ? new Date(filters.start_date + 'T00:00:00') : null}
+                onChange={newValue => handleFilterChange('start_date', newValue)}
+                slotProps={{
+                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
+                }}
+                format="yyyy-MM-dd"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <DatePicker
+                label="End Date"
+                value={filters.end_date ? new Date(filters.end_date + 'T00:00:00') : null}
+                onChange={newValue => handleFilterChange('end_date', newValue)}
+                slotProps={{
+                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
+                }}
+                format="yyyy-MM-dd"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                select
+                fullWidth
+                label="Status"
+                value={filters.status}
+                onChange={e => handleFilterChange('status', e.target.value)}
+                size="small"
+              >
+                <MenuItem value="all">All Records</MenuItem>
+                <MenuItem value="present">Present</MenuItem>
+                <MenuItem value="no-show">No Show</MenuItem>
+                <MenuItem value="missing-checkout">Missing Check-Out</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                select
+                fullWidth
+                label="Department"
+                value={filters.department}
+                onChange={e => handleFilterChange('department', e.target.value)}
+                size="small"
+              >
+                <MenuItem value="">All Departments</MenuItem>
+                {departments.map(dept => (
+                  <MenuItem key={dept} value={dept}>
+                    {dept}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
         </Paper>
 
         {loadingStats ? (
