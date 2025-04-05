@@ -46,3 +46,108 @@ Add a cleanup tool on the Tools page to bulk delete Attendance records with filt
 **Summary:**  
 Backend API supports bulk delete with filters and dry run, permission protected.  
 Next, add frontend UI on Tools page, visible only to superusers. 
+
+
+
+### Feature: Attendance Punchcard Cleanup Tool
+Goal  
+Allow authorized HR/superuser users to bulk delete attendance punchcard records based on filters: Month, Employee, Department, or custom date range, with safety checks and audit logging.
+
+---
+
+**Step 1: Backend API Endpoint**  
+- Create `/api/attendance/attendance/bulk_delete/` POST endpoint in `attendance/api/views.py` under `AttendanceViewSet`.  
+- Permissions: HR group or superusers only.  
+- Accept filters:  
+  - `employee_id` (optional)  
+  - `department` (optional)  
+  - `start_date` (optional)  
+  - `end_date` (optional)  
+  - `month` (optional, e.g., "2024-04")  
+- Deletes matching attendance records.  
+- Returns count of deleted records.  
+- Logs deletions in `ImportLog` or a new audit model.  
+- **Status:** Done.
+
+---
+
+**Step 2: Backend Filtering Logic**  
+- If `month` is provided, convert to start/end dates.  
+- Apply filters accordingly.  
+- Never delete records outside filtered range.  
+- Add `dry_run=true` mode to preview count without deleting.  
+- Log who performed deletion, timestamp, filters, count.  
+- **Status:** Done.
+
+---
+
+**Step 3: Frontend Service Layer**  
+- In `frontend/src/services/api.ts`, add `bulkDeleteAttendance(params)` function.  
+- POSTs to `/api/attendance/attendance/bulk_delete/` with filters.  
+- Handles dry-run and actual delete modes.  
+- **Status:** Done.
+
+---
+
+**Step 4: Frontend UI Component**  
+- Create `AttendanceCleanupTool.tsx` in `frontend/src/components/`.  
+- Features:  
+  - Filter inputs: Month picker, Employee selector, Department dropdown, Date range pickers.  
+  - Preview button (dry-run).  
+  - Delete button with confirmation.  
+  - Success/error notifications.  
+  - (Optional) Display audit log of recent deletions.  
+- **Status:** Done.
+
+---
+
+**Step 5: Integrate UI**  
+- Add section on Tools page, visible only to superusers.  
+- Restrict access in UI.  
+- **Status:** Done.
+
+---
+
+**Step 6: Permissions & Security**  
+- Backend: restrict API to HR/superusers.  
+- Frontend: hide UI for unauthorized users.  
+- Add CSRF/auth checks.  
+- **Status:** Done.
+
+---
+
+**Step 7: Testing**  
+- Backend: unit tests for API filtering, dry-run, deletion, logging.  
+- Frontend: test filter inputs, preview, delete flow, error handling.  
+- **Status:** Done.
+
+---
+
+**Step 8: Documentation**  
+- Update README with usage, permissions, safety notes.  
+- **Status:** Done.
+
+---
+
+**Step 9: Deployment**  
+- Merge changes.  
+- Run migrations if new audit model added.  
+- Verify on staging.  
+- **Status:** Done.
+
+---
+
+**Step 10: Mark as Done**  
+- Update plan with "Done" and summary after each step.  
+- **Status:** Done.  
+- **Summary:** Attendance Cleanup Tool implemented with filters, dry-run, permission checks, UI integration, and tested.
+
+---
+
+**Next:**  
+- Extend cleanup tools to Sales, Expenses, Inventory modules.  
+- Add audit log UI (optional).  
+- Add automated tests for cleanup endpoints.  
+- Automate README updates with latest features and change logs.
+
+--- 

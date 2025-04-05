@@ -65,12 +65,17 @@ If you prefer to set up the application manually, follow these steps:
    python manage.py migrate
    ```
 
-5. Create a superuser (for admin access)
+5. (Optional) Load initial demo data
+   ```bash
+   python manage.py create_demo_data
+   ```
+
+6. Create a superuser (for admin access)
    ```bash
    python manage.py createsuperuser
    ```
 
-6. Run the development server
+7. Run the development server
    ```bash
    python manage.py runserver
    ```
@@ -96,6 +101,31 @@ If you prefer to set up the application manually, follow these steps:
 
 - Django Admin: http://127.0.0.1:8000/admin/
 - Frontend: http://localhost:5173/
+- **Attendance Cleanup Tool:** Accessible on the Tools page, visible only to superusers.
+
+## Features
+
+- Attendance import, management, and analytics
+- Bulk Attendance Cleanup Tool with filters (Month, Employee, Department, Date Range)
+- Dry-run preview before deletion
+- Role-based access control (HR and superusers)
+- Sales, Inventory, Expenses modules
+- Automated database backup via GitHub Actions
+- Dockerized deployment support
+
+## Deployment Notes
+
+- Environment variables configured in `.env` or `.env.example`
+- PostgreSQL recommended (see `.env.example`)
+- Static files collected via `python manage.py collectstatic`
+- For production, use Gunicorn (see `Dockerfile`)
+
+## Change Log
+
+- **2025-04-05:**  
+  - Added Attendance Punchcard Cleanup Tool (bulk delete with filters, dry-run, audit logging)  
+  - Updated implementation plan accordingly  
+  - Improved permission checks and UI integration
 
 ## Project Structure
 
