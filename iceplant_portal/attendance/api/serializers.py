@@ -42,6 +42,7 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        # Re-introduce prefix stripping for display purposes
         prefix = "Atlantis Fishing Development Corp\\"
         department = data.get("department", "")
         if department and department.startswith(prefix):
