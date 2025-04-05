@@ -22,13 +22,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const username = localStorage.getItem('username');
-    const isAdmin = localStorage.getItem('isAdmin') === 'true';
-    const isSuperuser = localStorage.getItem('isSuperuser') === 'true';
-
-    if (token && username) {
-      setUser({ username, isAdmin, isSuperuser, token });
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        console.error('Failed to parse user from localStorage', e);
+        setUser(null);
+      }
     }
     setIsLoading(false);
   }, []);
