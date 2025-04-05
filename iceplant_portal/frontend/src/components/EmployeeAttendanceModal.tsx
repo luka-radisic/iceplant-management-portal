@@ -30,11 +30,13 @@ import {
 import { addHours, format, parse, differenceInMinutes } from 'date-fns';
 import { format as formatTZ } from 'date-fns-tz';
 import { useSnackbar } from 'notistack';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import apiService from '../services/api';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { formatDuration } from '../utils/formatters';
+import { debounce } from 'lodash';
 
 // Shift configuration type
 interface ShiftConfig {
@@ -105,6 +107,9 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  const [profileCache, setProfileCache] = useState<Record<string, any>>({});
+  const [shiftCache, setShiftCache] = useState<Record<string, any>>({});
+
   // Function to set quick date filters
   const setQuickDateFilter = (months: number) => {
     const end = new Date();
@@ -132,18 +137,15 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
   // Function to fetch employee's shift configuration
   const fetchEmployeeShift = async () => {
+    if (shiftCache[employeeId]) {
+      setShiftConfig(shiftCache[employeeId]);
+      return;
+    }
     try {
       const response = await apiService.get(`/api/attendance/employee-shift/${employeeId}/`);
       if (response) {
-        setShiftConfig({
-          shift_start: response.shift_start,
-          shift_end: response.shift_end,
-          break_duration: response.break_duration,
-          is_night_shift: response.is_night_shift,
-          is_rotating_shift: response.is_rotating_shift,
-          shift_duration: response.shift_duration,
-          rotation_partner_id: response.rotation_partner_id,
-        });
+        setShiftConfig(response);
+        setShiftCache(prev => ({ ...prev, [employeeId]: response }));
       }
     } catch (error) {
       console.error('Error fetching employee shift:', error);
@@ -163,20 +165,18 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
   const formatTime = (dateString: string) => {
     try {
-      // Convert UTC to Manila time
       const date = new Date(dateString);
       return formatTZ(date, 'HH:mm', { timeZone: 'Asia/Manila' });
-    } catch (error) {
+    } catch {
       return '-';
     }
   };
 
   const formatDateStr = (dateString: string) => {
     try {
-      // Convert UTC to Manila time
       const date = new Date(dateString);
       return formatTZ(date, 'MMM dd, yyyy', { timeZone: 'Asia/Manila' });
-    } catch (error) {
+    } catch {
       return '-';
     }
   };
@@ -187,130 +187,86 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       const weekday = formatTZ(date, 'EEEE', { timeZone: 'Asia/Manila' });
       const isSunday = weekday === 'Sunday';
       return { weekday, isSunday };
-    } catch (error) {
+    } catch {
       return { weekday: '-', isSunday: false };
     }
   };
 
-  // Function to determine shift type and validate time
   const getShiftType = (checkInTime: Date, checkOutTime: Date | null): string => {
     const timeStr = formatTZ(checkInTime, 'HH:mm', { timeZone: 'Asia/Manila' });
     const manilaDate = new Date(formatTZ(checkInTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'Asia/Manila' }));
     const shiftStartTime = parse(shiftConfig.shift_start, 'HH:mm', manilaDate);
-    const shiftEndTime = parse(shiftConfig.shift_end, 'HH:mm', manilaDate);
 
-    // Add 1 hour grace period for check-in
-    const graceEndTime = addHours(shiftStartTime, 1);
-
-    // For records with check-out times, calculate shift duration to help determine type
     if (checkOutTime) {
       const checkInHour = checkInTime.getHours();
-      const duration = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60); // hours
-      
-      // If duration is long enough (>8 hours), it's likely a full shift
+      const duration = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
       if (duration >= 8) {
-        // Check for 12-hour shift
         if (shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 && duration >= 10) {
-          // Morning 12-hour shift typically starts around 6-8 AM
           if (checkInHour >= 5 && checkInHour <= 9) {
             return '12-Hour Day Shift';
-          } 
-          // Night 12-hour shift typically starts around 6-8 PM
-          else if (checkInHour >= 17 && checkInHour <= 21) {
+          } else if (checkInHour >= 17 && checkInHour <= 21) {
             return '12-Hour Night Shift';
           }
-        }
-        // Check for regular night shift
-        else if (shiftConfig.is_night_shift || (checkInHour >= 18 || checkInHour <= 6)) {
+        } else if (shiftConfig.is_night_shift || (checkInHour >= 18 || checkInHour <= 6)) {
           return 'Night Shift';
-        }
-        // Default to morning shift for longer durations
-        else {
+        } else {
           return 'Morning Shift';
         }
       }
     }
-    
-    // Check for 12-hour shift
-    if (shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12) {
-      // For morning shift in rotating 12-hour pattern (typically 6am-6pm)
-      const morningStart = '06:00';
-      const morningEnd = '18:00';
-      // For night shift in rotating 12-hour pattern (typically 6pm-6am)
-      const nightStart = '18:00';
-      const nightEnd = '06:00';
-      
-      const isMorningShift = 
-        (timeStr >= morningStart && timeStr < nightStart);
-      
-      const isNightShift = 
-        (timeStr >= nightStart && timeStr <= '23:59') || 
-        (timeStr >= '00:00' && timeStr < morningStart);
-      
-      if (isMorningShift) {
-        return '12-Hour Day Shift';
-      } else if (isNightShift) {
-        return '12-Hour Night Shift';
-      }
-    } else if (shiftConfig.is_night_shift) {
-      // For night shift, check if time is between start time and midnight
-      // or between midnight and end time next day
-      const isInNightShift = (
-        (timeStr >= shiftConfig.shift_start && timeStr <= '23:59') ||
-        (timeStr >= '00:00' && timeStr <= shiftConfig.shift_end)
-      );
 
-      if (isInNightShift) {
-        return 'Night Shift';
-      }
+    if (shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12) {
+      const isMorningShift = (timeStr >= '06:00' && timeStr < '18:00');
+      const isNightShift = (timeStr >= '18:00' && timeStr <= '23:59') || (timeStr >= '00:00' && timeStr < '06:00');
+      if (isMorningShift) return '12-Hour Day Shift';
+      if (isNightShift) return '12-Hour Night Shift';
+    } else if (shiftConfig.is_night_shift) {
+      const isInNightShift = (timeStr >= shiftConfig.shift_start && timeStr <= '23:59') || (timeStr >= '00:00' && timeStr <= shiftConfig.shift_end);
+      if (isInNightShift) return 'Night Shift';
     } else {
-      // For morning shift, simply check if time is between start and end
-      if (timeStr >= shiftConfig.shift_start && timeStr <= shiftConfig.shift_end) {
-        return 'Morning Shift';
-      }
+      if (timeStr >= shiftConfig.shift_start && timeStr <= shiftConfig.shift_end) return 'Morning Shift';
     }
 
     return 'Outside Shift Hours';
   };
 
-  // Function to determine if a check-in is late
   const isLateForShift = (checkInTime: Date): boolean => {
-    const timeStr = formatTZ(checkInTime, 'HH:mm', { timeZone: 'Asia/Manila' });
     const manilaDate = new Date(formatTZ(checkInTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'Asia/Manila' }));
     const shiftStartTime = parse(shiftConfig.shift_start, 'HH:mm', manilaDate);
-    const graceEndTime = addHours(shiftStartTime, 1); // 1 hour grace period
-
+    const graceEndTime = addHours(shiftStartTime, 1);
     return checkInTime > graceEndTime;
   };
 
-  // Function to fetch employee records
   const fetchEmployeeRecords = async () => {
     setLoading(true);
     try {
-      // Prepare filter parameters
-      const filterParams = {
+      interface FilterParams {
+        employee_id: string;
+        page_size: number;
+        page: number;
+        start_date?: string;
+        end_date?: string;
+        status?: string;
+      }
+
+      const filterParams: FilterParams = {
         employee_id: employeeId,
         page_size: rowsPerPage,
-        page: page + 1,  // Add pagination parameters
+        page: page + 1,
       };
 
-      // Add date filters if they are set
       if (filters.start_date) {
         filterParams.start_date = filters.start_date;
       }
       if (filters.end_date) {
         filterParams.end_date = filters.end_date;
       }
-
-      // Add status filter with proper mapping
       if (filters.status !== 'all') {
         filterParams.status = filters.status;
       }
 
-      // Get paginated records
       const response = await apiService.get('/api/attendance/attendance/', filterParams);
 
-      // Handle empty or error responses
       if (!response || !response.results) {
         setRecords([]);
         setTotalCount(0);
@@ -320,42 +276,31 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       const allRecords = response.results || [];
       const totalRecords = response.count || 0;
 
-      // Add shift information to records
-      const recordsWithShifts = allRecords.map(record => ({
+      const recordsWithShifts = allRecords.map((record: any) => ({
         ...record,
         checkInTime: new Date(record.check_in),
         checkOutTime: record.check_out ? new Date(record.check_out) : null,
         shiftType: getShiftType(new Date(record.check_in), record.check_out ? new Date(record.check_out) : null),
       }));
 
-      // Calculate statistics
       const presentRecords = allRecords.filter((r: any) => r.department !== 'NO SHOW');
       const noShows = allRecords.filter((r: any) => r.department === 'NO SHOW');
-      const morningShifts = recordsWithShifts.filter(r => r.shiftType === 'Morning Shift');
-      const nightShifts = recordsWithShifts.filter(r => r.shiftType === 'Night Shift');
-      const dayRotatingShifts = recordsWithShifts.filter(r => r.shiftType === '12-Hour Day Shift');
-      const nightRotatingShifts = recordsWithShifts.filter(r => r.shiftType === '12-Hour Night Shift');
-      const lateArrivals = recordsWithShifts.filter(r => isLateForShift(r.checkInTime));
+      const morningShifts = recordsWithShifts.filter((r: any) => r.shiftType === 'Morning Shift');
+      const nightShifts = recordsWithShifts.filter((r: any) => r.shiftType === 'Night Shift');
+      const dayRotatingShifts = recordsWithShifts.filter((r: any) => r.shiftType === '12-Hour Day Shift');
+      const nightRotatingShifts = recordsWithShifts.filter((r: any) => r.shiftType === '12-Hour Night Shift');
+      const lateArrivals = recordsWithShifts.filter((r: any) => isLateForShift(r.checkInTime));
       const missingCheckouts = presentRecords.filter((r: any) => !r.check_out);
 
-      // Calculate average check-in/out times
-      const checkInTimes = presentRecords
-        .map((r: any) => new Date(r.check_in))
-        .filter(Boolean);
-      const checkOutTimes = presentRecords
-        .map((r: any) => r.check_out && new Date(r.check_out))
-        .filter(Boolean);
+      const checkInTimes = presentRecords.map((r: any) => new Date(r.check_in)).filter(Boolean);
+      const checkOutTimes = presentRecords.map((r: any) => r.check_out && new Date(r.check_out)).filter(Boolean);
 
       const avgCheckIn = checkInTimes.length
-        ? format(new Date(
-          checkInTimes.reduce((acc: any, time: any) => acc + time.getTime(), 0) / checkInTimes.length
-        ), 'HH:mm')
+        ? format(new Date(checkInTimes.reduce((acc: any, time: any) => acc + time.getTime(), 0) / checkInTimes.length), 'HH:mm')
         : '-';
 
       const avgCheckOut = checkOutTimes.length
-        ? format(new Date(
-          checkOutTimes.reduce((acc: any, time: any) => acc + time.getTime(), 0) / checkOutTimes.length
-        ), 'HH:mm')
+        ? format(new Date(checkOutTimes.reduce((acc: any, time: any) => acc + time.getTime(), 0) / checkOutTimes.length), 'HH:mm')
         : '-';
 
       setStats({
@@ -376,8 +321,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       setRecords(recordsWithShifts);
     } catch (error) {
       console.error('Error fetching employee records:', error);
-      // Handle 404 errors gracefully
-      if (error.response?.status === 404) {
+      if (error instanceof Error && (error as any).response?.status === 404) {
         setRecords([]);
         setTotalCount(0);
       }
@@ -386,8 +330,13 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }
   };
 
-  // Function to fetch employee profile
   const fetchEmployeeProfile = async () => {
+    if (profileCache[employeeId]) {
+      const cached = profileCache[employeeId];
+      setTrackShifts(cached.track_shifts || false);
+      setProfilePicture(cached.photo_url || null);
+      return;
+    }
     setProfileError(null);
     try {
       const timestamp = new Date().getTime();
@@ -399,25 +348,23 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
             ? `${response.photo_url}&t=${timestamp}`
             : `${response.photo_url}?t=${timestamp}`;
           setProfilePicture(photoUrl);
+          response.photo_url = photoUrl;
         } else {
           setProfilePicture(null);
         }
+        setProfileCache(prev => ({ ...prev, [employeeId]: response }));
       }
     } catch (error: any) {
       setProfilePicture(null);
       setTrackShifts(false);
-      
       if (error.response?.status === 404) {
         setProfileError('No profile found. Basic attendance tracking enabled.');
-        console.info(`Employee profile for ${employeeId} not found. Using basic attendance tracking.`);
       } else {
         setProfileError('Error loading profile. Using basic attendance tracking.');
-        console.error('Error fetching employee profile:', error);
       }
     }
   };
 
-  // Function to handle profile picture upload
   const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -425,20 +372,12 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       return;
     }
 
-    console.log('Uploading file:', {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
-
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       enqueueSnackbar('Invalid file type. Only JPEG, PNG and GIF are allowed.', { variant: 'error' });
       return;
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       enqueueSnackbar('File too large. Maximum size is 5MB.', { variant: 'error' });
       return;
@@ -446,12 +385,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
     setUploadingPhoto(true);
     try {
-      // Use apiService's uploadEmployeePhoto method instead of direct fetch
       const response = await apiService.uploadEmployeePhoto(employeeId, file);
-      console.log('Upload response:', response);
-
       if (response && response.photo_url) {
-        // Add timestamp to prevent caching
         const timestamp = new Date().getTime();
         const photoUrl = response.photo_url.includes('?')
           ? `${response.photo_url}&t=${timestamp}`
@@ -463,17 +398,20 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       }
     } catch (error) {
       console.error('Error uploading profile picture:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to upload profile picture';
+      const errorMessage =
+        error instanceof Error && (error as any).response?.data?.error
+          ? (error as any).response.data.error
+          : error instanceof Error && error.message
+            ? error.message
+            : 'Failed to upload profile picture';
       enqueueSnackbar(errorMessage, { variant: 'error' });
       setProfilePicture(null);
     } finally {
       setUploadingPhoto(false);
-      // Reset the file input
       event.target.value = '';
     }
   };
 
-  // Function to handle profile picture removal
   const handleRemovePhoto = async () => {
     if (!profilePicture) return;
 
@@ -490,13 +428,9 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }
   };
 
-  // Function to toggle shift tracking
   const handleShiftTrackingToggle = async () => {
     try {
-      // First get the current profile data
       const currentProfile = await apiService.get(`/api/attendance/employee-profile/${employeeId}/`);
-      
-      // Only send required fields for update
       const response = await apiService.updateEmployeeProfile(employeeId, {
         employee_id: employeeId,
         full_name: currentProfile.full_name,
@@ -506,15 +440,10 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
         is_active: currentProfile.is_active,
         track_shifts: !trackShifts,
       });
-      
       setTrackShifts(response.track_shifts);
-      
-      // If enabling shifts, use default shift settings
       if (response.track_shifts) {
-        // Simply use the current shift config or create a default one
         await saveEmployeeShift();
       }
-      
       fetchEmployeeRecords();
     } catch (error) {
       console.error('Error updating shift tracking:', error);
@@ -522,7 +451,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }
   };
 
-  // Handlers for HR Note Editing
   const handleEditNoteClick = (record: any) => {
     setEditingRecordId(record.id);
     setEditingNote(record.hr_notes || '');
@@ -539,28 +467,24 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     try {
       const payload = { hr_notes: editingNote };
       await apiService.patch(`/api/attendance/attendance/${editingRecordId}/`, payload);
-      
-      // Update local state
-      setRecords(prevRecords => 
-        prevRecords.map(rec => 
+      setRecords(prevRecords =>
+        prevRecords.map(rec =>
           rec.id === editingRecordId ? { ...rec, hr_notes: editingNote } : rec
         )
       );
-      
       enqueueSnackbar('HR Note saved successfully', { variant: 'success' });
-      handleCancelEditNote(); // Exit edit mode
+      handleCancelEditNote();
     } catch (error) {
-      console.error("Error saving HR note:", error);
+      console.error('Error saving HR note:', error);
       enqueueSnackbar('Failed to save HR note', { variant: 'error' });
     } finally {
       setSavingNote(false);
     }
   };
 
-  // Update getStatusChip to handle Sundays
   const getStatusChip = (record: any) => {
     const { isSunday } = getWeekday(record.check_in);
-    
+
     return (
       <Box display="flex" gap={1}>
         {isSunday && (
@@ -579,14 +503,13 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     );
   };
 
-  // Update filter change handler for dates
   const handleFilterDateChange = (filterName: 'start_date' | 'end_date', newValue: Date | null) => {
     let formattedValue = '';
     if (newValue) {
       try {
         formattedValue = format(newValue, 'yyyy-MM-dd');
-      } catch (error) {
-        console.error('Error formatting date:', error);
+      } catch {
+        console.error('Error formatting date');
       }
     }
     setFilters(prev => ({
@@ -602,22 +525,19 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }));
   };
 
-  // Add new function for exporting HR notes
   const handleExportHrNotes = () => {
     if (!isHrUser) return;
 
     try {
-      // Filter records that have HR notes
       const notesData = records
-        .filter(record => record.hr_notes)
-        .map(record => ({
+        .filter((record: any) => record.hr_notes)
+        .map((record: any) => ({
           date: formatDateStr(record.check_in),
           weekday: getWeekday(record.check_in).weekday,
           status: record.department === 'NO SHOW' ? 'No Show' : (record.check_out ? 'Present' : 'Missing Check-out'),
           note: record.hr_notes
         }));
 
-      // Create CSV content
       const csvContent = [
         ['Employee Name:', employeeName],
         ['Employee ID:', employeeId],
@@ -630,10 +550,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
         csvContent.push([date, weekday, status, note]);
       });
 
-      // Convert to CSV string
       const csv = csvContent.map(row => row.join(',')).join('\n');
 
-      // Create and trigger download
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -651,6 +569,9 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }
   };
 
+  const debouncedFetchEmployeeRecords = useMemo(() =>
+    debounce(fetchEmployeeRecords, 300), [employeeId, filters, page, rowsPerPage]);
+
   useEffect(() => {
     if (open && employeeId) {
       fetchEmployeeProfile();
@@ -659,19 +580,17 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }
   }, [open, employeeId]);
 
-  // Add new effect to handle filter changes
   useEffect(() => {
     if (open && employeeId) {
-      fetchEmployeeRecords();
+      debouncedFetchEmployeeRecords();
     }
-  }, [filters]);
+  }, [filters, page, rowsPerPage, open, employeeId, debouncedFetchEmployeeRecords]);
 
-  // Add effect for pagination changes
   useEffect(() => {
-    if (open && employeeId) {
-      fetchEmployeeRecords();
-    }
-  }, [page, rowsPerPage]);
+    return () => {
+      debouncedFetchEmployeeRecords.cancel();
+    };
+  }, [debouncedFetchEmployeeRecords]);
 
   const ShiftConfigDialog = () => (
     <Dialog open={showShiftConfig} onClose={() => setShowShiftConfig(false)}>
@@ -822,7 +741,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     onError: (e) => {
                       console.error('Error loading profile image, falling back to initials');
                       setProfilePicture(null);
-                      // Prevent infinite error loop
                       (e.target as HTMLImageElement).onerror = null;
                     }
                   }}
@@ -855,27 +773,23 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               <Typography component="div" variant="h6">
                 {employeeName}
               </Typography>
-              <Typography
-                component="div"
-                variant="body2"
-                color="textSecondary"
-              >
+              <Typography component="div" variant="body2" color="textSecondary">
                 Employee ID: {employeeId}
               </Typography>
               {trackShifts && (
                 <Typography
                   component="div"
                   variant="body2"
-                  sx={{ 
-                    mt: 0.5, 
+                  sx={{
+                    mt: 0.5,
                     color: shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 ? 'primary.main' : 'text.secondary',
                     fontWeight: shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 ? 'bold' : 'normal'
                   }}
                 >
-                  {shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 
+                  {shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12
                     ? `12-Hour Rotating Shift`
-                    : shiftConfig.is_night_shift 
-                      ? 'Night Shift Worker' 
+                    : shiftConfig.is_night_shift
+                      ? 'Night Shift Worker'
                       : 'Day Shift Worker'}
                 </Typography>
               )}
@@ -906,7 +820,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       </DialogTitle>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <DialogContent dividers>
-          {/* Add HR Notes Export button for HR users */}
           {isHrUser && (
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
               <Button
@@ -921,7 +834,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
             </Box>
           )}
 
-          {/* Statistics Summary - Show different stats based on shift tracking */}
           <Box mb={3}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
@@ -930,7 +842,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                 </Typography>
               </Grid>
               {trackShifts && (
-                // Show shift-based statistics
                 <>
                   <Grid item xs={3}>
                     <Paper sx={{ p: 2, textAlign: 'center' }}>
@@ -1041,9 +952,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
             </Grid>
           </Box>
 
-          {/* Filters */}
           <Box mt={3}>
-            {/* Add Quick Month Pickers Here */}
             <Typography variant="body2" color="textSecondary" gutterBottom>
               Quick Date Filters:
             </Typography>
@@ -1052,7 +961,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                 <Button
                   variant="outlined"
                   size="small"
-                  onClick={() => setQuickDateFilter(1)} // 1 month = This Month
+                  onClick={() => setQuickDateFilter(1)}
                 >
                   This Month
                 </Button>
@@ -1086,7 +995,6 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               </Grid>
             </Grid>
 
-            {/* Existing Date Pickers and Status Filter */}
             <Grid container spacing={2} mb={2}>
               <Grid item xs={3}>
                 <DatePicker
@@ -1149,24 +1057,24 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {records.map((record) => {
+                    {records.map((record: any) => {
                       const { weekday, isSunday } = getWeekday(record.check_in);
                       const isNoShow = record.department === 'NO SHOW';
                       const isMissingCheckout = !isNoShow && !record.check_out;
                       const isEditing = record.id === editingRecordId;
                       return (
-                        <TableRow 
-                          key={record.id} 
-                          hover 
+                        <TableRow
+                          key={record.id}
+                          hover
                           sx={{
                             bgcolor: isSunday
                               ? 'info.lighter'
-                              : isNoShow 
-                                ? 'error.lighter' 
-                                : isMissingCheckout 
-                                  ? 'warning.lighter' 
+                              : isNoShow
+                                ? 'error.lighter'
+                                : isMissingCheckout
+                                  ? 'warning.lighter'
                                   : 'inherit',
-                            '& td': { 
+                            '& td': {
                               borderBottom: record.hr_notes ? '2px solid' : 'inherit',
                               borderBottomColor: record.hr_notes ? 'error.light' : 'inherit'
                             }
@@ -1185,12 +1093,12 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                           <TableCell>{record.shiftType}</TableCell>
                           <TableCell>{getStatusChip(record)}</TableCell>
                           {isHrUser && (
-                            <TableCell 
-                              sx={{ 
-                                whiteSpace: 'pre-wrap', 
-                                maxWidth: 250, // Increased max width slightly
+                            <TableCell
+                              sx={{
+                                whiteSpace: 'pre-wrap',
+                                maxWidth: 250,
                                 overflowWrap: 'break-word',
-                                verticalAlign: 'top' // Align content top for multi-line notes
+                                verticalAlign: 'top'
                               }}
                             >
                               {isEditing ? (
@@ -1263,4 +1171,4 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       {trackShifts && <ShiftConfigDialog />}
     </Dialog>
   );
-} 
+}
