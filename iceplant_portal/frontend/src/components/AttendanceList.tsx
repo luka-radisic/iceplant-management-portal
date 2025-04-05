@@ -16,6 +16,10 @@ import {
   Typography,
   Chip,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { format, differenceInMinutes } from 'date-fns';
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -51,7 +55,7 @@ interface AttendanceStats {
 
 export default function AttendanceList() {
   const theme = useTheme();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth() as { user: { group?: string } | null; isAuthenticated: boolean };
   const [loading, setLoading] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [records, setRecords] = useState<any[]>([]);
@@ -615,7 +619,15 @@ export default function AttendanceList() {
           />
         )}
 
-        <AttendanceCleanupTool open={cleanupOpen} onClose={() => setCleanupOpen(false)} />
+        <Dialog open={cleanupOpen} onClose={() => setCleanupOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>Attendance Database Cleanup</DialogTitle>
+          <DialogContent dividers>
+            <AttendanceCleanupTool />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCleanupOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </LocalizationProvider>
   );
