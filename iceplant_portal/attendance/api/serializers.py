@@ -27,6 +27,7 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
 
 class AttendanceSerializer(serializers.ModelSerializer):
     duration = serializers.SerializerMethodField()
+    has_hr_note = serializers.SerializerMethodField()
     
     class Meta:
         model = Attendance
@@ -39,6 +40,9 @@ class AttendanceSerializer(serializers.ModelSerializer):
             minutes, seconds = divmod(remainder, 60)
             return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
         return None
+
+    def get_has_hr_note(self, obj):
+        return bool(obj.hr_notes)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
