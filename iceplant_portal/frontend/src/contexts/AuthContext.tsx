@@ -1,135 +1,89 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, LoginResponse } from '../types/api';
-import { loggerService } from '../utils/logger';
-import apiService from '../services/api';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-interface AuthContextType {
-  isAuthenticated: boolean;
+interface User {
+  username: string;
   isAdmin: boolean;
-  user: User | null;
-  loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-  error: string | null;
+  isSuperuser: boolean;
+  token: string;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  isAdmin: false,
-  user: null,
-  loading: true,
-  login: async () => { },
-  logout: () => { },
-  error: null,
-});
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
+}
 
-export const useAuth = () => useContext(AuthContext);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
     const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const username = localStorage.getItem('username');
+    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    const isSuperuser = localStorage.getItem('isSuperuser') === 'true';
 
-    if (token && storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setIsAuthenticated(true);
-        setUser(userData);
-        
-        // Corrected: Check only if user is a superuser for isAdmin flag
-        setIsAdmin(userData.is_superuser === true);
-        
-        loggerService.info('User session restored', { 
-          username: userData.username,
-          // Corrected: Log only superuser status for isAdmin
-          isAdmin: userData.is_superuser 
-        });
-      } catch (error) {
-        loggerService.error('Error restoring user session', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
+    if (token && username) {
+      setUser({ username, isAdmin, isSuperuser, token });
     }
-    setLoading(false); // Ensure loading is set to false after check
+    setIsLoading(false);
   }, []);
 
   const login = async (username: string, password: string) => {
-    setLoading(true); // Set loading at the start of login
-    setError(null);   // Clear previous errors
+    setIsLoading(true);
     try {
-      const response = await apiService.login(username, password);
-      loggerService.info('User logged in', {
-        username: response.user.username,
-        // Corrected: Log only superuser status for isAdmin
-        isAdmin: response.user.is_superuser,
-        timestamp: new Date().toISOString()
+      const response = await fetch('/api-token-auth/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
       });
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      setIsAuthenticated(true);
-      setUser(response.user);
-      
-      // Corrected: Set admin status based ONLY on Django's is_superuser flag
-      setIsAdmin(response.user.is_superuser === true);
+      if (!response.ok) throw new Error('Invalid credentials');
+      const data = await response.json();
 
-      // Navigate based on role after successful login
-      if (response.user.is_superuser) {
-          navigate('/'); // Superuser goes to dashboard
-      } else if (response.user.group === 'HR') {
-          navigate('/attendance'); // HR goes to attendance
-      } else {
-          navigate('/'); // Default to dashboard for others (e.g., Office)
-      }
+      const token = data.token;
+      const isAdmin = data.isAdmin ?? false;
+      const isSuperuser = data.isSuperuser ?? false;
 
-    } catch (error: any) {
-      loggerService.error('Error logging in', error);
-      let errorMessage = 'Login failed. Please check your username and password.';
-      if (error.response && error.response.data && error.response.data.non_field_errors) {
-          errorMessage = error.response.data.non_field_errors[0];
-      }
-      setError(errorMessage);
-      // Ensure state reflects failed login attempt
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-      setUser(null);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.setItem('token', token);
+      localStorage.setItem('username', username);
+      localStorage.setItem('isAdmin', String(isAdmin));
+      localStorage.setItem('isSuperuser', String(isSuperuser));
+
+      setUser({ username, isAdmin, isSuperuser, token });
     } finally {
-        setLoading(false); // Ensure loading is set to false after attempt
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsAuthenticated(false);
-    setIsAdmin(false);
+    localStorage.removeItem('username');
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('isSuperuser');
     setUser(null);
-    navigate('/login');
-  };
-
-  const value = {
-    isAuthenticated,
-    isAdmin,
-    user,
-    loading,
-    login,
-    logout,
-    error,
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-}; 
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
+};
