@@ -43,9 +43,9 @@ class AttendanceSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         prefix = "Atlantis Fishing Development Corp\\"
-        dept = data.get('department', '')
-        if dept and dept.startswith(prefix):
-            data['department'] = dept[len(prefix):].strip()
+        department = data.get("department", "")
+        if department and department.startswith(prefix):
+            data["department"] = department[len(prefix):]
         return data
 
 class ImportLogSerializer(serializers.ModelSerializer):
