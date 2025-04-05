@@ -226,7 +226,13 @@ export const apiService = {
     try {
       const response = await api.get(endpoint, { params });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // Handle 404 errors for employee profiles silently
+      if (error.response?.status === 404 && endpoint.includes('/employee-profile/')) {
+        return null;
+      }
+      
+      // Log other errors
       console.error('GET request failed:', error);
       throw error;
     }

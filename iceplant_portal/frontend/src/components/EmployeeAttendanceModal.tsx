@@ -1,4 +1,4 @@
-import { Delete as DeleteIcon, PhotoCamera, Settings as SettingsIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon, Note as NoteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, PhotoCamera, Settings as SettingsIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon, Note as NoteIcon, Close as CloseIcon } from '@mui/icons-material';
 import {
   Avatar,
   Badge,
@@ -103,6 +103,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   const [editingNote, setEditingNote] = useState<string>('');
   const [savingNote, setSavingNote] = useState<boolean>(false);
 
+  const [profileError, setProfileError] = useState<string | null>(null);
+
   // Function to set quick date filters
   const setQuickDateFilter = (months: number) => {
     const end = new Date();
@@ -176,6 +178,17 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       return formatTZ(date, 'MMM dd, yyyy', { timeZone: 'Asia/Manila' });
     } catch (error) {
       return '-';
+    }
+  };
+
+  const getWeekday = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const weekday = formatTZ(date, 'EEEE', { timeZone: 'Asia/Manila' });
+      const isSunday = weekday === 'Sunday';
+      return { weekday, isSunday };
+    } catch (error) {
+      return { weekday: '-', isSunday: false };
     }
   };
 
@@ -375,11 +388,12 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
   // Function to fetch employee profile
   const fetchEmployeeProfile = async () => {
+    setProfileError(null);
     try {
       const timestamp = new Date().getTime();
-      const response = await apiService.get(`/api/attendance/employee-profile/${employeeId}/?t=${timestamp}`);
+      const response = await apiService.get(`/api/attendance/employee-profile/${employeeId}/`);
       if (response) {
-        setTrackShifts(response.track_shifts);
+        setTrackShifts(response.track_shifts || false);
         if (response.photo_url) {
           const photoUrl = response.photo_url.includes('?')
             ? `${response.photo_url}&t=${timestamp}`
@@ -389,16 +403,16 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
           setProfilePicture(null);
         }
       }
-    } catch (error: any) { // Use 'any' or define a proper error type
-      // Specifically ignore 404 errors for profiles, as they might not exist
+    } catch (error: any) {
+      setProfilePicture(null);
+      setTrackShifts(false);
+      
       if (error.response?.status === 404) {
-          console.warn(`Employee profile for ${employeeId} not found. Proceeding without profile data.`);
-          setProfilePicture(null); // Ensure picture is cleared
-          setTrackShifts(false); // Default shift tracking to false
+        setProfileError('No profile found. Basic attendance tracking enabled.');
+        console.info(`Employee profile for ${employeeId} not found. Using basic attendance tracking.`);
       } else {
-          // Log other errors
-          console.error('Error fetching employee profile:', error);
-          setProfilePicture(null); // Clear picture on other errors too
+        setProfileError('Error loading profile. Using basic attendance tracking.');
+        console.error('Error fetching employee profile:', error);
       }
     }
   };
@@ -543,25 +557,27 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
     }
   };
 
-  // --- Copied getStatusChip function --- 
+  // Update getStatusChip to handle Sundays
   const getStatusChip = (record: any) => {
-    if (record.department === 'NO SHOW') {
-      return <Chip label="No Show" color="error" size="small" variant="outlined" />;
-    }
-    if (!record.check_out) {
-      return <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />;
-    }
-    if (record.check_in && record.check_out) {
-       try {
-          const durationMinutes = differenceInMinutes(new Date(record.check_out), new Date(record.check_in));
-          if (durationMinutes < 5) {
-             return <Chip label="Short Duration" color="secondary" size="small" variant="outlined" />;
-          }
-       } catch (e) { /* Ignore date parsing errors */ }
-    }
-    return <Chip label="Complete" color="success" size="small" variant="outlined" />;
+    const { isSunday } = getWeekday(record.check_in);
+    
+    return (
+      <Box display="flex" gap={1}>
+        {isSunday && (
+          <Chip label="Off Day" color="info" size="small" variant="outlined" />
+        )}
+        {record.department === 'NO SHOW' && (
+          <Chip label="No Show" color="error" size="small" variant="outlined" />
+        )}
+        {!record.check_out && record.department !== 'NO SHOW' && (
+          <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />
+        )}
+        {record.check_in && record.check_out && !isSunday && record.department !== 'NO SHOW' && (
+          <Chip label="Complete" color="success" size="small" variant="outlined" />
+        )}
+      </Box>
+    );
   };
-  // --- End copied function --- 
 
   // Update filter change handler for dates
   const handleFilterDateChange = (filterName: 'start_date' | 'end_date', newValue: Date | null) => {
@@ -584,6 +600,55 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       ...prev,
       status: newValue,
     }));
+  };
+
+  // Add new function for exporting HR notes
+  const handleExportHrNotes = () => {
+    if (!isHrUser) return;
+
+    try {
+      // Filter records that have HR notes
+      const notesData = records
+        .filter(record => record.hr_notes)
+        .map(record => ({
+          date: formatDateStr(record.check_in),
+          weekday: getWeekday(record.check_in).weekday,
+          status: record.department === 'NO SHOW' ? 'No Show' : (record.check_out ? 'Present' : 'Missing Check-out'),
+          note: record.hr_notes
+        }));
+
+      // Create CSV content
+      const csvContent = [
+        ['Employee Name:', employeeName],
+        ['Employee ID:', employeeId],
+        ['Export Date:', new Date().toLocaleDateString()],
+        [''],
+        ['Date', 'Day', 'Status', 'HR Note']
+      ];
+
+      notesData.forEach(({ date, weekday, status, note }) => {
+        csvContent.push([date, weekday, status, note]);
+      });
+
+      // Convert to CSV string
+      const csv = csvContent.map(row => row.join(',')).join('\n');
+
+      // Create and trigger download
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hr_notes_${employeeId}_${format(new Date(), 'yyyyMMdd')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      enqueueSnackbar('HR Notes exported successfully', { variant: 'success' });
+    } catch (error) {
+      console.error('Error exporting HR notes:', error);
+      enqueueSnackbar('Failed to export HR notes', { variant: 'error' });
+    }
   };
 
   useEffect(() => {
@@ -695,9 +760,17 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   );
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl" scroll="paper">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{
+        sx: { minHeight: '80vh' }
+      }}
+    >
       <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Box sx={{ mr: 2, position: 'relative' }}>
               <Badge
@@ -825,11 +898,29 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                 </IconButton>
               </Tooltip>
             )}
+            <IconButton onClick={onClose} size="small" sx={{ ml: 1 }}>
+              <CloseIcon />
+            </IconButton>
           </Box>
         </Box>
       </DialogTitle>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <DialogContent dividers>
+          {/* Add HR Notes Export button for HR users */}
+          {isHrUser && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<NoteIcon />}
+                onClick={handleExportHrNotes}
+                size="small"
+              >
+                Export HR Notes
+              </Button>
+            </Box>
+          )}
+
           {/* Statistics Summary - Show different stats based on shift tracking */}
           <Box mb={3}>
             <Grid container spacing={2}>
@@ -1039,16 +1130,27 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                   <TableHead>
                     <TableRow>
                       <TableCell>Date</TableCell>
+                      <TableCell>Day</TableCell>
                       <TableCell>Check In</TableCell>
                       <TableCell>Check Out</TableCell>
                       <TableCell>Duration</TableCell>
                       <TableCell>Shift Type</TableCell>
                       <TableCell>Status</TableCell>
-                      {isHrUser && <TableCell>HR Notes</TableCell>}
+                      {isHrUser && (
+                        <TableCell sx={{ minWidth: 250 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            HR Notes
+                            <Tooltip title="Add notes for important events, disciplinary actions, or special circumstances">
+                              <NoteIcon fontSize="small" color="action" />
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      )}
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {records.map((record) => {
+                      const { weekday, isSunday } = getWeekday(record.check_in);
                       const isNoShow = record.department === 'NO SHOW';
                       const isMissingCheckout = !isNoShow && !record.check_out;
                       const isEditing = record.id === editingRecordId;
@@ -1057,14 +1159,26 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                           key={record.id} 
                           hover 
                           sx={{
-                            bgcolor: isNoShow 
-                              ? 'error.lighter' 
-                              : isMissingCheckout 
-                                ? 'warning.lighter' 
-                                : 'inherit'
+                            bgcolor: isSunday
+                              ? 'info.lighter'
+                              : isNoShow 
+                                ? 'error.lighter' 
+                                : isMissingCheckout 
+                                  ? 'warning.lighter' 
+                                  : 'inherit',
+                            '& td': { 
+                              borderBottom: record.hr_notes ? '2px solid' : 'inherit',
+                              borderBottomColor: record.hr_notes ? 'error.light' : 'inherit'
+                            }
                           }}
                         >
                           <TableCell>{formatDateStr(record.check_in)}</TableCell>
+                          <TableCell sx={{
+                            color: isSunday ? 'info.dark' : 'inherit',
+                            fontWeight: isSunday ? 'bold' : 'inherit'
+                          }}>
+                            {weekday}
+                          </TableCell>
                           <TableCell>{formatTime(record.check_in)}</TableCell>
                           <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
                           <TableCell>{record.duration || '-'}</TableCell>
