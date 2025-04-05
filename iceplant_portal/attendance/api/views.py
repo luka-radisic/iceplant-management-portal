@@ -6,7 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db import transaction
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import pytz
 from rest_framework.viewsets import ModelViewSet
 import os
@@ -79,17 +79,19 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         
         if start_date:
             try:
-                start_datetime = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
-                queryset = queryset.filter(check_in__gte=start_datetime)
+                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                start_dt = datetime.combine(start_dt.date(), time.min)  # 00:00:00
+                queryset = queryset.filter(check_in__gte=start_dt)
             except ValueError:
-                pass 
+                pass  # Ignore invalid date
                 
         if end_date:
             try:
-                end_datetime = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1))
-                queryset = queryset.filter(check_in__lt=end_datetime)
+                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                end_dt = datetime.combine(end_dt.date(), time.max)  # 23:59:59.999999
+                queryset = queryset.filter(check_in__lte=end_dt)
             except ValueError:
-                pass 
+                pass  # Ignore invalid date
         
         if department:
             queryset = queryset.filter(department=department)
@@ -114,8 +116,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             
         # Extract request parameters
         employee_id = self.request.query_params.get('employee_id')
-        start_date = self.request.query_params.get('start_date')
-        end_date = self.request.query_params.get('end_date')
+        start_date_str = self.request.query_params.get('start_date')
+        end_date_str = self.request.query_params.get('end_date')
         department = self.request.query_params.get('department')
         status = self.request.query_params.get('status')
         
@@ -127,28 +129,30 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(employee_id=employee_id)
         
         # Apply date range filters if provided
-        if start_date:
+        if start_date_str:
             try:
-                start_datetime = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))
-                queryset = queryset.filter(check_in__gte=start_datetime)
-            except ValueError:
-                pass  # Invalid date format, ignore filter
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                start_dt = datetime.combine(start_date, time.min)
+                start_dt = timezone.make_aware(start_dt, timezone.get_current_timezone())
+                queryset = queryset.filter(check_in__gte=start_dt)
+            except Exception:
+                pass
                 
-        if end_date:
+        if end_date_str:
             try:
-                end_datetime = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1))
-                queryset = queryset.filter(check_in__lt=end_datetime)
-            except ValueError:
-                pass  # Invalid date format, ignore filter
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                end_dt = datetime.combine(end_date, time.max)
+                end_dt = timezone.make_aware(end_dt, timezone.get_current_timezone())
+                queryset = queryset.filter(check_in__lte=end_dt)
+            except Exception:
+                pass
         
-        # Apply department filter if provided
+        # Remap cleaned department filter param to raw prefixed value
         if department:
             prefix = "Atlantis Fishing Development Corp\\"
-            # If the param is not already prefixed, add prefix
-            if not department.startswith(prefix):
-                department = prefix + department
-            queryset = queryset.filter(department=department)
-            
+            raw_department = prefix + department
+            queryset = queryset.filter(department__in=[department, raw_department])
+        
         # Apply status filters
         if status == 'present':
             queryset = queryset.exclude(department='NO SHOW')
@@ -586,6 +590,13 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 {'date': item['date'].strftime('%Y-%m-%d'), 'count': item['count']} 
                 for item in daily_trend
             ]
+
+            # Clean department names in stats output
+            prefix = "Atlantis Fishing Development Corp\\"
+            for item in bar_chart_data:
+                dept = item.get('department', '')
+                if dept.startswith(prefix):
+                    item['department'] = dept[len(prefix):]
 
             return Response({
                 'status_distribution': pie_chart_data,
@@ -1171,70 +1182,53 @@ class EmployeeProfileViewSet(ModelViewSet):
         """Get a comprehensive list of all departments in the system"""
         print("\n====== DEPARTMENTS API CALLED ======")
         
-        # Get departments from ALL employee profiles (both active and inactive)
+        prefix = "Atlantis Fishing Development Corp\\"
+
+        # Collect departments from EmployeeProfile
         profile_departments = list(
-            EmployeeProfile.objects
-            .exclude(department__isnull=True)
-            .exclude(department__exact='')
-            .values_list('department', flat=True)
-            .distinct()
+            EmployeeProfile.objects.values_list('department', flat=True).distinct()
         )
-        print(f"Profile departments: {profile_departments}")
 
-        # Get ALL departments from attendance records including historical ones
+        # Collect departments from Attendance
         attendance_departments = list(
-            Attendance.objects
-            .exclude(department__isnull=True)
-            .exclude(department__exact='')
-            .exclude(department__exact='NO SHOW')  # Exclude NO SHOW as it's not a real department
-            .values_list('department', flat=True)
-            .distinct()
+            Attendance.objects.values_list('department', flat=True).distinct()
         )
-        print(f"Attendance departments (unique): {set(attendance_departments)}")
 
-        # Also get departments from DepartmentShift
-        try:
-            shift_departments = list(
-                DepartmentShift.objects
-                .values_list('department', flat=True)
-                .distinct()
-            )
-        except Exception as e:
-            print(f"Error getting shift departments: {e}")
-            shift_departments = []
-        print(f"Shift departments: {shift_departments}")
+        # Collect departments from EmployeeShift
+        shift_departments = list(
+            EmployeeShift.objects.values_list('department', flat=True).distinct()
+        )
 
-        # Also get departments from EmployeeShift
-        try:
-            employee_shift_departments = list(
-                EmployeeShift.objects
-                .exclude(department__isnull=True)
-                .exclude(department__exact='')
-                .values_list('department', flat=True)
-                .distinct()
-            )
-        except Exception as e:
-            print(f"Error getting employee shift departments: {e}")
-            employee_shift_departments = []
-        print(f"Employee shift departments: {employee_shift_departments}")
+        # Collect departments from DepartmentShift
+        dept_shift_departments = list(
+            DepartmentShift.objects.values_list('department', flat=True).distinct()
+        )
 
-        # Add any hardcoded departments that might exist in the codebase
-        known_departments = ["Driver", "Office", "Harvester", "Operator", "Sales", "Admin", "HR"]
-        print(f"Known departments: {known_departments}")
+        all_departments = (
+            profile_departments
+            + attendance_departments
+            + shift_departments
+            + dept_shift_departments
+        )
 
-        # Combine all department sources and remove duplicates
-        all_departments = sorted(set(
-            profile_departments + 
-            attendance_departments + 
-            shift_departments + 
-            employee_shift_departments +
-            known_departments
-        ))
-        
-        print(f"FINAL departments list: {all_departments}")
-        print("====== END DEPARTMENTS API ======\n")
-        
-        return Response({'departments': all_departments})
+        cleaned_departments = set()
+        for dept in all_departments:
+            if not dept:
+                continue
+            if dept.startswith(prefix):
+                dept = dept[len(prefix):]
+            cleaned_departments.add(dept)
+
+        # Add known departments explicitly
+        known_departments = ['Driver', 'Office', 'Harvester', 'Operator', 'Sales', 'Admin', 'HR']
+        cleaned_departments.update(known_departments)
+
+        # Filter out empty or numeric-only departments
+        final_departments = sorted(
+            d for d in cleaned_departments if d and not d.isdigit()
+        )
+
+        return Response(final_departments)
 
 class DepartmentShiftViewSet(ModelViewSet):
     """API endpoint for managing department shift configurations"""

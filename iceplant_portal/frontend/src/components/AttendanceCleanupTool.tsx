@@ -18,7 +18,7 @@ interface EmployeeOption {
   name: string;
 }
 
-export default function AttendanceCleanupTool() {
+const AttendanceCleanupTool: React.FC = () => {
   const [employeeQuery, setEmployeeQuery] = useState('');
   const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeOption | null>(null);
@@ -233,4 +233,6 @@ export default function AttendanceCleanupTool() {
       </Box>
     </Box>
   );
-} 
+}
+
+export default AttendanceCleanupTool;
