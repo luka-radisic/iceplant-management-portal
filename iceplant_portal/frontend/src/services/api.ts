@@ -120,7 +120,7 @@ export const endpoints = {
   maintenanceUpcoming: '/api/maintenance/upcoming/',
 
   // Employee Profile
-  employeeProfileDepartments: '/api/attendance/employee-profile/departments/',
+  employeeProfileDepartments: '/api/attendance/attendance/departments/',
 
   // Company
   company: '/api/company/settings/',

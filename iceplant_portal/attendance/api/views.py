@@ -18,6 +18,7 @@ from dateutil.relativedelta import relativedelta
 from datetime import date
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework import filters
+from rest_framework.metadata import SimpleMetadata
 
 from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 from .serializers import (
@@ -26,6 +27,7 @@ from .serializers import (
     EmployeeProfileSerializer,
     DepartmentShiftSerializer
 )
+from .filters import AttendanceFilter
 
 class AttendanceViewSet(viewsets.ModelViewSet):
     """
@@ -33,13 +35,12 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     """
     queryset = Attendance.objects.all().order_by('-check_in')
     serializer_class = AttendanceSerializer
-    filterset_fields = ['employee_id', 'department', 'import_date']
+    filterset_class = AttendanceFilter
     search_fields = ['employee_id', 'department', 'employee_name']
     pagination_class = PageNumberPagination
     page_size = 50  # Default page size
     page_size_query_param = 'page_size'
     max_page_size = 500  # Maximum allowed page size
-    filter_backends = []
     permission_classes = [IsAuthenticated]
     
     # Override perform_update to control hr_notes access
@@ -93,9 +94,14 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             except ValueError:
                 pass  # Ignore invalid date
         
+        # Correctly filter by department (cleaned or prefixed)
         if department:
-            queryset = queryset.filter(department=department)
-            
+            prefix = "Atlantis Fishing Development Corp\\"
+            prefixed_department = prefix + department
+            queryset = queryset.filter(
+                Q(department=department) | Q(department=prefixed_department)
+            )
+        
         # Apply status filters directly here for consistency
         if status_filter == 'present':
             queryset = queryset.exclude(department='NO SHOW')
@@ -688,75 +694,48 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             'previous_present_count': previous_present_count 
         })
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], url_path='departments')
     def departments(self, request):
-        """Get a comprehensive list of all departments in the system"""
-        print("\n====== DEPARTMENTS API CALLED ======")
-        
-        # Get departments from ALL employee profiles (both active and inactive)
+        prefix = "Atlantis Fishing Development Corp\\"
+
         profile_departments = list(
-            EmployeeProfile.objects
-            .exclude(department__isnull=True)
-            .exclude(department__exact='')
-            .values_list('department', flat=True)
-            .distinct()
+            EmployeeProfile.objects.values_list('department', flat=True).distinct()
         )
-        print(f"Profile departments: {profile_departments}")
-
-        # Get ALL departments from attendance records including historical ones
         attendance_departments = list(
-            Attendance.objects
-            .exclude(department__isnull=True)
-            .exclude(department__exact='')
-            .exclude(department__exact='NO SHOW')  # Exclude NO SHOW as it's not a real department
-            .values_list('department', flat=True)
-            .distinct()
+            Attendance.objects.values_list('department', flat=True).distinct()
         )
-        print(f"Attendance departments (unique): {set(attendance_departments)}")
+        shift_departments = list(
+            EmployeeShift.objects.values_list('department', flat=True).distinct()
+        )
+        dept_shift_departments = list(
+            DepartmentShift.objects.values_list('department', flat=True).distinct()
+        )
 
-        # Also get departments from DepartmentShift
-        try:
-            shift_departments = list(
-                DepartmentShift.objects
-                .values_list('department', flat=True)
-                .distinct()
-            )
-        except Exception as e:
-            print(f"Error getting shift departments: {e}")
-            shift_departments = []
-        print(f"Shift departments: {shift_departments}")
+        all_departments = (
+            profile_departments
+            + attendance_departments
+            + shift_departments
+            + dept_shift_departments
+        )
 
-        # Also get departments from EmployeeShift
-        try:
-            employee_shift_departments = list(
-                EmployeeShift.objects
-                .exclude(department__isnull=True)
-                .exclude(department__exact='')
-                .values_list('department', flat=True)
-                .distinct()
-            )
-        except Exception as e:
-            print(f"Error getting employee shift departments: {e}")
-            employee_shift_departments = []
-        print(f"Employee shift departments: {employee_shift_departments}")
+        cleaned_departments = set()
+        for dept in all_departments:
+            if not dept:
+                continue
+            # Strip prefix for the list returned to the frontend
+            if dept.startswith(prefix):
+                dept = dept[len(prefix):]
+            cleaned_departments.add(dept)
 
-        # Add any hardcoded departments that might exist in the codebase
-        known_departments = ["Driver", "Office", "Harvester", "Operator", "Sales", "Admin", "HR"]
-        print(f"Known departments: {known_departments}")
+        known_departments = ['Driver', 'Office', 'Harvester', 'Operator', 'Sales', 'Admin', 'HR']
+        cleaned_departments.update(known_departments)
 
-        # Combine all department sources and remove duplicates
-        all_departments = sorted(set(
-            profile_departments + 
-            attendance_departments + 
-            shift_departments + 
-            employee_shift_departments +
-            known_departments
-        ))
-        
-        print(f"FINAL departments list: {all_departments}")
-        print("====== END DEPARTMENTS API ======\n")
-        
-        return Response({'departments': all_departments})
+        final_departments = sorted(
+            d for d in cleaned_departments if d and not d.isdigit()
+        )
+
+        # Return response in the format expected by the frontend
+        return Response({'departments': final_departments})
 
     @action(detail=False, methods=['post'], url_path='bulk_delete', permission_classes=[IsAuthenticated])
     def bulk_delete(self, request):
@@ -806,6 +785,62 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         # TODO: Log this deletion in ImportLog or a new audit model
 
         return Response({'deleted_count': deleted, 'dry_run': False})
+
+    def get_metadata(self, request):
+        metadata = super().get_metadata(request)
+
+        # Remove the complex, potentially redundant department choice injection.
+        # Let django-filter handle metadata based on the FilterSet definition.
+        # prefix = "Atlantis Fishing Development Corp\\"
+        # profile_departments = list(
+        #     EmployeeProfile.objects.values_list('department', flat=True).distinct()
+        # )
+        # attendance_departments = list(
+        #     Attendance.objects.values_list('department', flat=True).distinct()
+        # )
+        # shift_departments = list(
+        #     EmployeeShift.objects.values_list('department', flat=True).distinct()
+        # )
+        # dept_shift_departments = list(
+        #     DepartmentShift.objects.values_list('department', flat=True).distinct()
+        # )
+        # all_departments = (
+        #     profile_departments
+        #     + attendance_departments
+        #     + shift_departments
+        #     + dept_shift_departments
+        # )
+        # cleaned_departments = set()
+        # for dept in all_departments:
+        #     if not dept:
+        #         continue
+        #     if dept.startswith(prefix):
+        #         dept = dept[len(prefix):]
+        #     cleaned_departments.add(dept)
+        # known_departments = ['Driver', 'Office', 'Harvester', 'Operator', 'Sales', 'Admin', 'HR']
+        # cleaned_departments.update(known_departments)
+        # final_departments = sorted(
+        #     d for d in cleaned_departments if d and not d.isdigit()
+        # )
+        # if 'actions' in metadata and 'GET' in metadata['actions']:
+        #     get_action = metadata['actions']['GET']
+        #     if 'department' in get_action:
+        #         get_action['department']['choices'] = [
+        #             {'value': d, 'display_name': d} for d in final_departments
+        #         ]
+        #     if hasattr(self, 'filterset_class') and self.filterset_class:
+        #         try:
+        #             filterset = self.filterset_class(request=request, queryset=self.get_queryset())
+        #             if 'department' in filterset.filters and 'choices' in filterset.filters['department'].extra:
+        #                  filterset.filters['department'].extra['choices'] = [(d, d) for d in final_departments]
+        #                  if 'filters' in metadata:
+        #                      metadata['filters']['department']['choices'] = [
+        #                          {'value': d, 'display_name': d} for d in final_departments
+        #                      ]
+        #         except Exception as e:
+        #             print(f"Error updating filter metadata: {e}")
+
+        return metadata
 
 class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -1176,59 +1211,6 @@ class EmployeeProfileViewSet(ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-    @action(detail=False, methods=['get'])
-    def departments(self, request):
-        """Get a comprehensive list of all departments in the system"""
-        print("\n====== DEPARTMENTS API CALLED ======")
-        
-        prefix = "Atlantis Fishing Development Corp\\"
-
-        # Collect departments from EmployeeProfile
-        profile_departments = list(
-            EmployeeProfile.objects.values_list('department', flat=True).distinct()
-        )
-
-        # Collect departments from Attendance
-        attendance_departments = list(
-            Attendance.objects.values_list('department', flat=True).distinct()
-        )
-
-        # Collect departments from EmployeeShift
-        shift_departments = list(
-            EmployeeShift.objects.values_list('department', flat=True).distinct()
-        )
-
-        # Collect departments from DepartmentShift
-        dept_shift_departments = list(
-            DepartmentShift.objects.values_list('department', flat=True).distinct()
-        )
-
-        all_departments = (
-            profile_departments
-            + attendance_departments
-            + shift_departments
-            + dept_shift_departments
-        )
-
-        cleaned_departments = set()
-        for dept in all_departments:
-            if not dept:
-                continue
-            if dept.startswith(prefix):
-                dept = dept[len(prefix):]
-            cleaned_departments.add(dept)
-
-        # Add known departments explicitly
-        known_departments = ['Driver', 'Office', 'Harvester', 'Operator', 'Sales', 'Admin', 'HR']
-        cleaned_departments.update(known_departments)
-
-        # Filter out empty or numeric-only departments
-        final_departments = sorted(
-            d for d in cleaned_departments if d and not d.isdigit()
-        )
-
-        return Response(final_departments)
 
 class DepartmentShiftViewSet(ModelViewSet):
     """API endpoint for managing department shift configurations"""
