@@ -31,9 +31,9 @@ export default function ToolsPage() {
           </Paper>
         </Grid>
 
-        {/* Database Backup Section */}
-        <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Database Backup Section - Make this full width */}
+        <Grid item xs={12} md={12} lg={12}>
+          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}> {/* Removed height: 100% as it's less relevant for a full-width item */}
             <Typography variant="h6" gutterBottom component="div">
               Database Backup
             </Typography>
