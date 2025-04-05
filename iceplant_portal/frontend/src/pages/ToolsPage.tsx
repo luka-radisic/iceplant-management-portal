@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Container, Typography, Paper, Grid } from '@mui/material';
 import AttendanceTools from '../components/AttendanceTools';
 import CleanupTools from '../components/CleanupTools';
@@ -46,7 +45,7 @@ export default function ToolsPage() {
 
         {user.is_superuser && (
           <Box mt={4}>
-            <AttendanceCleanupTool open={true} onClose={() => {}} />
+            <AttendanceCleanupTool />
           </Box>
         )}
 

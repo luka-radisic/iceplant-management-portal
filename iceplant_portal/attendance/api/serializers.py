@@ -40,6 +40,14 @@ class AttendanceSerializer(serializers.ModelSerializer):
             return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
         return None
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        prefix = "Atlantis Fishing Development Corp\\"
+        dept = data.get('department', '')
+        if dept and dept.startswith(prefix):
+            data['department'] = dept[len(prefix):].strip()
+        return data
+
 class ImportLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ImportLog
