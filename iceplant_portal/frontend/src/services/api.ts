@@ -327,7 +327,7 @@ export const apiService = {
 
   // Attendance Endpoints
   async processSameDayCheckIns() {
-    return this.post('/api/attendance/attendance/process_same_day_records/');
+    return this.post('/api/attendance/attendance/process_same_day_records/', {});
   },
 
   async cleanupShortDurationAttendance() {
@@ -495,12 +495,7 @@ export const apiService = {
     // Otherwise create new settings
     return apiService.post(
       endpoints.company,
-      settings,
-      {
-        headers: {
-          'Content-Type': 'application/json', 
-        },
-      }
+      settings
     );
   },
   
