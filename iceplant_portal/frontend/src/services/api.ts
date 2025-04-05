@@ -536,6 +536,10 @@ export const apiService = {
     const response = await api.post('/api/attendance/attendance/bulk_delete/', params);
     return response.data;
   },
+
+  async searchEmployees(query: string) {
+    return this.get('/api/attendance/employee-profile/', { search: query });
+  },
 };
 
 export default apiService; 

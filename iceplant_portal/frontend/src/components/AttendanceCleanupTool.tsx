@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -11,6 +11,7 @@ import {
   TextField,
   Typography,
   CircularProgress,
+  Autocomplete,
 } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -21,9 +22,19 @@ interface Props {
   onClose: () => void;
 }
 
+interface EmployeeOption {
+  id: string;
+  name: string;
+}
+
 export default function AttendanceCleanupTool({ open, onClose }: Props) {
-  const [employeeId, setEmployeeId] = useState('');
+  const [employeeQuery, setEmployeeQuery] = useState('');
+  const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeOption | null>(null);
+
   const [department, setDepartment] = useState('');
+  const [departments, setDepartments] = useState<string[]>([]);
+
   const [month, setMonth] = useState<Date | null>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -31,24 +42,59 @@ export default function AttendanceCleanupTool({ open, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await apiService.getDepartments();
+        setDepartments(res.departments || []);
+      } catch (error) {
+        console.error('Error fetching departments:', error);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      if (!employeeQuery) {
+        setEmployeeOptions([]);
+        return;
+      }
+      try {
+        const res = await apiService.searchEmployees(employeeQuery);
+        if (Array.isArray(res.results)) {
+          setEmployeeOptions(
+            res.results.map((emp: any) => ({
+              id: emp.employee_id,
+              name: emp.full_name || emp.employee_id,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      fetchEmployees();
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [employeeQuery]);
+
   const handlePreview = async () => {
     setLoading(true);
     setPreviewCount(null);
     try {
       const params: any = {
-        employee_id: employeeId || undefined,
+        employee_id: selectedEmployee?.id || undefined,
         department: department || undefined,
         dry_run: true,
       };
-      if (month) {
-        params.month = month.toISOString().slice(0, 7);
-      }
-      if (startDate) {
-        params.start_date = startDate.toISOString().slice(0, 10);
-      }
-      if (endDate) {
-        params.end_date = endDate.toISOString().slice(0, 10);
-      }
+      if (month) params.month = month.toISOString().slice(0, 7);
+      if (startDate) params.start_date = startDate.toISOString().slice(0, 10);
+      if (endDate) params.end_date = endDate.toISOString().slice(0, 10);
+
       const res = await apiService.bulkDeleteAttendance(params);
       setPreviewCount(res.deleted_count);
     } catch (error) {
@@ -66,19 +112,14 @@ export default function AttendanceCleanupTool({ open, onClose }: Props) {
     setDeleting(true);
     try {
       const params: any = {
-        employee_id: employeeId || undefined,
+        employee_id: selectedEmployee?.id || undefined,
         department: department || undefined,
         dry_run: false,
       };
-      if (month) {
-        params.month = month.toISOString().slice(0, 7);
-      }
-      if (startDate) {
-        params.start_date = startDate.toISOString().slice(0, 10);
-      }
-      if (endDate) {
-        params.end_date = endDate.toISOString().slice(0, 10);
-      }
+      if (month) params.month = month.toISOString().slice(0, 7);
+      if (startDate) params.start_date = startDate.toISOString().slice(0, 10);
+      if (endDate) params.end_date = endDate.toISOString().slice(0, 10);
+
       const res = await apiService.bulkDeleteAttendance(params);
       alert(`Deleted ${res.deleted_count} records.`);
       setPreviewCount(null);
@@ -91,7 +132,8 @@ export default function AttendanceCleanupTool({ open, onClose }: Props) {
   };
 
   const handleReset = () => {
-    setEmployeeId('');
+    setSelectedEmployee(null);
+    setEmployeeQuery('');
     setDepartment('');
     setMonth(null);
     setStartDate(null);
@@ -105,25 +147,40 @@ export default function AttendanceCleanupTool({ open, onClose }: Props) {
       <DialogContent>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <Grid container spacing={2} mt={1}>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                label="Employee ID"
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                fullWidth
-                size="small"
+            <Grid item xs={12} sm={6} md={4}>
+              <Autocomplete
+                options={employeeOptions}
+                getOptionLabel={(option) => `${option.name} (${option.id})`}
+                value={selectedEmployee}
+                onChange={(_, newValue) => setSelectedEmployee(newValue)}
+                inputValue={employeeQuery}
+                onInputChange={(_, newInput) => setEmployeeQuery(newInput)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Employee" size="small" fullWidth />
+                )}
+                filterOptions={(x) => x} // disable client filtering
+                loadingText="Searching..."
+                noOptionsText="Type to search"
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
+                select
                 label="Department"
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
                 fullWidth
                 size="small"
-              />
+              >
+                <MenuItem value="">All Departments</MenuItem>
+                {departments.map((dept) => (
+                  <MenuItem key={dept} value={dept}>
+                    {dept}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <DatePicker
                 views={['year', 'month']}
                 label="Month"
@@ -134,7 +191,7 @@ export default function AttendanceCleanupTool({ open, onClose }: Props) {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <DatePicker
                 label="Start Date"
                 value={startDate}
@@ -144,7 +201,7 @@ export default function AttendanceCleanupTool({ open, onClose }: Props) {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <DatePicker
                 label="End Date"
                 value={endDate}
