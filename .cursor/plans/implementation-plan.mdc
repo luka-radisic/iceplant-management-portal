@@ -1,0 +1,72 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Feature: Attendance Punchcard Cleanup Tool
+Goal
+Allow authorized HR/superuser users to bulk delete attendance punchcard records based on filters: Month, Employee, Department, or custom date range, with safety checks and audit logging.
+Step 1: Backend API Endpoint
+Create a custom API endpoint in attendance/api/views.py under AttendanceViewSet:
+URL: /api/attendance/attendance/bulk_delete/
+Method: POST
+Permissions: HR group or superusers only
+Accepts filters:
+employee_id (optional)
+department (optional)
+start_date (optional)
+end_date (optional)
+month (optional, e.g., "2024-04")
+Deletes matching attendance records
+Returns count of deleted records
+Logs deletions in ImportLog or a new audit model
+Step 2: Backend Filtering Logic
+In the API:
+If month is provided, convert to start_date and end_date of that month
+Apply filters accordingly
+Never delete records outside the filtered range
+Add a dry-run mode (parameter dry_run=true) to preview count without deleting
+Log who performed the deletion, timestamp, filters used, and count
+Step 3: Frontend Service Layer
+In frontend/src/services/api.ts:
+Add bulkDeleteAttendance(params) function
+POSTs to /api/attendance/attendance/bulk_delete/ with filters
+Handles dry-run and actual delete modes
+Step 4: Frontend UI Component
+Create a new React component AttendanceCleanupTool.tsx in frontend/src/components/
+Features:
+Filter inputs:
+Month picker
+Employee selector (autocomplete)
+Department dropdown
+Custom date range pickers
+Preview button: shows how many records will be deleted (dry-run)
+Delete button: confirms and performs deletion
+Confirmation dialog before delete
+Success/error notifications
+Display audit log of recent deletions (optional)
+Step 5: Integrate UI
+Add a button or menu link in the Attendance admin page or HR dashboard to open the Cleanup Tool
+Restrict access to HR/admin users
+Step 6: Permissions & Security
+Backend:
+Restrict API to HR group or superusers
+Frontend:
+Hide Cleanup Tool UI for unauthorized users
+Add CSRF protection and authentication checks
+Step 7: Testing
+Backend:
+Unit tests for API filtering, dry-run, deletion, and logging
+Frontend:
+Test filter inputs, preview, delete flow, and error handling
+Step 8: Documentation
+Update project README or internal docs:
+How to use the Cleanup Tool
+Permissions required
+Safety notes
+Step 9: Deployment
+Merge changes
+Run migrations if new audit model added
+Verify on staging before production
+Step 10: Mark as Done
+Update this plan with "Done" and a brief summary after each step completion.

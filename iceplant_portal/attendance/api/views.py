@@ -16,7 +16,7 @@ from django.db.models import F, ExpressionWrapper, DurationField, Count, Q, Func
 from django.db.models.functions import Extract, TruncDate
 from dateutil.relativedelta import relativedelta
 from datetime import date
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 from .serializers import (
@@ -30,7 +30,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     """
     API endpoint for attendance records.
     """
-    queryset = Attendance.objects.all()
+    queryset = Attendance.objects.all().order_by('-check_in')
     serializer_class = AttendanceSerializer
     filterset_fields = ['employee_id', 'department', 'import_date']
     search_fields = ['employee_id', 'department', 'employee_name']
@@ -39,6 +39,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     page_size_query_param = 'page_size'
     max_page_size = 500  # Maximum allowed page size
     filter_backends = []
+    permission_classes = [IsAuthenticated]
     
     # Override perform_update to control hr_notes access
     def perform_update(self, serializer):
@@ -740,6 +741,55 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         print("====== END DEPARTMENTS API ======\n")
         
         return Response({'departments': all_departments})
+
+    @action(detail=False, methods=['post'], url_path='bulk_delete', permission_classes=[IsAuthenticated])
+    def bulk_delete(self, request):
+        """
+        Bulk delete attendance records based on filters.
+        Accepts: employee_id, department, start_date, end_date, month, dry_run
+        """
+        user = request.user
+        if not (user.is_superuser or user.groups.filter(name='HR').exists()):
+            return Response({'error': 'Permission denied'}, status=403)
+
+        params = request.data
+        employee_id = params.get('employee_id')
+        department = params.get('department')
+        start_date = params.get('start_date')
+        end_date = params.get('end_date')
+        month = params.get('month')
+        dry_run = params.get('dry_run', False)
+
+        queryset = Attendance.objects.all()
+
+        if month:
+            try:
+                dt = datetime.strptime(month, '%Y-%m')
+                start_date = dt.replace(day=1).strftime('%Y-%m-%d')
+                end_date_dt = (dt.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+                end_date = end_date_dt.strftime('%Y-%m-%d')
+            except Exception:
+                pass
+
+        if employee_id:
+            queryset = queryset.filter(employee_id=employee_id)
+        if department:
+            queryset = queryset.filter(department=department)
+        if start_date:
+            queryset = queryset.filter(check_in__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(check_in__date__lte=end_date)
+
+        count = queryset.count()
+
+        if dry_run:
+            return Response({'deleted_count': count, 'dry_run': True})
+
+        deleted, _ = queryset.delete()
+
+        # TODO: Log this deletion in ImportLog or a new audit model
+
+        return Response({'deleted_count': deleted, 'dry_run': False})
 
 class ImportLogViewSet(viewsets.ReadOnlyModelViewSet):
     """

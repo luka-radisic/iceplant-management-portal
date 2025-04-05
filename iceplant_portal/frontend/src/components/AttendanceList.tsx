@@ -41,6 +41,7 @@ import apiService from '../services/api';
 import EmployeeAttendanceModal from './EmployeeAttendanceModal';
 import { useAuth } from '../contexts/AuthContext';
 import { debounce } from 'lodash';
+import AttendanceCleanupTool from './AttendanceCleanupTool';
 
 interface AttendanceStats {
   status_distribution: { name: string; value: number }[];
@@ -67,6 +68,7 @@ export default function AttendanceList() {
   });
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
 
   const isHrUser = useMemo(() => user?.group === 'HR', [user]);
 
@@ -289,9 +291,16 @@ export default function AttendanceList() {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ p: 2 }}>
-        <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-          Attendance Records & Statistics
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5">
+            Attendance Records & Statistics
+          </Typography>
+          {isHrUser && (
+            <Button variant="outlined" color="error" onClick={() => setCleanupOpen(true)}>
+              Cleanup Attendance Records
+            </Button>
+          )}
+        </Box>
 
         <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
@@ -605,6 +614,8 @@ export default function AttendanceList() {
             isHrUser={isHrUser}
           />
         )}
+
+        <AttendanceCleanupTool open={cleanupOpen} onClose={() => setCleanupOpen(false)} />
       </Box>
     </LocalizationProvider>
   );

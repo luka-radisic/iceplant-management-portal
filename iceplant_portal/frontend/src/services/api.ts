@@ -524,6 +524,18 @@ export const apiService = {
       throw error;
     }
   },
+
+  async bulkDeleteAttendance(params: {
+    employee_id?: string;
+    department?: string;
+    start_date?: string;
+    end_date?: string;
+    month?: string;
+    dry_run?: boolean;
+  }): Promise<{ deleted_count: number; dry_run: boolean }> {
+    const response = await api.post('/api/attendance/attendance/bulk_delete/', params);
+    return response.data;
+  },
 };
 
 export default apiService; 
