@@ -163,7 +163,41 @@ export default function AttendanceList() {
     }
   };
 
+  const formatDayOfWeek = (dateString: string | null): string => {
+    if (!dateString) return '-';
+    try {
+      return format(new Date(dateString), 'EEEE');
+    } catch (error) {
+      return 'Invalid Day';
+    }
+  };
+
+  const isSunday = (dateString: string | null): boolean => {
+    if (!dateString) return false;
+    try {
+      return format(new Date(dateString), 'EEEE') === 'Sunday';
+    } catch (error) {
+      return false;
+    }
+  };
+
   const getStatusChip = (record: any) => {
+    // Check for Sunday first
+    if (isSunday(record.check_in)) {
+      return (
+        <Box display="flex" gap={1}>
+          <Chip label="Off Day" color="info" size="small" variant="outlined" />
+          {record.department === 'NO SHOW' && (
+            <Chip label="No Show" color="error" size="small" variant="outlined" />
+          )}
+          {!record.check_out && record.department !== 'NO SHOW' && (
+            <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />
+          )}
+        </Box>
+      );
+    }
+
+    // Regular status checks for non-Sundays
     if (record.department === 'NO SHOW') {
       return <Chip label="No Show" color="error" size="small" variant="outlined" />;
     }
@@ -171,12 +205,12 @@ export default function AttendanceList() {
       return <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />;
     }
     if (record.check_in && record.check_out) {
-       try {
-          const durationMinutes = differenceInMinutes(new Date(record.check_out), new Date(record.check_in));
-          if (durationMinutes < 5) {
-             return <Chip label="Short Duration" color="secondary" size="small" variant="outlined" />;
-          }
-       } catch (e) { /* Ignore date parsing errors */ }
+      try {
+        const durationMinutes = differenceInMinutes(new Date(record.check_out), new Date(record.check_in));
+        if (durationMinutes < 5) {
+          return <Chip label="Short Duration" color="secondary" size="small" variant="outlined" />;
+        }
+      } catch (e) { /* Ignore date parsing errors */ }
     }
     return <Chip label="Complete" color="success" size="small" variant="outlined" />;
   };
@@ -410,6 +444,7 @@ export default function AttendanceList() {
                   <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Day</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Check In</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Check Out</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Duration (H:M)</TableCell>
@@ -419,7 +454,7 @@ export default function AttendanceList() {
               <TableBody>
                 {records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
                       No records found for the selected criteria.
                     </TableCell>
                   </TableRow>
@@ -427,16 +462,19 @@ export default function AttendanceList() {
                   records.map((record) => {
                     const isNoShow = record.department === 'NO SHOW';
                     const isMissingCheckout = !isNoShow && !record.check_out;
+                    const isOffDay = isSunday(record.check_in);
                     return (
                       <TableRow
                         key={record.id}
                         hover
                         sx={{
-                          bgcolor: isNoShow 
-                            ? 'error.lighter' 
-                            : isMissingCheckout 
-                              ? 'warning.lighter' 
-                              : 'inherit',
+                          bgcolor: isOffDay 
+                            ? 'info.lighter'
+                            : isNoShow 
+                              ? 'error.lighter' 
+                              : isMissingCheckout 
+                                ? 'warning.lighter' 
+                                : 'inherit',
                           '&:hover': { bgcolor: 'action.hover' },
                           cursor: 'pointer'
                         }}
@@ -464,6 +502,18 @@ export default function AttendanceList() {
                         </TableCell>
                         <TableCell>{record.department}</TableCell>
                         <TableCell>{formatDate(record.check_in)}</TableCell>
+                        <TableCell>
+                          <Typography 
+                            component="span" 
+                            variant="body2" 
+                            sx={{ 
+                              fontWeight: isOffDay ? 'bold' : 'normal',
+                              color: isOffDay ? 'info.dark' : 'text.primary'
+                            }}
+                          >
+                            {formatDayOfWeek(record.check_in)}
+                          </Typography>
+                        </TableCell>
                         <TableCell>
                           <Typography 
                             component="span" 
