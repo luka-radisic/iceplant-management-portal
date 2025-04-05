@@ -17,6 +17,7 @@ from django.db.models.functions import Extract, TruncDate
 from dateutil.relativedelta import relativedelta
 from datetime import date
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import filters
 
 from attendance.models import Attendance, ImportLog, EmployeeShift, EmployeeProfile, DepartmentShift
 from .serializers import (
@@ -1004,6 +1005,8 @@ class EmployeeProfileViewSet(ModelViewSet):
     serializer_class = EmployeeProfileSerializer
     lookup_field = 'employee_id'
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['employee_id', 'full_name']
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -1023,12 +1026,10 @@ class EmployeeProfileViewSet(ModelViewSet):
         try:
             return self.queryset.get(employee_id=employee_id)
         except EmployeeProfile.DoesNotExist:
-            # Try to create profile from attendance records
             try:
-                # Get the most recent attendance record for this employee
                 attendance = Attendance.objects.filter(
                     employee_id=employee_id,
-                    employee_name__isnull=False  # Ensure we have a name
+                    employee_name__isnull=False
                 ).order_by('-check_in').first()
                 
                 if attendance and attendance.employee_name:
@@ -1040,10 +1041,9 @@ class EmployeeProfileViewSet(ModelViewSet):
                         date_joined=attendance.check_in.date()
                     )
                 else:
-                    # Check if the employee ID is within valid range (1-20)
                     try:
                         emp_id = int(employee_id)
-                        if 1 <= emp_id <= 20:  # Assuming valid employee IDs are 1-20
+                        if 1 <= emp_id <= 20:
                             return EmployeeProfile.objects.create(
                                 employee_id=employee_id,
                                 full_name=f"Employee {employee_id}",
