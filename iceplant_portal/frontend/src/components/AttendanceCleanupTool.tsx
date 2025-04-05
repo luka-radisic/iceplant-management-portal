@@ -17,17 +17,12 @@ import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import apiService from '../services/api';
 
-interface Props {
-  open: boolean;
-  onClose: () => void;
-}
-
 interface EmployeeOption {
   id: string;
   name: string;
 }
 
-export default function AttendanceCleanupTool({ open, onClose }: Props) {
+export default function AttendanceCleanupTool() {
   const [employeeQuery, setEmployeeQuery] = useState('');
   const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeOption | null>(null);
@@ -142,109 +137,104 @@ export default function AttendanceCleanupTool({ open, onClose }: Props) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Attendance Punchcard Cleanup Tool</DialogTitle>
-      <DialogContent>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Grid container spacing={2} mt={1}>
-            <Grid item xs={12} sm={6} md={4}>
-              <Autocomplete
-                options={employeeOptions}
-                getOptionLabel={(option) => `${option.name} (${option.id})`}
-                value={selectedEmployee}
-                onChange={(_, newValue) => setSelectedEmployee(newValue)}
-                inputValue={employeeQuery}
-                onInputChange={(_, newInput) => setEmployeeQuery(newInput)}
-                renderInput={(params) => (
-                  <TextField {...params} label="Employee" size="small" fullWidth />
-                )}
-                filterOptions={(x) => x} // disable client filtering
-                loadingText="Searching..."
-                noOptionsText="Type to search"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                select
-                label="Department"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                fullWidth
-                size="small"
-              >
-                <MenuItem value="">All Departments</MenuItem>
-                {departments.map((dept) => (
-                  <MenuItem key={dept} value={dept}>
-                    {dept}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <DatePicker
-                views={['year', 'month']}
-                label="Month"
-                value={month}
-                onChange={(newValue) => setMonth(newValue)}
-                slotProps={{
-                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <DatePicker
-                label="Start Date"
-                value={startDate}
-                onChange={(newValue) => setStartDate(newValue)}
-                slotProps={{
-                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <DatePicker
-                label="End Date"
-                value={endDate}
-                onChange={(newValue) => setEndDate(newValue)}
-                slotProps={{
-                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
-                }}
-              />
-            </Grid>
+    <Box p={2} border={1} borderRadius={2} borderColor="grey.300" mt={2}>
+      <Typography variant="h6" gutterBottom>
+        Attendance Database Cleanup
+      </Typography>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <Grid container spacing={2} mt={1}>
+          <Grid item xs={12} sm={6} md={4}>
+            <Autocomplete
+              options={employeeOptions}
+              getOptionLabel={(option) => `${option.name} (${option.id})`}
+              value={selectedEmployee}
+              onChange={(_, newValue) => setSelectedEmployee(newValue)}
+              inputValue={employeeQuery}
+              onInputChange={(_, newInput) => setEmployeeQuery(newInput)}
+              renderInput={(params) => (
+                <TextField {...params} label="Employee" size="small" fullWidth />
+              )}
+              filterOptions={(x) => x} // disable client filtering
+              loadingText="Searching..."
+              noOptionsText="Type to search"
+            />
           </Grid>
-        </LocalizationProvider>
+          <Grid item xs={12} sm={6} md={4}>
+            <TextField
+              select
+              label="Department"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              fullWidth
+              size="small"
+            >
+              <MenuItem value="">All Departments</MenuItem>
+              {departments.map((dept) => (
+                <MenuItem key={dept} value={dept}>
+                  {dept}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <DatePicker
+              views={['year', 'month']}
+              label="Month"
+              value={month}
+              onChange={(newValue) => setMonth(newValue)}
+              slotProps={{
+                textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <DatePicker
+              label="Start Date"
+              value={startDate}
+              onChange={(newValue) => setStartDate(newValue)}
+              slotProps={{
+                textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <DatePicker
+              label="End Date"
+              value={endDate}
+              onChange={(newValue) => setEndDate(newValue)}
+              slotProps={{
+                textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
+              }}
+            />
+          </Grid>
+        </Grid>
+      </LocalizationProvider>
 
-        <Box mt={3} display="flex" gap={2} alignItems="center">
-          <Button variant="contained" onClick={handlePreview} disabled={loading || deleting}>
-            Preview Records to Delete
-          </Button>
-          {loading && <CircularProgress size={24} />}
-          {previewCount !== null && (
-            <Typography>
-              {previewCount} record{previewCount === 1 ? '' : 's'} will be deleted.
-            </Typography>
-          )}
-        </Box>
-
-        <Box mt={2} display="flex" gap={2}>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDelete}
-            disabled={deleting || previewCount === null || previewCount === 0}
-          >
-            {deleting ? 'Deleting...' : 'Delete Records'}
-          </Button>
-          <Button variant="outlined" onClick={handleReset} disabled={deleting || loading}>
-            Reset Filters
-          </Button>
-        </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={deleting || loading}>
-          Close
+      <Box mt={3} display="flex" gap={2} alignItems="center">
+        <Button variant="contained" onClick={handlePreview} disabled={loading || deleting}>
+          Preview Records to Delete
         </Button>
-      </DialogActions>
-    </Dialog>
+        {loading && <CircularProgress size={24} />}
+        {previewCount !== null && (
+          <Typography>
+            {previewCount} record{previewCount === 1 ? '' : 's'} will be deleted.
+          </Typography>
+        )}
+      </Box>
+
+      <Box mt={2} display="flex" gap={2}>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={handleDelete}
+          disabled={deleting || previewCount === null || previewCount === 0}
+        >
+          {deleting ? 'Deleting...' : 'Delete Records'}
+        </Button>
+        <Button variant="outlined" onClick={handleReset} disabled={deleting || loading}>
+          Reset Filters
+        </Button>
+      </Box>
+    </Box>
   );
 } 
