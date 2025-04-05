@@ -27,7 +27,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { addHours, format, parse, differenceInMinutes } from 'date-fns';
+import { addHours, format, parse } from 'date-fns';
 import { format as formatTZ } from 'date-fns-tz';
 import { useSnackbar } from 'notistack';
 import { useEffect, useState, useMemo } from 'react';
@@ -35,7 +35,7 @@ import apiService from '../services/api';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { formatDuration } from '../utils/formatters';
+// import { formatDuration } from '../utils/formatters';
 import { debounce } from 'lodash';
 
 // Shift configuration type
@@ -105,7 +105,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
   const [editingNote, setEditingNote] = useState<string>('');
   const [savingNote, setSavingNote] = useState<boolean>(false);
 
-  const [profileError, setProfileError] = useState<string | null>(null);
+  // const [profileError, setProfileError] = useState<string | null>(null);
 
   const [profileCache, setProfileCache] = useState<Record<string, any>>({});
   const [shiftCache, setShiftCache] = useState<Record<string, any>>({});
@@ -194,8 +194,8 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
   const getShiftType = (checkInTime: Date, checkOutTime: Date | null): string => {
     const timeStr = formatTZ(checkInTime, 'HH:mm', { timeZone: 'Asia/Manila' });
-    const manilaDate = new Date(formatTZ(checkInTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'Asia/Manila' }));
-    const shiftStartTime = parse(shiftConfig.shift_start, 'HH:mm', manilaDate);
+   // const manilaDate = new Date(formatTZ(checkInTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'Asia/Manila' }));
+   // const shiftStartTime = parse(shiftConfig.shift_start, 'HH:mm', manilaDate);
 
     if (checkOutTime) {
       const checkInHour = checkInTime.getHours();
@@ -337,7 +337,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       setProfilePicture(cached.photo_url || null);
       return;
     }
-    setProfileError(null);
+    //setProfileError(null);
     try {
       const timestamp = new Date().getTime();
       const response = await apiService.get(`/api/attendance/employee-profile/${employeeId}/`);
@@ -358,9 +358,9 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       setProfilePicture(null);
       setTrackShifts(false);
       if (error.response?.status === 404) {
-        setProfileError('No profile found. Basic attendance tracking enabled.');
+        //setProfileError('No profile found. Basic attendance tracking enabled.');
       } else {
-        setProfileError('Error loading profile. Using basic attendance tracking.');
+        //setProfileError('Error loading profile. Using basic attendance tracking.');
       }
     }
   };
