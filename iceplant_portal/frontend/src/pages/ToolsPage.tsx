@@ -3,8 +3,11 @@ import { Box, Container, Typography, Paper, Grid } from '@mui/material';
 import AttendanceTools from '../components/AttendanceTools';
 import CleanupTools from '../components/CleanupTools';
 import DatabaseBackupTools from '../components/DatabaseBackupTools'; // Import DatabaseBackupTools
+import AttendanceCleanupTool from '../components/AttendanceCleanupTool';
 
 export default function ToolsPage() {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" gutterBottom component="div">
@@ -40,6 +43,12 @@ export default function ToolsPage() {
             <DatabaseBackupTools />
           </Paper>
         </Grid>
+
+        {user.is_superuser && (
+          <Box mt={4}>
+            <AttendanceCleanupTool open={true} onClose={() => {}} />
+          </Box>
+        )}
 
         {/* 
         // Placeholder for future tool sections
