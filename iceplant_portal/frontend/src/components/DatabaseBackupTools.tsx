@@ -17,6 +17,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Card,
+  CardHeader,
+  CardContent
 } from '@mui/material';
 import { BackupOutlined, BusinessOutlined, RestoreOutlined, UploadFileOutlined } from '@mui/icons-material';
 import apiService from '../services/api';
@@ -126,132 +129,125 @@ export default function DatabaseBackupTools() {
 
   return (
     <Box>
-      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-        <Box display="flex" alignItems="center" mb={1}>
-          <BackupOutlined fontSize="medium" color="primary" sx={{ mr: 1 }} />
-          <Typography variant="h6">Complete System Backup</Typography>
-        </Box>
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Creates a full backup of all data in the system, including sales, inventory, expenses, 
-          attendance, users, and all other information. Use this for regular system backups.
-        </Typography>
-        
-        <Alert severity="info" sx={{ mb: 2 }}>
-          This downloads a JSON file containing all system data that can be used for disaster recovery.
-        </Alert>
-        
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleFullBackup}
-          disabled={loadingFull || loadingDept || loadingRestore}
-          fullWidth
-          size="large"
-          startIcon={loadingFull ? <CircularProgress size={24} color="inherit" /> : null}
-        >
-          {loadingFull ? 'Creating Backup...' : 'Download Complete System Backup'}
-        </Button>
-      </Paper>
+      <Grid container spacing={3} alignItems="stretch">
 
-      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-        <Box display="flex" alignItems="center" mb={1}>
-          <RestoreOutlined fontSize="medium" color="error" sx={{ mr: 1 }} />
-          <Typography variant="h6">Restore Database</Typography>
-        </Box>
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Restore the system from a previously created backup file. This will merge the backup data 
-          with the existing database.
-        </Typography>
-        
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          This operation can potentially modify or overwrite existing data. Use with caution.
-        </Alert>
-        
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={8}>
-            <Button
-              variant="outlined"
-              component="label"
-              fullWidth
-              startIcon={<UploadFileOutlined />}
-              sx={{ height: '100%' }}
-            >
-              {selectedFile ? `Selected: ${selectedFile.name}` : 'Select Backup File'}
-              <input 
-                type="file" 
-                hidden 
-                accept=".json" 
-                onChange={handleFileSelect} 
-                ref={fileInputRef}
-              />
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={handleRestoreClick}
-              disabled={!selectedFile || loadingFull || loadingDept || loadingRestore}
-              fullWidth
-              startIcon={loadingRestore ? <CircularProgress size={20} color="inherit" /> : null}
-            >
-              {loadingRestore ? 'Restoring...' : 'Restore Database'}
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      <Paper elevation={2} sx={{ p: 2 }}>
-        <Box display="flex" alignItems="center" mb={1}>
-          <BusinessOutlined fontSize="medium" color="secondary" sx={{ mr: 1 }} />
-          <Typography variant="h6">Department Backup</Typography>
-        </Box>
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Creates a focused backup of data for a specific department, including only the records 
-          relevant to that department. Useful for migrating department data separately.
-        </Typography>
-
-        <Grid container spacing={1} alignItems="center">
-          <Grid item xs={12} sm={8}>
-            <FormControl fullWidth size="small">
-              <InputLabel id="dept-select-label">Department</InputLabel>
-              <Select
-                labelId="dept-select-label"
-                value={selectedDept}
-                label="Department"
-                onChange={(e) => setSelectedDept(e.target.value as string)}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <CardHeader
+              avatar={<BackupOutlined color="primary" />}
+              title="Complete System Backup"
+            />
+            <CardContent sx={{ flexGrow: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Creates a full backup of all data (sales, inventory, attendance, etc.). Use for regular system backups.
+              </Typography>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Downloads a JSON file usable for disaster recovery.
+              </Alert>
+            </CardContent>
+            <Box sx={{ p: 2, pt: 0 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleFullBackup}
                 disabled={loadingFull || loadingDept || loadingRestore}
+                fullWidth
+                size="large"
+                startIcon={loadingFull ? <CircularProgress size={24} color="inherit" /> : null}
               >
-                <MenuItem value="" disabled>
-                  <em>Select Department...</em>
-                </MenuItem>
-                {departments.map((dept) => (
-                  <MenuItem key={dept} value={dept}>
-                    {dept}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={handleDeptBackup}
-              disabled={!selectedDept || loadingFull || loadingDept || loadingRestore}
-              fullWidth
-              startIcon={loadingDept ? <CircularProgress size={20} color="inherit" /> : null}
-            >
-              {loadingDept ? 'Creating...' : 'Download Dept Backup'}
-            </Button>
-          </Grid>
+                {loadingFull ? 'Creating Backup...' : 'Download Full Backup'}
+              </Button>
+            </Box>
+          </Card>
         </Grid>
-      </Paper>
 
-      {/* Confirmation Dialog */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <CardHeader
+              avatar={<RestoreOutlined color="error" />}
+              title="Restore Database"
+            />
+            <CardContent sx={{ flexGrow: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Restore the system from a selected backup file. Merges backup data with the existing database.
+              </Typography>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Caution: This operation can modify or overwrite existing data.
+              </Alert>
+              <Grid container spacing={1} alignItems="stretch">
+                <Grid item xs={12} sm={7}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    startIcon={<UploadFileOutlined />}
+                    sx={{ height: '100%', textTransform: 'none' }}
+                  >
+                    {selectedFile ? `Selected: ${selectedFile.name}` : 'Select File (.json)'}
+                    <input type="file" hidden accept=".json" onChange={handleFileSelect} ref={fileInputRef} />
+                  </Button>
+                </Grid>
+                <Grid item xs={12} sm={5}>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={handleRestoreClick}
+                    disabled={!selectedFile || loadingFull || loadingDept || loadingRestore}
+                    fullWidth
+                    sx={{ height: '100%' }}
+                    startIcon={loadingRestore ? <CircularProgress size={18} color="inherit" /> : null}
+                  >
+                    {loadingRestore ? 'Restoring...' : 'Restore'}
+                  </Button>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <CardHeader
+              avatar={<BusinessOutlined color="secondary" />}
+              title="Department Backup"
+            />
+            <CardContent sx={{ flexGrow: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Creates a focused backup for a specific department. Useful for migrating department data separately.
+              </Typography>
+              <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+                <InputLabel id="dept-select-label">Department</InputLabel>
+                <Select
+                  labelId="dept-select-label"
+                  value={selectedDept}
+                  label="Department"
+                  onChange={(e) => setSelectedDept(e.target.value as string)}
+                  disabled={loadingFull || loadingDept || loadingRestore}
+                >
+                  <MenuItem value="" disabled><em>Select Department...</em></MenuItem>
+                  {departments.map((dept) => (
+                    <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </CardContent>
+            <Box sx={{ p: 2, pt: 0 }}>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleDeptBackup}
+                disabled={!selectedDept || loadingFull || loadingDept || loadingRestore}
+                fullWidth
+                startIcon={loadingDept ? <CircularProgress size={18} color="inherit" /> : null}
+              >
+                {loadingDept ? 'Creating...' : 'Download Dept Backup'}
+              </Button>
+            </Box>
+          </Card>
+        </Grid>
+
+      </Grid>
+
       <Dialog
         open={confirmDialogOpen}
         onClose={() => setConfirmDialogOpen(false)}
