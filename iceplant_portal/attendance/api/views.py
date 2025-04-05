@@ -143,6 +143,10 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         
         # Apply department filter if provided
         if department:
+            prefix = "Atlantis Fishing Development Corp\\"
+            # If the param is not already prefixed, add prefix
+            if not department.startswith(prefix):
+                department = prefix + department
             queryset = queryset.filter(department=department)
             
         # Apply status filters
