@@ -2,7 +2,7 @@ import BugReportIcon from '@mui/icons-material/BugReport';
 import { Box, CssBaseline, Fab, useTheme } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { SnackbarProvider } from 'notistack';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -35,6 +35,25 @@ function AppContent() {
   const [showLogs, setShowLogs] = useState(false);
   const theme = useTheme();
   const { user } = useAuth();
+
+  // Fetch company info and update title
+  useEffect(() => {
+    async function fetchCompanyName() {
+      try {
+        const response = await fetch('/api/company-info/');
+        if (!response.ok) throw new Error('Failed to fetch company info');
+        const data = await response.json();
+        if (data.name) {
+          document.title = data.name;
+        } else {
+          document.title = 'Company Management Portal';
+        }
+      } catch {
+        document.title = 'Company Management Portal';
+      }
+    }
+    fetchCompanyName();
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
