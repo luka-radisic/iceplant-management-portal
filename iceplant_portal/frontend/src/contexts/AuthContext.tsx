@@ -14,6 +14,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isAdmin: boolean;
+  isSuperuser: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -29,6 +30,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
+        // Patch: ensure consistent property names 
+        if (parsedUser.is_superuser !== undefined && parsedUser.isSuperuser === undefined) {
+          parsedUser.isSuperuser = parsedUser.is_superuser;
+        }
+        // Ensure is_superuser is boolean
+        parsedUser.isSuperuser = parsedUser.isSuperuser === true || parsedUser.isSuperuser === 'true';
+        parsedUser.isAdmin = parsedUser.isAdmin === true || parsedUser.isAdmin === 'true';
         setUser(parsedUser);
       } catch (e) {
         console.error('Failed to parse user from localStorage', e);
@@ -50,9 +58,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
 
       const token = data.token;
-      const isAdmin = data.isAdmin ?? false;
-      const isSuperuser = data.isSuperuser ?? false;
+      const isAdmin = data.is_staff ?? false;
+      // Use is_superuser from backend but store as isSuperuser for frontend consistency
+      const isSuperuser = data.is_superuser ?? false;
 
+      const userObj = {
+        username,
+        full_name: data.full_name ?? username,
+        group: data.group ?? null,
+        isAdmin,
+        isSuperuser,
+        token
+      };
+      localStorage.setItem('user', JSON.stringify(userObj));
       localStorage.setItem('token', token);
       localStorage.setItem('username', username);
       localStorage.setItem('isAdmin', String(isAdmin));
@@ -72,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    localStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('isAdmin');
@@ -86,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         isAdmin: user?.isAdmin ?? false,
+        isSuperuser: user?.isSuperuser ?? false,
         login,
         logout,
       }}

@@ -10,7 +10,7 @@ interface SuperAdminRouteProps {
 export default function SuperAdminRoute({ children }: SuperAdminRouteProps) {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
-  const isSuperuser = user?.is_superuser === true;
+  const isSuperuser = user?.isSuperuser === true;
 
   useEffect(() => {
     console.log('SuperAdmin Route - Auth Status:', { isAuthenticated, isSuperuser });
@@ -42,4 +42,4 @@ export default function SuperAdminRoute({ children }: SuperAdminRouteProps) {
 
   // If authenticated and superadmin, render children
   return <>{children}</>;
-} 
+}
