@@ -115,14 +115,16 @@ export default function DashboardLayout() {
               {user?.group && (
                 <Chip 
                   label={user.group}
-                  color={user.group === 'Admin' ? 'warning' : 'primary'}
-                  sx={{ 
+                  color="default"
+                  sx={{
                     mr: 1.5,
                     fontWeight: 'bold',
                     letterSpacing: '0.3px',
                     px: 1,
                     borderRadius: '16px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    backgroundColor: '#ADD8E6',
+                    color: '#000'
                   }}
                 />
               )}

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface User {
   username: string;
+  full_name: string;
+  group: string | null;
   isAdmin: boolean;
   isSuperuser: boolean;
   token: string;
@@ -11,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -55,7 +58,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('isAdmin', String(isAdmin));
       localStorage.setItem('isSuperuser', String(isSuperuser));
 
-      setUser({ username, isAdmin, isSuperuser, token });
+      setUser({
+        username,
+        full_name: data.full_name ?? username,
+        group: data.group ?? null,
+        isAdmin,
+        isSuperuser,
+        token
+      });
     } finally {
       setIsLoading(false);
     }
@@ -75,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         isLoading,
+        isAdmin: user?.isAdmin ?? false,
         login,
         logout,
       }}
