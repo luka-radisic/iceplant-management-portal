@@ -715,16 +715,16 @@ const ExpensesPage: React.FC = () => {
             <TableContainer>
               <Table size="small" sx={{ tableLayout: 'fixed' }}>
                 <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Payee</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Amount</TableCell>
-                    <TableCell>Ice Plant</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell>Reference #</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Actions</TableCell>
+                  <TableRow sx={{ bgcolor: 'grey.300' }}>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Payee</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Amount</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Ice Plant</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Reference #</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

@@ -33,6 +33,70 @@ This document outlines specific development patterns, best practices, and soluti
 *   **Rule:** State derived directly from API responses (e.g., `totalItems` for pagination count) must be reliably updated whenever new data is fetched, especially after filtering.
 *   **Example:** The `totalItems` state in `SalesPage.tsx` must be updated using `response.count` from the API *every time* `fetchSales` runs, ensuring the pagination reflects the currently displayed dataset (filtered or unfiltered).
 
+### Frontend UI Consistency Guidelines
+
+To ensure a cohesive, modern, and professional UI across all pages, follow these guidelines:
+
+**1. Global Theme Consistency**
+- Use the shared theme (`theme.ts`) with `ThemeProvider`.
+- Use theme palette colors (`primary`, `secondary`, `success`, `warning`, `error`) for buttons, chips, icons, highlights.
+- Use theme typography variants (`h4`, `h5`, `subtitle1`, `body1`, etc.) for all text.
+
+**2. Layout and Containers**
+- Use `Box` and `Grid` for responsive layouts with consistent spacing (`p`, `m`, `mb`, `mt`).
+- Wrap filters, search bars, and action buttons inside `Paper` with padding (`p: 2`) and margin (`mb: 3`).
+- Use `Paper` or `Card` with `elevation={2}` or `3` for content sections.
+
+**3. Tables**
+- Wrap tables in `TableContainer` inside `Paper` with `elevation={4}`, `borderRadius: 2`, `boxShadow: 3`.
+- Style table headers with `sx={{ bgcolor: 'grey.300' }}` and bold font.
+- Use `size="small"` for compactness.
+
+**4. Typography**
+- Use `Typography` components for all text.
+- Headings: `variant="h4"` or `h5` with `fontWeight="bold"`.
+- Section titles: `variant="h6"` with `fontWeight="medium"`.
+- Body text: `variant="body1"` or `body2`.
+
+**5. Buttons and Actions**
+- Use consistent `Button` variants (`contained`, `outlined`, `text`).
+- Use theme colors (`color="primary"`, `"secondary"`, `"error"`, `"success"`).
+- Add icons to buttons where appropriate.
+- Group action buttons with consistent spacing.
+
+**6. Chips and Status Indicators**
+- Use `Chip` components with theme colors:
+  - `color="success"` for active/complete.
+  - `color="error"` for errors/no show.
+  - `color="warning"` for warnings.
+  - `color="info"` for informational states.
+- Use outlined or filled variants consistently.
+
+**7. Cards and Charts**
+- Use `Card` or `Paper` with padding and elevation for charts and summaries.
+- Add hover effects (`transform: translateY(-5px)`, `boxShadow`) for interactivity.
+- Use consistent margins and heights.
+
+**8. Dialogs and Modals**
+- Use `Dialog` with `maxWidth` and `fullWidth`.
+- Add padding inside `DialogContent`.
+- Use `Typography` for titles and content.
+- Style action buttons consistently.
+
+**9. Filters and Search**
+- Group filters inside `Paper` with padding and margin.
+- Use `TextField` with `size="small"` and `fullWidth`.
+- Use `DatePicker` with consistent formatting.
+- Add icons inside inputs using `InputAdornment`.
+
+**10. Spacing and Alignment**
+- Maintain consistent spacing (`p`, `m`, `mb`, `mt`).
+- Align headers and actions with `Box display="flex" justifyContent="space-between" alignItems="center"`.
+
+**11. Remove Inline Styles**
+- Minimize custom inline styles.
+- Use the theme and `sx` props referencing theme variables.
+
 ### Accessibility: Modal Focus Management
 
 *   **Problem:** Using `aria-hidden="true"` on a container (like a closing MUI `Dialog`) while an element inside it still has focus causes accessibility issues.
