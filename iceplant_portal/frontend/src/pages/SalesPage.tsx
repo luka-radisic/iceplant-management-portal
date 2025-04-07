@@ -987,7 +987,16 @@ const SalesPage: React.FC = (): React.ReactElement => {
            {/* Edit Sale Dialog */}
            <Dialog open={editDialogOpen} onClose={handleCloseEditDialog} maxWidth="md" fullWidth>
              <DialogTitle>
-               Edit Sale {editableSale?.si_number}
+               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <Typography variant="h6">
+                   Edit Sale {editableSale?.si_number}
+                 </Typography>
+                 {editableSale?.buyer_name && (
+                   <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.3rem', ml: 2 }}>
+                     {editableSale.buyer_name}
+                   </Typography>
+                 )}
+               </Box>
              </DialogTitle>
              <DialogContent>
                {editableSale ? (
@@ -1082,6 +1091,9 @@ const SalesPage: React.FC = (): React.ReactElement => {
                            helperText="Start typing to search for buyers by name or ID"
                            InputProps={{
                              ...params.InputProps,
+                             sx: {
+                               fontSize: '1.2rem'
+                             },
                              endAdornment: (
                                <>
                                  {loadingBuyers ? <CircularProgress color="inherit" size={20} /> : null}
@@ -1107,17 +1119,6 @@ const SalesPage: React.FC = (): React.ReactElement => {
                        margin="normal"
                        placeholder="Phone or email"
                        InputProps={{
-                         startAdornment: selectedEditBuyer && (
-                           <Box component="span" sx={{ 
-                             color: 'success.main', 
-                             fontSize: '0.8rem',
-                             position: 'absolute',
-                             top: '-20px',
-                             left: '0'
-                           }}>
-                             {selectedEditBuyer.company_name ? `${selectedEditBuyer.company_name}` : ''}
-                           </Box>
-                         ),
                        }}
                      />
                    </Grid>
