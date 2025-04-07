@@ -80,9 +80,58 @@ const WeekendWork: React.FC = () => {
     setPage(0);
   };
 
-  const handleExport = (formatType: 'excel' | 'pdf') => {
-    // Placeholder for export logic
-    alert(`Exporting weekend work data as ${formatType.toUpperCase()}`);
+  const handleExport = async (formatType: 'excel' | 'pdf') => {
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', format(startDate, 'yyyy-MM-dd'));
+      if (endDate) params.append('end_date', format(endDate, 'yyyy-MM-dd'));
+      params.append('page_size', '100000');  // large number to get all data
+
+      const response = await fetch(`/api/attendance/attendance/weekend-work/?${params.toString()}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch all weekend work data');
+      const data = await response.json();
+      const allRecords = data.results || data;
+
+      const headers = ['Employee Name', 'Department', 'Date', 'Punch In', 'Punch Out', 'Duration', 'HR Note'];
+      const rows = allRecords.map((r: any) => [
+        r.employee_name,
+        r.department,
+        r.date,
+        r.punch_in,
+        r.punch_out,
+        r.duration,
+        r.has_hr_note ? 'Yes' : 'No'
+      ]);
+
+      if (formatType === 'excel') {
+        const csvContent = [headers, ...rows]
+          .map(e => e.map((field: any) => `"${String(field).replace(/"/g, '""')}"`).join(','))
+          .join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'weekend_work.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else if (formatType === 'pdf') {
+        const doc = new (await import('jspdf')).jsPDF();
+        const autoTable = (await import('jspdf-autotable')).default;
+        autoTable(doc, {
+          head: [headers],
+          body: rows,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [41, 128, 185] }
+        });
+        doc.save('weekend_work.pdf');
+      }
+    } catch (error) {
+      alert('Export failed: ' + (error as Error).message);
+    }
   };
 
   const uniqueEmployees = new Set(records.map(r => r.employee_name)).size;
@@ -93,32 +142,32 @@ const WeekendWork: React.FC = () => {
         Summary
       </Typography>
       <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4} textAlign="center">
+        <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ flex: 1, textAlign: 'center' }}>
             <Typography variant="h4" fontWeight="bold" color="primary.main">
               {totalCount}
             </Typography>
             <Typography variant="subtitle2" color="text.secondary">
               Total Records
             </Typography>
-          </Grid>
-          <Grid item xs={12} sm={4} textAlign="center">
+          </Box>
+          <Box sx={{ flex: 1, textAlign: 'center' }}>
             <Typography variant="h4" fontWeight="bold" color="secondary.main">
               {uniqueEmployees}
             </Typography>
             <Typography variant="subtitle2" color="text.secondary">
               Employees
             </Typography>
-          </Grid>
-          <Grid item xs={12} sm={4} textAlign="center">
+          </Box>
+          <Box sx={{ flex: 1, textAlign: 'center' }}>
             <Typography variant="body1" fontWeight="bold">
               Date Range
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {startDate ? format(startDate, 'yyyy-MM-dd') : 'N/A'} to {endDate ? format(endDate, 'yyyy-MM-dd') : 'N/A'}
+            <Typography variant="h6" fontWeight="bold" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+              {startDate ? format(startDate, 'dd MMM yyyy') : 'N/A'} to {endDate ? format(endDate, 'dd MMM yyyy') : 'N/A'}
             </Typography>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Paper>
 
       <Typography variant="h6" gutterBottom>
