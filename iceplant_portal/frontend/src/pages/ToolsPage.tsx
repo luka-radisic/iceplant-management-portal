@@ -15,7 +15,7 @@ export default function ToolsPage() {
       <Grid container spacing={3}>
         {/* Attendance Processing Section */}
         <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Paper elevation={4} sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <Typography variant="h6" gutterBottom component="div">
               Attendance Processing
             </Typography>
@@ -25,7 +25,7 @@ export default function ToolsPage() {
 
         {/* Data Cleanup Section */}
         <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Paper elevation={4} sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%', borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <Typography variant="h6" gutterBottom component="div">
               Data Cleanup
             </Typography>
@@ -35,7 +35,7 @@ export default function ToolsPage() {
 
         {/* Database Backup Section - Make this full width */}
         <Grid item xs={12} md={12} lg={12}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}> {/* Removed height: 100% as it's less relevant for a full-width item */}
+          <Paper elevation={4} sx={{ p: 2, display: 'flex', flexDirection: 'column', borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <Typography variant="h6" gutterBottom component="div">
               Database Backup
             </Typography>

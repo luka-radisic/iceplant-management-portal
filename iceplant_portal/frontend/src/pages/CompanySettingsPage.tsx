@@ -191,26 +191,36 @@ const CompanySettingsPage: React.FC = () => {
       <Typography variant="h4" gutterBottom>
         Company Settings
       </Typography>
+
+      <Box sx={{
+        borderBottom: 1,
+        borderColor: 'divider',
+        mb: 2,
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        backgroundColor: 'white',
+        p: 1
+      }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          aria-label="company settings tabs"
+        >
+          <Tab label="Company Information" />
+          <Tab label="Logo & Branding" />
+          <Tab label="Business Details" />
+          <Tab label="Ice Plant Specifics" />
+        </Tabs>
+      </Box>
       
-      <Paper sx={{ p: 3 }}>
+      <Paper elevation={6} sx={{ p: 3, borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
         {error && (
           <Alert severity="warning" sx={{ mb: 3 }}>
             {error}
           </Alert>
         )}
         
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs 
-            value={activeTab} 
-            onChange={handleTabChange}
-            aria-label="company settings tabs"
-          >
-            <Tab label="Company Information" />
-            <Tab label="Logo & Branding" />
-            <Tab label="Business Details" />
-            <Tab label="Ice Plant Specifics" />
-          </Tabs>
-        </Box>
 
         <form onSubmit={handleSubmit}>
           <TabPanel value={activeTab} index={0}>

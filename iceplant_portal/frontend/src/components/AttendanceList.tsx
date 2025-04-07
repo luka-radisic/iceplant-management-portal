@@ -479,8 +479,12 @@ export default function AttendanceList() {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer component={Paper} elevation={4} sx={{ borderRadius: 2, boxShadow: 3 }}>
-            <Table size="small">
+          <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+            <Table size="small" stickyHeader sx={{
+              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+              '& tbody tr:hover': { backgroundColor: '#fafafa' },
+              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+            }}>
               <TableHead sx={{ bgcolor: 'grey.300' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
