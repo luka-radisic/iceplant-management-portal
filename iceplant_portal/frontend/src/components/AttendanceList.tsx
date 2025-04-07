@@ -487,6 +487,7 @@ export default function AttendanceList() {
                   <TableCell sx={{ fontWeight: 'bold' }}>Check Out</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Duration (H:M)</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>HR Note</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -539,11 +540,6 @@ export default function AttendanceList() {
                           >
                             {record.employee_name}
                           </Button>
-                          {record.has_hr_note && (
-                            <span title="HR Note attached" style={{ marginLeft: 4, color: '#d32f2f', fontWeight: 'bold' }}>
-                              &#9888;
-                            </span>
-                          )}
                         </TableCell>
                         <TableCell>{record.department}</TableCell>
                         <TableCell>{formatDate(record.check_in)}</TableCell>
@@ -593,8 +589,10 @@ export default function AttendanceList() {
                         </TableCell>
                         <TableCell>
                           {getStatusChip(record)}
+                        </TableCell>
+                        <TableCell>
                           {record.has_hr_note && (
-                            <span title="HR Note attached" style={{ marginLeft: 4, color: '#d32f2f', fontWeight: 'bold' }}>
+                            <span title="HR Note attached" style={{ color: '#d32f2f', fontWeight: 'bold' }}>
                               &#9888;
                             </span>
                           )}

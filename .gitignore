@@ -55,3 +55,6 @@ yarn.lock
 *.swp
 *.swo
 .DS_Store 
+
+# Old Time Attendance Portal
+TimeAttendance Exporter copy/
