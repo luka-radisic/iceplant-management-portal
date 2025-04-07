@@ -72,13 +72,50 @@ interface SaleSummary {
 
 const SalesPage: React.FC = (): React.ReactElement => {
 
-  const handleExportExcel = () => {
-    if (!sales || sales.length === 0) {
+  const fetchAllFilteredSales = async (): Promise<Sale[]> => {
+    try {
+      const allResults: Sale[] = [];
+      let page = 1;
+      let hasNext = true;
+
+      while (hasNext) {
+        const params = new URLSearchParams();
+        if (filterStatus) params.append('status', filterStatus);
+        if (filterBuyer) params.append('buyer_name__icontains', filterBuyer.trim());
+        if (filterDateFrom) params.append('sale_date_after', format(filterDateFrom, 'yyyy-MM-dd'));
+        if (filterDateTo) params.append('sale_date_before', format(filterDateTo, 'yyyy-MM-dd'));
+        if (sortField) {
+          const sortParam = sortDirection === 'asc' ? sortField : `-${sortField}`;
+          params.append('ordering', sortParam);
+        }
+        params.append('page', page.toString());
+        params.append('page_size', '100'); // use backend's max page size
+
+        const queryString = params.toString();
+        const response = await apiService.get(`${endpoints.sales}?${queryString}`);
+        const results = response.results || [];
+        allResults.push(...results);
+
+        hasNext = !!response.next;
+        page += 1;
+      }
+
+      return allResults;
+    } catch (error) {
+      console.error('Error fetching all filtered sales for export:', error);
+      enqueueSnackbar('Failed to fetch all sales for export.', { variant: 'error' });
+      return [];
+    }
+  };
+
+  const handleExportExcel = async () => {
+    const allSales = await fetchAllFilteredSales();
+    if (!allSales || allSales.length === 0) {
       enqueueSnackbar('No sales data to export.', { variant: 'warning' });
       return;
     }
 
-    const worksheetData = sales.map((sale) => ({
+    const worksheetData = allSales.map((sale) => ({
       'SI Number': sale.si_number,
       'Buyer': sale.buyer_name,
       'Date': sale.sale_date,
@@ -95,8 +132,9 @@ const SalesPage: React.FC = (): React.ReactElement => {
     saveAs(blob, 'sales_export.xlsx');
   };
 
-  const handleExportPDF = () => {
-    if (!sales || sales.length === 0) {
+  const handleExportPDF = async () => {
+    const allSales = await fetchAllFilteredSales();
+    if (!allSales || allSales.length === 0) {
       enqueueSnackbar('No sales data to export.', { variant: 'warning' });
       return;
     }
@@ -105,7 +143,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
     doc.text('Sales Export', 14, 16);
 
     const tableColumn = ['SI Number', 'Buyer', 'Date', 'Status', 'Total Cost'];
-    const tableRows = sales.map((sale) => [
+    const tableRows = allSales.map((sale) => [
       sale.si_number,
       sale.buyer_name,
       sale.sale_date,
