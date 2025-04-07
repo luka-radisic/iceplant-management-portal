@@ -13,14 +13,13 @@ from .serializers import SaleSerializer
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 class SaleFilter(FilterSet):
-    sale_date__gte = DateFromToRangeFilter(field_name='sale_date', lookup_expr='gte')
-    sale_date__lte = DateFromToRangeFilter(field_name='sale_date', lookup_expr='lte')
+    sale_date = DateFromToRangeFilter(field_name='sale_date')
     buyer_name__icontains = CharFilter(field_name='buyer__name', lookup_expr='icontains')
     si_number__icontains = CharFilter(field_name='si_number', lookup_expr='icontains')
     
     class Meta:
         model = Sale
-        fields = ['status', 'buyer_id', 'sale_date', 'sale_date__gte', 'sale_date__lte', 'buyer_name__icontains', 'si_number__icontains']
+        fields = ['status', 'buyer_id', 'sale_date', 'buyer_name__icontains', 'si_number__icontains']
 
 class SaleViewSet(viewsets.ModelViewSet):
     """
