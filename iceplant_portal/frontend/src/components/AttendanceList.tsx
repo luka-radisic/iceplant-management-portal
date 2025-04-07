@@ -598,7 +598,7 @@ export default function AttendanceList() {
                         </TableCell>
                         <TableCell>
                           {record.has_hr_note && (
-                            <span title="HR Note attached" style={{ color: '#d32f2f', fontWeight: 'bold' }}>
+                            <span title="HR Note attached" style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '24px' }}>
                               &#9888;
                             </span>
                           )}
