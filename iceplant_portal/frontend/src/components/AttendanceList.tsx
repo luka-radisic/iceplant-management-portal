@@ -294,7 +294,12 @@ export default function AttendanceList() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 2 }}>
+      <Box sx={{
+        p: 2,
+        fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+        fontSize: '15px',
+        lineHeight: 1.5
+      }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h5">
             Attendance Records & Statistics
