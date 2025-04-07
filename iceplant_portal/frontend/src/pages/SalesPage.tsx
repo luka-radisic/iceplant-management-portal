@@ -939,37 +939,45 @@ const SalesPage: React.FC = (): React.ReactElement => {
                {summaryData ? (
                  <Grid container spacing={2} sx={{ mt: 1 }}>
                    <Grid item xs={12} md={6}>
-                     <Card>
+                     <Card sx={{ backgroundColor: '#fafafa', p: 3, boxShadow: 3, borderRadius: 2 }}>
                        <CardContent>
-                         <Typography variant="h6" gutterBottom>
+                         <Typography variant="h6" gutterBottom fontWeight="bold">
                            Sales Overview
                          </Typography>
-                         <Typography variant="subtitle1">
-                           Total Sales: {summaryData.totalSales}
+                         <Divider sx={{ mb: 2 }} />
+                         <Typography variant="h5" fontWeight="bold" color="primary" gutterBottom>
+                           {summaryData.totalSales} Sales
                          </Typography>
-                         <Typography variant="subtitle1" color="primary">
-                           Total Revenue: ${summaryData.totalRevenue.toFixed(2)}
+                         <Typography variant="subtitle1" gutterBottom>
+                           Total Revenue <strong>(PHP)</strong>:
                          </Typography>
-                         <Typography variant="subtitle1">
-                           Average Sale Value: ${summaryData.averageSaleValue.toFixed(2)}
+                         <Typography variant="h5" fontWeight="bold" color="secondary" gutterBottom>
+                           ₱{summaryData.totalRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                         </Typography>
+                         <Typography variant="subtitle1" gutterBottom>
+                           Average Sale <strong>(PHP)</strong>:
+                         </Typography>
+                         <Typography variant="h6" fontWeight="bold" gutterBottom>
+                           ₱{summaryData.averageSaleValue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                          </Typography>
                        </CardContent>
                      </Card>
                    </Grid>
                    <Grid item xs={12} md={6}>
-                     <Card>
+                     <Card sx={{ backgroundColor: '#fafafa', p: 3, boxShadow: 3, borderRadius: 2 }}>
                        <CardContent>
-                         <Typography variant="h6" gutterBottom>
+                         <Typography variant="h6" gutterBottom fontWeight="bold">
                            Status Breakdown
                          </Typography>
-                         <Typography variant="subtitle1" color="success.main">
-                           Processed: {summaryData.activeCount} ({((summaryData.activeCount / summaryData.totalSales) * 100).toFixed(1)}%)
+                         <Divider sx={{ mb: 2 }} />
+                         <Typography variant="subtitle1" color="success.main" gutterBottom>
+                           Processed: <strong>{summaryData.activeCount}</strong> ({((summaryData.activeCount / summaryData.totalSales) * 100).toFixed(1)}%)
                          </Typography>
-                         <Typography variant="subtitle1" color="warning.main">
-                           Canceled: {summaryData.canceledCount} ({((summaryData.canceledCount / summaryData.totalSales) * 100).toFixed(1)}%)
+                         <Typography variant="subtitle1" color="warning.main" gutterBottom>
+                           Canceled: <strong>{summaryData.canceledCount}</strong> ({((summaryData.canceledCount / summaryData.totalSales) * 100).toFixed(1)}%)
                          </Typography>
-                         <Typography variant="subtitle1" color="error.main">
-                           Error: {summaryData.errorCount} ({((summaryData.errorCount / summaryData.totalSales) * 100).toFixed(1)}%)
+                         <Typography variant="subtitle1" color="error.main" gutterBottom>
+                           Error: <strong>{summaryData.errorCount}</strong> ({((summaryData.errorCount / summaryData.totalSales) * 100).toFixed(1)}%)
                          </Typography>
                        </CardContent>
                      </Card>
