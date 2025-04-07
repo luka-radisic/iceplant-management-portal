@@ -724,13 +724,13 @@ const InventoryPage = () => {
           <TableContainer>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell>Item Name</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell>Unit</TableCell>
-                  <TableCell>Minimum Level</TableCell>
-                  <TableCell>Last Updated</TableCell>
-                  <TableCell>Actions</TableCell>
+                <TableRow sx={{ bgcolor: 'grey.300' }}>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Item Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Quantity</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Unit</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Minimum Level</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Last Updated</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

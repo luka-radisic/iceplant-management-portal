@@ -255,14 +255,14 @@ const BuyersPage: React.FC = () => {
         <TableContainer>
           <Table stickyHeader>
             <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Company</TableCell>
-                <TableCell>Contact</TableCell>
-                <TableCell>Location</TableCell>
-                <TableCell>Status</TableCell>
-                {isAdmin && <TableCell>Buyer ID</TableCell>}
-                <TableCell>Actions</TableCell>
+              <TableRow sx={{ bgcolor: 'grey.300' }}>
+                <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Company</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Contact</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Location</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Buyer ID</TableCell>}
+                <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -309,7 +309,7 @@ const BuyersPage: React.FC = () => {
                     <TableCell>
                       <Chip
                         label={buyer.is_active ? 'Active' : 'Inactive'}
-                        color={buyer.is_active ? 'success' : 'default'}
+                        color={buyer.is_active ? 'success' : 'info'}
                         size="small"
                       />
                     </TableCell>
@@ -353,44 +353,46 @@ const BuyersPage: React.FC = () => {
   
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>Buyers Management</Typography>
+      <Typography variant="h4" fontWeight="bold" gutterBottom>Buyers Management</Typography>
       
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Search buyers..."
-              variant="outlined"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Search buyers..."
+                variant="outlined"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControlLabel
+                control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
+                label="Show inactive"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2} sx={{ textAlign: 'right' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleOpenCreate}
+              >
+                New Buyer
+              </Button>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControlLabel
-              control={<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />}
-              label="Show inactive"
-            />
-          </Grid>
-          <Grid item xs={12} sm={2} sx={{ textAlign: 'right' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreate}
-            >
-              New Buyer
-            </Button>
-          </Grid>
-        </Grid>
-        
+        </Paper>
+
         {renderBuyersTable()}
       </Paper>
       
