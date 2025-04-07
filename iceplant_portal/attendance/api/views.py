@@ -541,6 +541,40 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             
         return Response({'message': message, 'deleted_count': count, 'deleted_ids': deleted_ids}, status=status.HTTP_200_OK)
 
+    from rest_framework.permissions import IsAuthenticated
+    from rest_framework.permissions import AllowAny
+    @action(detail=False, methods=['get'], url_path='weekend-work', permission_classes=[AllowAny])
+    def weekend_work(self, request):
+        """
+        Returns attendance records where the punch date is a Sunday.
+        """
+        from django.utils.timezone import localtime
+        from datetime import datetime
+        queryset = self.get_queryset()
+        sunday_records = []
+        for record in queryset:
+            punch_in_local = localtime(record.check_in)
+            punch_out_local = localtime(record.check_out) if record.check_out else None
+            duration = None
+            if record.check_in and record.check_out:
+                duration = str(record.check_out - record.check_in)
+            if punch_in_local.weekday() == 6:  # Sunday
+                department_name = getattr(record, 'department', '')
+                prefix = "Atlantis Fishing Development Corp\\"
+                if department_name.startswith(prefix):
+                    department_name = department_name[len(prefix):]
+                sunday_records.append({
+                    'id': record.id,
+                    'employee_name': getattr(record, 'employee_name', ''),
+                    'date': punch_in_local.date().isoformat(),
+                    'punch_in': punch_in_local.time().strftime('%H:%M:%S'),
+                    'punch_out': punch_out_local.time().strftime('%H:%M:%S') if punch_out_local else '',
+                    'duration': duration or '',
+                    'department': department_name,
+                    'has_hr_note': bool(getattr(record, 'hr_notes', '')),
+                })
+        return Response(sunday_records)
+
     @action(detail=False, methods=['get'], url_path='stats')
     def get_attendance_stats(self, request):
         """
