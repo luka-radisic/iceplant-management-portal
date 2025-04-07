@@ -19,21 +19,21 @@ export const theme = createTheme({
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
-    fontSize: 15,
+    fontSize: 17,
     h1: {
-      fontSize: '2.5rem',
+      fontSize: '2.75rem',
       fontWeight: 500,
     },
     h2: {
-      fontSize: '2rem',
+      fontSize: '2.25rem',
       fontWeight: 500,
     },
     h3: {
-      fontSize: '1.75rem',
+      fontSize: '2rem',
       fontWeight: 500,
     },
     h4: {
-      fontSize: '1.5rem',
+      fontSize: '1.75rem',
       fontWeight: 500,
     },
   },
