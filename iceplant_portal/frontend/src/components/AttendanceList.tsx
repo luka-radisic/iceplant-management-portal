@@ -474,9 +474,9 @@ export default function AttendanceList() {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer component={Paper} elevation={2}>
+          <TableContainer component={Paper} elevation={4} sx={{ borderRadius: 2, boxShadow: 3 }}>
             <Table size="small">
-              <TableHead sx={{ bgcolor: 'grey.200' }}>
+              <TableHead sx={{ bgcolor: 'grey.300' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
@@ -498,7 +498,7 @@ export default function AttendanceList() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  records.map(record => {
+                  records.map((record, index) => {
                     const isNoShow = record.department === 'NO SHOW';
                     const isMissingCheckout = !isNoShow && !record.check_out;
                     const isOffDay = isSunday(record.check_in);
@@ -513,9 +513,10 @@ export default function AttendanceList() {
                             ? 'error.lighter'
                             : isMissingCheckout
                             ? 'warning.lighter'
-                            : 'inherit',
-                          '&:hover': { bgcolor: 'action.hover' },
+                            : (index % 2 === 0 ? 'grey.50' : 'white'),
+                          '&:hover': { bgcolor: 'grey.100' },
                           cursor: 'pointer',
+                          transition: 'background-color 0.3s ease',
                         }}
                       >
                         <TableCell>{record.employee_id}</TableCell>
