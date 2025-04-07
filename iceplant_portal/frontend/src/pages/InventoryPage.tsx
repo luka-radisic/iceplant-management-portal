@@ -658,8 +658,12 @@ const InventoryPage = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer>
-            <Table>
+          <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', mb: 2 }}>
+            <Table stickyHeader sx={{
+              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+              '& tbody tr:hover': { backgroundColor: '#fafafa' },
+              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+            }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Item Name</TableCell>
@@ -721,8 +725,12 @@ const InventoryPage = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer>
-            <Table>
+          <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', mb: 2 }}>
+            <Table stickyHeader sx={{
+              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+              '& tbody tr:hover': { backgroundColor: '#fafafa' },
+              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+            }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.300' }}>
                   <TableCell sx={{ fontWeight: 'bold' }}>Item Name</TableCell>

@@ -251,8 +251,12 @@ const BuyersPage: React.FC = () => {
   const renderBuyersTable = () => {
     return (
       <>
-        <TableContainer>
-          <Table stickyHeader>
+        <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', mb: 2 }}>
+          <Table stickyHeader sx={{
+            '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+            '& tbody tr:hover': { backgroundColor: '#fafafa' },
+            '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+          }}>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.300' }}>
                 <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
@@ -358,8 +362,8 @@ const BuyersPage: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>Buyers Management</Typography>
       
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper elevation={4} sx={{ p: 2, mb: 3, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: 2 }}>
+        <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={6}>
               <TextField

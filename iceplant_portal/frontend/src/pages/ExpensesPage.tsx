@@ -708,8 +708,13 @@ const ExpensesPage: React.FC = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <TableContainer>
-              <Table size="small" sx={{ tableLayout: 'fixed' }}>
+            <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', mb: 2 }}>
+              <Table size="small" stickyHeader sx={{
+                tableLayout: 'fixed',
+                '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+                '& tbody tr:hover': { backgroundColor: '#fafafa' },
+                '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+              }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'grey.300' }}>
                     <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
@@ -829,8 +834,13 @@ const ExpensesPage: React.FC = () => {
 
         {/* Categories Tab */}
         <TabPanel value={tabValue} index={1}>
-          <TableContainer>
-            <Table size="small" sx={{ tableLayout: 'fixed' }}>
+          <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', mb: 2 }}>
+            <Table size="small" stickyHeader sx={{
+              tableLayout: 'fixed',
+              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+              '& tbody tr:hover': { backgroundColor: '#fafafa' },
+              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+            }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Category</TableCell>
@@ -870,8 +880,13 @@ const ExpensesPage: React.FC = () => {
 
         {/* Monthly Tab */}
         <TabPanel value={tabValue} index={2}>
-          <TableContainer>
-            <Table size="small" sx={{ tableLayout: 'fixed' }}>
+          <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', mb: 2 }}>
+            <Table size="small" stickyHeader sx={{
+              tableLayout: 'fixed',
+              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+              '& tbody tr:hover': { backgroundColor: '#fafafa' },
+              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+            }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Month</TableCell>
@@ -906,8 +921,13 @@ const ExpensesPage: React.FC = () => {
 
         {/* Payees Tab */}
         <TabPanel value={tabValue} index={3}>
-          <TableContainer>
-            <Table size="small" sx={{ tableLayout: 'fixed' }}>
+          <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', mb: 2 }}>
+            <Table size="small" stickyHeader sx={{
+              tableLayout: 'fixed',
+              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+              '& tbody tr:hover': { backgroundColor: '#fafafa' },
+              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+            }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Payee</TableCell>

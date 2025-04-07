@@ -65,7 +65,7 @@ export default function MaintenancePage() {
         Manage your ice plant equipment maintenance schedule, track maintenance records, and monitor equipment health.
       </Typography>
       
-      <Paper sx={{ mt: 3 }}>
+      <Paper elevation={6} sx={{ mt: 3, p: 2, borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
