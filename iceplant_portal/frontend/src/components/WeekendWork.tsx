@@ -25,6 +25,10 @@ interface WeekendRecord {
   employee_name: string;
   date: string;
   punch_in: string;
+  punch_out: string;
+  duration: string;
+  department: string;
+  has_hr_note: boolean;
 }
 
 const WeekendWork: React.FC = () => {
@@ -81,8 +85,42 @@ const WeekendWork: React.FC = () => {
     alert(`Exporting weekend work data as ${formatType.toUpperCase()}`);
   };
 
+  const uniqueEmployees = new Set(records.map(r => r.employee_name)).size;
+
   return (
     <Box sx={{ mt: 2 }}>
+      <Typography variant="h6" gutterBottom>
+        Summary
+      </Typography>
+      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={4} textAlign="center">
+            <Typography variant="h4" fontWeight="bold" color="primary.main">
+              {totalCount}
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              Total Records
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={4} textAlign="center">
+            <Typography variant="h4" fontWeight="bold" color="secondary.main">
+              {uniqueEmployees}
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              Employees
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={4} textAlign="center">
+            <Typography variant="body1" fontWeight="bold">
+              Date Range
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {startDate ? format(startDate, 'yyyy-MM-dd') : 'N/A'} to {endDate ? format(endDate, 'yyyy-MM-dd') : 'N/A'}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+
       <Typography variant="h6" gutterBottom>
         Weekend Work Records
       </Typography>
@@ -133,7 +171,11 @@ const WeekendWork: React.FC = () => {
       ) : (
         <Paper>
           <TableContainer>
-            <Table size="small" stickyHeader>
+            <Table size="small" stickyHeader sx={{
+              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+              '& tbody tr:hover': { backgroundColor: '#fafafa' },
+              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' }
+            }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Employee Name</TableCell>
@@ -148,7 +190,16 @@ const WeekendWork: React.FC = () => {
               <TableBody>
                 {records.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{record.employee_name}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={() => alert(`Open profile for ${record.employee_name}`)}
+                        sx={{ textTransform: 'none', fontWeight: 'bold' }}
+                      >
+                        {record.employee_name}
+                      </Button>
+                    </TableCell>
                     <TableCell>{record.department}</TableCell>
                     <TableCell>{record.date}</TableCell>
                     <TableCell>{record.punch_in}</TableCell>
