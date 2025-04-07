@@ -1076,6 +1076,12 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                                   : 'inherit',
                             backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9',
                             fontSize: '0.95rem',
+                            transition: 'all 0.2s ease-in-out',
+                            '&:hover': {
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                              zIndex: 1,
+                              backgroundColor: '#d9f7be !important',
+                            },
                             '& td': {
                               borderBottom: record.hr_notes ? '2px solid' : 'inherit',
                               borderBottomColor: record.hr_notes ? 'error.light' : 'inherit'
