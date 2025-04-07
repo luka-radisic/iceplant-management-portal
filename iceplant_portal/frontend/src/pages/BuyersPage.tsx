@@ -36,7 +36,6 @@ import { useSnackbar } from 'notistack';
 import { apiService } from '../services/api';
 import { Buyer } from '../types/buyers';
 import { useAuth } from '../contexts/AuthContext';
-import { styled } from '@mui/material/styles';
 
 const BuyersPage: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
@@ -287,7 +286,7 @@ const BuyersPage: React.FC = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedBuyers.map((buyer, index) => (
+                paginatedBuyers.map((buyer, _index) => (
                   <TableRow
                     key={buyer.id}
                     hover

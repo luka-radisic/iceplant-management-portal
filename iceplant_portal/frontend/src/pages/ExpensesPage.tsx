@@ -41,12 +41,9 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
-import DownloadIcon from '@mui/icons-material/Download';
-import ReceiptIcon from '@mui/icons-material/Receipt';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
 import LockIcon from '@mui/icons-material/Lock';
 import { apiService, endpoints } from '../services/api';
 import format from 'date-fns/format';
@@ -163,7 +160,7 @@ const ExpensesPage: React.FC = () => {
   
   // State for expense data
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+   const [_categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   
@@ -185,16 +182,15 @@ const ExpensesPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'view' | 'delete'>('add');
-  const [viewReceiptDialogOpen, setViewReceiptDialogOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
   
   // Form state
+   const [_totalItems, setTotalItems] = useState(0);
   const [formData, setFormData] = useState(initialExpenseFormData);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -403,7 +399,7 @@ const ExpensesPage: React.FC = () => {
   };
   
   // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
   
@@ -492,7 +488,7 @@ const ExpensesPage: React.FC = () => {
         date: formData.date.substring(0, 10) // Ensure only YYYY-MM-DD is sent
       };
       
-      const response = await apiService.post(endpoints.expenses, expenseData);
+      await apiService.post(endpoints.expenses, expenseData);
       enqueueSnackbar('Expense added successfully', { variant: 'success' });
       
       // Refresh data
@@ -520,7 +516,7 @@ const ExpensesPage: React.FC = () => {
         date: formData.date.substring(0, 10) // Ensure only YYYY-MM-DD is sent
       };
       
-      const response = await apiService.put(`${endpoints.expenses}${selectedExpense.id}/`, expenseData);
+      await apiService.put(`${endpoints.expenses}${selectedExpense.id}/`, expenseData);
       enqueueSnackbar('Expense updated successfully', { variant: 'success' });
       
       // Refresh data
