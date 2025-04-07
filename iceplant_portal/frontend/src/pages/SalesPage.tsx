@@ -55,6 +55,12 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { format } from 'date-fns';
 
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { saveAs } from 'file-saver';
+
+
 interface SaleSummary {
   totalSales: number;
   totalRevenue: number;
@@ -65,6 +71,56 @@ interface SaleSummary {
 }
 
 const SalesPage: React.FC = (): React.ReactElement => {
+
+  const handleExportExcel = () => {
+    if (!sales || sales.length === 0) {
+      enqueueSnackbar('No sales data to export.', { variant: 'warning' });
+      return;
+    }
+
+    const worksheetData = sales.map((sale) => ({
+      'SI Number': sale.si_number,
+      'Buyer': sale.buyer_name,
+      'Date': sale.sale_date,
+      'Status': sale.status,
+      'Total Cost': sale.total_cost,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales');
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(blob, 'sales_export.xlsx');
+  };
+
+  const handleExportPDF = () => {
+    if (!sales || sales.length === 0) {
+      enqueueSnackbar('No sales data to export.', { variant: 'warning' });
+      return;
+    }
+
+    const doc = new jsPDF();
+    doc.text('Sales Export', 14, 16);
+
+    const tableColumn = ['SI Number', 'Buyer', 'Date', 'Status', 'Total Cost'];
+    const tableRows = sales.map((sale) => [
+      sale.si_number,
+      sale.buyer_name,
+      sale.sale_date,
+      sale.status,
+      sale.total_cost,
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+    });
+
+    doc.save('sales_export.pdf');
+  };
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -633,9 +689,26 @@ const SalesPage: React.FC = (): React.ReactElement => {
               Recent Sales
             </Typography>
             <Box>
-              <IconButton onClick={toggleSummaryDialog} title="View Sales Summary">
+              <IconButton onClick={toggleSummaryDialog} title="View Sales Summary" sx={{ mr: 1 }}>
                 <SummarizeIcon />
               </IconButton>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<SummarizeIcon />}
+                onClick={handleExportExcel}
+                sx={{ mr: 1 }}
+              >
+                Export to Excel
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<SummarizeIcon />}
+                onClick={handleExportPDF}
+              >
+                Export to PDF
+              </Button>
             </Box>
           </Box>
           
