@@ -1034,7 +1034,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
               </Box>
             ) : (
               <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table stickyHeader size="small">
+                <Table stickyHeader size="small" sx={{ fontSize: '0.95rem' }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Date</TableCell>
@@ -1057,7 +1057,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {records.map((record: any) => {
+                    {records.map((record: any, index: number) => {
                       const { weekday, isSunday } = getWeekday(record.check_in);
                       const isNoShow = record.department === 'NO SHOW';
                       const isMissingCheckout = !isNoShow && !record.check_out;
@@ -1074,12 +1074,14 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                                 : isMissingCheckout
                                   ? 'warning.lighter'
                                   : 'inherit',
+                            backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9',
+                            fontSize: '0.95rem',
                             '& td': {
                               borderBottom: record.hr_notes ? '2px solid' : 'inherit',
                               borderBottomColor: record.hr_notes ? 'error.light' : 'inherit'
                             }
                           }}
-                        >
+                      >
                           <TableCell>{formatDateStr(record.check_in)}</TableCell>
                           <TableCell sx={{
                             color: isSunday ? 'info.dark' : 'inherit',
