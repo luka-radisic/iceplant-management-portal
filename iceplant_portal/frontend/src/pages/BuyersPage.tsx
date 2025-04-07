@@ -261,7 +261,9 @@ const BuyersPage: React.FC = () => {
                 <TableCell sx={{ fontWeight: 'bold' }}>Contact</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Location</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                {/*
                 {isAdmin && <TableCell sx={{ fontWeight: 'bold' }}>Buyer ID</TableCell>}
+                */}
                 <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -313,6 +315,7 @@ const BuyersPage: React.FC = () => {
                         size="small"
                       />
                     </TableCell>
+                    {/*
                     {isAdmin && (
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
@@ -320,6 +323,7 @@ const BuyersPage: React.FC = () => {
                         </Typography>
                       </TableCell>
                     )}
+                    */}
                     <TableCell>
                       <IconButton size="small" color="primary" onClick={() => handleOpenEdit(buyer)}>
                         <EditIcon fontSize="small" />
@@ -529,6 +533,7 @@ const BuyersPage: React.FC = () => {
         <DialogTitle>Edit Buyer</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            {/*
             {isAdmin && (
               <Grid item xs={12}>
                 <TextField
@@ -542,6 +547,7 @@ const BuyersPage: React.FC = () => {
                 />
               </Grid>
             )}
+            */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
