@@ -38,6 +38,7 @@ const WeekendWork: React.FC = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [totalCount, setTotalCount] = useState(0);
+  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
 
   const [startDate, setStartDate] = useState<Date | null>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [endDate, setEndDate] = useState<Date | null>(new Date());
@@ -218,12 +219,12 @@ const WeekendWork: React.FC = () => {
       ) : error ? (
         <Typography color="error">{error}</Typography>
       ) : (
-        <Paper>
+        <Paper elevation={6} sx={{ boxShadow: '0 4px 20px rgba(0,0,0,0.15)', borderRadius: 2 }}>
           <TableContainer>
             <Table size="small" stickyHeader sx={{
               '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
               '& tbody tr:hover': { backgroundColor: '#fafafa' },
-              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' }
+              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
             }}>
               <TableHead>
                 <TableRow>
@@ -238,12 +239,28 @@ const WeekendWork: React.FC = () => {
               </TableHead>
               <TableBody>
                 {records.map((record) => (
-                  <TableRow key={record.id}>
+                  <TableRow
+                    key={record.id}
+                    hover
+                    onClick={() => setSelectedRowId(record.id)}
+                    selected={selectedRowId === record.id}
+                    sx={{
+                      cursor: 'pointer',
+                      backgroundColor: selectedRowId === record.id ? '#d0f0c0' : undefined,
+                      '&:hover': {
+                        backgroundColor: selectedRowId === record.id ? '#c0e8b0' : '#fafafa',
+                      },
+                      transition: 'background-color 0.3s',
+                    }}
+                  >
                     <TableCell>
                       <Button
                         variant="text"
                         size="small"
-                        onClick={() => alert(`Open profile for ${record.employee_name}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert(`Open profile for ${record.employee_name}`);
+                        }}
                         sx={{ textTransform: 'none', fontWeight: 'bold' }}
                       >
                         {record.employee_name}
