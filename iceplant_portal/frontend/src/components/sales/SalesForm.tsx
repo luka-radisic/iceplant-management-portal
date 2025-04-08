@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 // Define props interface to include the callback
 interface SalesFormProps {
   onSaleAdded: () => void; // Callback function prop
+  isIceplantMode: boolean; // New prop to control default
 }
 
 // Define an interface for the form data based on the model
@@ -39,9 +40,17 @@ interface SaleFormData {
   cash_amount: number | '';
   po_amount: number | '';
   notes?: string;
+  is_iceplant: boolean;
+  items: {
+    id?: string; // for existing items during update
+    inventory_item: string; // inventory item ID
+    quantity: number | '';
+    unit_price: number | '';
+  }[];
 }
 
-const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
+const SalesForm: React.FC<SalesFormProps> = (props) => {
+  const { onSaleAdded, isIceplantMode } = props;
   const { enqueueSnackbar } = useSnackbar();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -54,6 +63,7 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
   const [selectedBuyer, setSelectedBuyer] = useState<BuyerLight | null>(null);
   
   const initialFormData: SaleFormData = {
+    items: [],
     si_number: '',
     sale_date: new Date().toISOString().split('T')[0], // Keep as string initially
     sale_time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
@@ -68,6 +78,7 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     cash_amount: '',
     po_amount: '',
     notes: '',
+    is_iceplant: props.isIceplantMode,
   };
 
   const [formData, setFormData] = useState<SaleFormData>(initialFormData);
@@ -93,9 +104,18 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
         setLoadingBuyers(false);
       }
     };
+
     
     fetchBuyers();
   }, []);
+
+  // Update formData.is_iceplant when prop changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      is_iceplant: props.isIceplantMode,
+    }));
+  }, [props.isIceplantMode]);
 
   // Regular change handler for text fields
   const handleChange = (
@@ -388,6 +408,79 @@ const SalesForm: React.FC<SalesFormProps> = ({ onSaleAdded }) => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box component="form" onSubmit={handleSubmit} noValidate autoComplete="off">
         <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <h3>Sale Items</h3>
+            {formData.items.map((item, index) => (
+              <Grid container spacing={1} key={index} alignItems="center">
+                <Grid item xs={4}>
+                  <TextField
+                    label="Inventory Item ID"
+                    value={item.inventory_item}
+                    onChange={(e) => {
+                      const newItems = [...formData.items];
+                      newItems[index].inventory_item = e.target.value;
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <TextField
+                    label="Quantity"
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const newItems = [...formData.items];
+                      newItems[index].quantity = e.target.value === '' ? '' : Number(e.target.value);
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <TextField
+                    label="Unit Price"
+                    type="number"
+                    value={item.unit_price}
+                    onChange={(e) => {
+                      const newItems = [...formData.items];
+                      newItems[index].unit_price = e.target.value === '' ? '' : Number(e.target.value);
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={2}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newItems = formData.items.filter((_, i) => i !== index);
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                  >
+                    Remove
+                  </button>
+                </Grid>
+              </Grid>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData({
+                  ...formData,
+                  items: [
+                    ...formData.items,
+                    { inventory_item: '', quantity: '', unit_price: '' },
+                  ],
+                });
+              }}
+            >
+              Add Item
+            </button>
+          </Grid>
           {/* Row 1: SI, Date, Time */}
           <Grid item xs={12} sm={4}>
             <TextField

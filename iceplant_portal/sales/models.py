@@ -34,6 +34,9 @@ class Sale(models.Model):
     buyer_name = models.CharField(max_length=100)
     buyer_contact = models.CharField(max_length=100, blank=True, null=True)
     po_number = models.CharField(max_length=50, blank=True, null=True)
+    # Category flag
+    is_iceplant = models.BooleanField(default=True, help_text="Is this an Iceplant sale?")
+
 
     # Quantities
     pickup_quantity = models.IntegerField(default=0, help_text="Number of blocks picked up")
@@ -103,5 +106,25 @@ class Sale(models.Model):
             return "Paid"
         elif total_payment > Decimal(0):
             return "Partially Paid"
-        else:
-            return "Unpaid"
+
+
+class SaleItem(models.Model):
+    sale = models.ForeignKey('Sale', on_delete=models.CASCADE, related_name='items')
+    inventory_item = models.ForeignKey('inventory.Inventory', on_delete=models.PROTECT, related_name='sale_items')
+    quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    total_price = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def save(self, *args, **kwargs):
+        self.total_price = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.inventory_item} x {self.quantity} for Sale ID {self.sale_id}"
+
+    def save(self, *args, **kwargs):
+        self.total_price = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.inventory_item} x {self.quantity} for Sale ID {self.sale_id}"

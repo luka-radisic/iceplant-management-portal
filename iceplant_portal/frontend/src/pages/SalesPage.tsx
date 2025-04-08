@@ -33,8 +33,11 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Autocomplete
+  Autocomplete,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
+
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -61,6 +64,12 @@ import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 
 
+declare module '../types/sales' {
+  interface Sale {
+    is_iceplant: boolean;
+  }
+}
+
 interface SaleSummary {
   totalSales: number;
   totalRevenue: number;
@@ -86,7 +95,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
         if (filterDateTo) params.append('sale_date_before', format(filterDateTo, 'yyyy-MM-dd'));
         if (sortField) {
           const sortParam = sortDirection === 'asc' ? sortField : `-${sortField}`;
-          params.append('ordering', sortParam);
+          params.append('ordering', String(sortParam));
         }
         params.append('page', page.toString());
         params.append('page_size', '100'); // use backend's max page size
@@ -159,6 +168,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
 
     doc.save('sales_export.pdf');
   };
+  const [isIceplantMode, setIsIceplantMode] = useState<boolean>(true);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -714,10 +724,23 @@ const SalesPage: React.FC = (): React.ReactElement => {
         
         {/* Sale Entry Form */}
         <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Enter New Sale
-          </Typography>
-          <SalesForm onSaleAdded={handleSaleAdded} />
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6" gutterBottom>
+              Enter New Sale
+            </Typography>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isIceplantMode}
+                  onChange={(e) => setIsIceplantMode(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Iceplant Sale"
+              sx={{ ml: 2 }}
+            />
+          </Box>
+          <SalesForm onSaleAdded={handleSaleAdded} isIceplantMode={isIceplantMode} />
         </Paper>
         
         {/* Sales List with Filters */}
@@ -1118,9 +1141,100 @@ const SalesPage: React.FC = (): React.ReactElement => {
                </Box>
              </DialogTitle>
              <DialogContent>
+               <FormControlLabel
+                 control={
+                   <Checkbox
+                     checked={editableSale?.is_iceplant}
+                     onChange={(e) =>
+                       setEditableSale(prev => {
+                         if (!prev) return prev;
+                         return {
+                           ...prev,
+                           id: prev.id,  // preserve required id
+                           is_iceplant: e.target.checked,
+                         };
+                       })
+                     }
+                     color="primary"
+                   />
+                 }
+                 label="Is Iceplant Sale?"
+                 sx={{ mb: 2 }}
+               />
                {editableSale ? (
                  <Grid container spacing={2} sx={{ mt: 1 }}>
                    <Grid item xs={12} md={6}>
+
+                     {editableSale.is_iceplant && (
+                       <>
+                         {editableSale.is_iceplant && (
+                           <>
+                             <TextField
+                               label="Pickup Quantity"
+                               fullWidth
+                               type="number"
+                               value={editableSale.pickup_quantity}
+                               disabled={!editableSale.is_iceplant}
+                               onChange={(e) =>
+                                 setEditableSale({
+                                   ...editableSale,
+                                   pickup_quantity: parseInt(e.target.value, 10) || 0,
+                                 })
+                               }
+                               margin="normal"
+                             />
+                         <TextField
+                           label="Delivery Quantity"
+                           fullWidth
+                           type="number"
+                           value={editableSale.delivery_quantity}
+                           onChange={(e) =>
+                             setEditableSale({
+                               ...editableSale,
+                               delivery_quantity: parseInt(e.target.value, 10) || 0,
+                             })
+                           }
+                           margin="normal"
+                         />
+                         <TextField
+                           label="Brine 1 Identifier"
+                           fullWidth
+                           value={editableSale.brine1_identifier || ''}
+                           onChange={(e) =>
+                             setEditableSale({
+                               ...editableSale,
+                               brine1_identifier: e.target.value,
+                             })
+                           }
+                           margin="normal"
+                         />
+                         <TextField
+                           label="Brine 2 Identifier"
+                           fullWidth
+                           value={editableSale.brine2_identifier || ''}
+                           onChange={(e) =>
+                             setEditableSale({
+                               ...editableSale,
+                               brine2_identifier: e.target.value,
+                             })
+                           }
+                           margin="normal"
+                         />
+                         <TextField
+                           label="Price per Block"
+                           fullWidth
+                           type="number"
+                           value={editableSale.price_per_block}
+                           onChange={(e) =>
+                             setEditableSale({
+                               ...editableSale,
+                               price_per_block: e.target.value,
+                             })
+                           }
+                           margin="normal"
+                         />
+                       </>
+                     )}
                      <TextField
                        label="SI Number"
                        fullWidth
@@ -1128,6 +1242,8 @@ const SalesPage: React.FC = (): React.ReactElement => {
                        onChange={(e) => setEditableSale({ ...editableSale, si_number: e.target.value })}
                        margin="normal"
                      />
+                       </>
+                     )}
                      <Autocomplete
                        id="edit-buyer-autocomplete"
                        value={selectedEditBuyer}

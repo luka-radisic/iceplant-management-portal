@@ -3,8 +3,18 @@ from sales.models import Sale
 from decimal import Decimal, InvalidOperation # Import Decimal and InvalidOperation
 from buyers.models import Buyer
 from buyers.api.serializers import BuyerLightSerializer
+from sales.models import SaleItem
+
+class SaleItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SaleItem
+        fields = ['id', 'inventory_item', 'quantity', 'unit_price', 'total_price']
+        read_only_fields = ['total_price']
+
 
 class SaleSerializer(serializers.ModelSerializer):
+    items = SaleItemSerializer(many=True, required=False)
+
     # Add new properties as read-only fields
     total_quantity = serializers.IntegerField(read_only=True)
     payment_status = serializers.CharField(read_only=True)
@@ -42,12 +52,14 @@ class SaleSerializer(serializers.ModelSerializer):
             'cash_amount',
             'po_amount',
             'notes',
+            'is_iceplant',
             'total_quantity', # Read-only property
             'total_cost', # Now handled by get_total_cost
             'total_payment', # Now handled by get_total_payment
             'payment_status', # Read-only property
             'created_at',
             'updated_at',
+            'items',
         ]
         read_only_fields = ('created_at', 'updated_at', 'total_quantity', 'total_cost', 'total_payment', 'payment_status', 'buyer')
         
@@ -75,8 +87,10 @@ class SaleSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         """
-        Override create method to handle buyer creation/lookup.
+        Override create method to handle nested sale items and buyer creation/lookup.
         """
+        # Extract nested sale items if provided
+        items_data = validated_data.pop('items', [])
         # Extract buyer_id from validated data if present
         buyer_id = validated_data.pop('buyer_id', None)
         buyer_name = validated_data.get('buyer_name', '')
@@ -88,15 +102,11 @@ class SaleSerializer(serializers.ModelSerializer):
             try:
                 buyer = Buyer.objects.get(id=buyer_id)
             except Buyer.DoesNotExist:
-                # If the ID doesn't exist, we'll proceed without a buyer
                 pass
                 
         # Case 2: No buyer_id, but have buyer_name - look up or create
         elif buyer_name:
-            # Try to find a matching buyer by name (case insensitive)
             buyer = Buyer.objects.filter(name__iexact=buyer_name).first()
-            
-            # If no buyer found, create a new one
             if not buyer:
                 buyer = Buyer.objects.create(name=buyer_name)
         
@@ -107,13 +117,19 @@ class SaleSerializer(serializers.ModelSerializer):
         if buyer:
             sale.buyer = buyer
             sale.save()
-            
+        
+        # Create nested sale items
+        for item_data in items_data:
+            SaleItem.objects.create(sale=sale, **item_data)
+        
         return sale
         
     def update(self, instance, validated_data):
         """
-        Override update method to handle buyer updates.
+        Override update method to handle nested sale items and buyer updates.
         """
+        # Extract nested sale items if provided
+        items_data = validated_data.pop('items', None)
         # Extract buyer_id from validated data if present
         buyer_id = validated_data.pop('buyer_id', None)
         
@@ -128,8 +144,31 @@ class SaleSerializer(serializers.ModelSerializer):
         # Update all other fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-            
         instance.save()
+        
+        if items_data is not None:
+            # Sync sale items
+            existing_items = {item.id: item for item in instance.items.all()}
+            sent_item_ids = []
+            for item in items_data:
+                item_id = item.get('id', None)
+                if item_id and item_id in existing_items:
+                    # Update existing item
+                    sale_item = existing_items[item_id]
+                    for attr, value in item.items():
+                        if attr != 'id':
+                            setattr(sale_item, attr, value)
+                    sale_item.save()
+                    sent_item_ids.append(item_id)
+                else:
+                    # Create new item
+                    new_item = SaleItem.objects.create(sale=instance, **item)
+                    sent_item_ids.append(new_item.id)
+            # Delete items not in sent data
+            for item_id, sale_item in existing_items.items():
+                if item_id not in sent_item_ids:
+                    sale_item.delete()
+        
         return instance
         
     # Removed get_total_weight and get_brine_level_display methods 
