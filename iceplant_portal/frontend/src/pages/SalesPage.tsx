@@ -1102,7 +1102,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
                                       <TableBody>
                                         {sale.items.map((item: any, idx: number) => (
                                           <TableRow key={idx}>
-                                            <TableCell>{item.inventory_item}</TableCell>
+                                            <TableCell>{item.inventory_item_name || `Item ${item.inventory_item}`}</TableCell>
                                             <TableCell align="right">{item.quantity}</TableCell>
                                             <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
                                             <TableCell align="right">{formatCurrency(item.total_price)}</TableCell>
