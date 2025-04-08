@@ -58,6 +58,23 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   // State for buyers list
+
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        const data = await apiService.get(endpoints.inventory);
+        console.log('Fetched inventory:', data);
+        setInventoryItems(data.results);
+      } catch (error) {
+        console.error('Failed to fetch inventory items', error);
+      }
+    };
+    fetchInventory();
+  }, []);
+
+
   const [buyers, setBuyers] = useState<BuyerLight[]>([]);
   const [loadingBuyers, setLoadingBuyers] = useState(false);
   const [selectedBuyer, setSelectedBuyer] = useState<BuyerLight | null>(null);
@@ -593,23 +610,27 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
 
           <Grid item xs={12}>
             <h3>Sale Items</h3>
-            {props.isIceplantMode && (
-              <>
-                {formData.items.map((item, index) => (
-                  <Grid container spacing={1} key={index} alignItems="center">
-                    <Grid item xs={4}>
-                      <TextField
-                        label="Inventory Item ID"
-                        value={item.inventory_item}
-                        onChange={(e) => {
-                          const newItems = [...formData.items];
-                          newItems[index].inventory_item = e.target.value;
-                          setFormData({ ...formData, items: newItems });
-                        }}
-                        fullWidth
-                        required
-                      />
-                    </Grid>
+            {!props.isIceplantMode && (
+                <>
+                    {formData.items.map((item, index) => (
+                        <Grid container spacing={1} key={index} alignItems="center">
+                            <Grid item xs={4}>
+                                {/* TODO: Replace with Autocomplete dropdown for inventory items */}
+                                <Autocomplete
+                                    options={inventoryItems}
+                                    getOptionLabel={(option) => option.item_name || ''}
+                                    value={inventoryItems.find(inv => inv.id === item.inventory_item) || null}
+                                    onChange={(_, newValue) => {
+                                        const newItems = [...formData.items];
+                                        newItems[index].inventory_item = newValue ? newValue.id : '';
+                                        setFormData({ ...formData, items: newItems });
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField {...params} label="Select Item" fullWidth required />
+                                    )}
+                                    fullWidth
+                                />
+                            </Grid>
                     <Grid item xs={3}>
                       <TextField
                         label="Quantity"

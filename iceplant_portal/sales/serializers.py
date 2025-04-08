@@ -6,9 +6,11 @@ from buyers.api.serializers import BuyerLightSerializer
 from sales.models import SaleItem
 
 class SaleItemSerializer(serializers.ModelSerializer):
+    inventory_item_name = serializers.CharField(source='inventory_item.item_name', read_only=True)
+
     class Meta:
         model = SaleItem
-        fields = ['id', 'inventory_item', 'quantity', 'unit_price', 'total_price']
+        fields = ['id', 'inventory_item', 'inventory_item_name', 'quantity', 'unit_price', 'total_price']
         read_only_fields = ['total_price']
 
 
@@ -88,7 +90,11 @@ class SaleSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """
         Override create method to handle nested sale items and buyer creation/lookup.
+        Enforces stock validation and deduction.
         """
+        from inventory.models import Inventory
+        from rest_framework.exceptions import ValidationError
+
         # Extract nested sale items if provided
         items_data = validated_data.pop('items', [])
         # Extract buyer_id from validated data if present
@@ -118,8 +124,23 @@ class SaleSerializer(serializers.ModelSerializer):
             sale.buyer = buyer
             sale.save()
         
-        # Create nested sale items
+        # Create nested sale items with stock validation
         for item_data in items_data:
+            inventory_id = item_data.get('inventory_item')
+            quantity = item_data.get('quantity', 0)
+
+            try:
+                inventory_item = Inventory.objects.get(id=inventory_id)
+            except Inventory.DoesNotExist:
+                raise ValidationError(f"Inventory item with ID {inventory_id} does not exist.")
+
+            if inventory_item.quantity < quantity:
+                raise ValidationError(f"Not enough stock for item '{inventory_item.item_name}'. Available: {inventory_item.quantity}, requested: {quantity}.")
+
+            # Deduct stock
+            inventory_item.quantity -= quantity
+            inventory_item.save()
+
             SaleItem.objects.create(sale=sale, **item_data)
         
         return sale
