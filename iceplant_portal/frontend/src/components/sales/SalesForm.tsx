@@ -591,10 +591,10 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
             />
           </Grid>
 
-          {props.isIceplantMode && (
-            <>
-              <Grid item xs={12}>
-                <h3>Sale Items</h3>
+          <Grid item xs={12}>
+            <h3>Sale Items</h3>
+            {props.isIceplantMode && (
+              <>
                 {formData.items.map((item, index) => (
                   <Grid container spacing={1} key={index} alignItems="center">
                     <Grid item xs={4}>
@@ -651,24 +651,28 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
                     </Grid>
                   </Grid>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormData({
-                      ...formData,
-                      items: [
-                        ...formData.items,
-                        { inventory_item: '', quantity: '', unit_price: '' },
-                      ],
-                    });
-                  }}
-                >
-                  Add Item
-                </button>
-              </Grid>
-              
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData({
+                  ...formData,
+                  items: [
+                    ...formData.items,
+                    { inventory_item: '', quantity: '', unit_price: '' },
+                  ],
+                });
+              }}
+            >
+              Add Item
+            </button>
+          </Grid>
+
+          {props.isIceplantMode && (
+            <>
               {/* Row 3: Pickup Qty, Deliver Qty, Price */}
-               <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   required
                   fullWidth
@@ -686,7 +690,7 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
                   helperText={errors.pickup_quantity}
                 />
               </Grid>
-               <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   required
                   fullWidth

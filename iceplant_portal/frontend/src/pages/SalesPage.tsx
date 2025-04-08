@@ -968,8 +968,8 @@ const SalesPage: React.FC = (): React.ReactElement => {
                         }
                         
                         return (
-                          <>
-                            <TableRow key={sale.id}>
+                          <React.Fragment key={sale.id}>
+                            <TableRow>
                               <TableCell>
                                 <Button
                                   color="primary"
@@ -1042,7 +1042,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
                                 )}
                               </TableCell>
                             </TableRow>
-                          </>
+                            </React.Fragment>
                         );
                       })
                     ) : (
