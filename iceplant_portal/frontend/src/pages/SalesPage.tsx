@@ -794,7 +794,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
         
         {/* Sale Entry Form */}
         <Paper sx={{ p: 2, mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h6" gutterBottom>
               Enter New Sale
             </Typography>
