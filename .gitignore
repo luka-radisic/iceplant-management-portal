@@ -31,6 +31,11 @@ media/
 staticfiles/
 requirements.installed
 
+# Database backups
+db_backup_*
+*.json.backup
+backup/*.json
+
 # Environment
 .env
 .venv
