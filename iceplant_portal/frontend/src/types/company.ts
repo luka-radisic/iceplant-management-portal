@@ -29,6 +29,7 @@ export interface CompanySettings {
     
     created_at?: string;
     updated_at?: string;
+    tax_percentage?: number;
 }
 
 /**
@@ -38,5 +39,6 @@ export const defaultCompanySettings: CompanySettings = {
     company_name: 'Ice Plant',
     company_country: 'Philippines',
     ice_block_weight: 100,
-    production_capacity: 1000
+    production_capacity: 1000,
+    tax_percentage: 0
 }; 

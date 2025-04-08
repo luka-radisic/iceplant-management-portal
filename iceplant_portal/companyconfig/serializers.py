@@ -29,7 +29,8 @@ class CompanySettingsSerializer(serializers.ModelSerializer):
             'logo_url',
             'invoice_footer_text',
             'created_at',
-            'updated_at'
+            'updated_at',
+            'tax_percentage'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'logo_url']
     

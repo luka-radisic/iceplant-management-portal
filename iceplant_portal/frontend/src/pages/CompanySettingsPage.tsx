@@ -89,6 +89,16 @@ const CompanySettingsPage: React.FC = () => {
   }, [fetchSettings]);
 
   // Handle form input changes
+
+  // Handle tax percentage change
+  const handleTaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setSettings((prev) => ({
+      ...prev,
+      tax_percentage: Number(value)
+    }));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSettings((prev) => ({
@@ -351,6 +361,21 @@ const CompanySettingsPage: React.FC = () => {
                   name="website"
                   value={settings.website || ''}
                   onChange={handleChange}
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Tax Percentage (%)"
+                  name="tax_percentage"
+                  type="number"
+                  value={settings.tax_percentage ?? 0}
+                  onChange={handleTaxChange}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  }}
+                  helperText="Default tax rate to apply on sales invoices"
                   margin="normal"
                 />
               </Grid>
