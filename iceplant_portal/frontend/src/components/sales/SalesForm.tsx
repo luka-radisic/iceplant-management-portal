@@ -730,20 +730,22 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
                 ))}
               </>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  ...formData,
-                  items: [
-                    ...formData.items,
-                    { inventory_item: '', quantity: '', unit_price: '' },
-                  ],
-                });
-              }}
-            >
-              Add Item
-            </button>
+            {!isIceplantMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    items: [
+                      ...formData.items,
+                      { inventory_item: '', quantity: '', unit_price: '' },
+                    ],
+                  });
+                }}
+              >
+                Add Item
+              </button>
+            )}
           </Grid>
 
           {isIceplantMode && (
