@@ -408,79 +408,6 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box component="form" onSubmit={handleSubmit} noValidate autoComplete="off">
         <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <h3>Sale Items</h3>
-            {formData.items.map((item, index) => (
-              <Grid container spacing={1} key={index} alignItems="center">
-                <Grid item xs={4}>
-                  <TextField
-                    label="Inventory Item ID"
-                    value={item.inventory_item}
-                    onChange={(e) => {
-                      const newItems = [...formData.items];
-                      newItems[index].inventory_item = e.target.value;
-                      setFormData({ ...formData, items: newItems });
-                    }}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Quantity"
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const newItems = [...formData.items];
-                      newItems[index].quantity = e.target.value === '' ? '' : Number(e.target.value);
-                      setFormData({ ...formData, items: newItems });
-                    }}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Unit Price"
-                    type="number"
-                    value={item.unit_price}
-                    onChange={(e) => {
-                      const newItems = [...formData.items];
-                      newItems[index].unit_price = e.target.value === '' ? '' : Number(e.target.value);
-                      setFormData({ ...formData, items: newItems });
-                    }}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={2}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newItems = formData.items.filter((_, i) => i !== index);
-                      setFormData({ ...formData, items: newItems });
-                    }}
-                  >
-                    Remove
-                  </button>
-                </Grid>
-              </Grid>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  ...formData,
-                  items: [
-                    ...formData.items,
-                    { inventory_item: '', quantity: '', unit_price: '' },
-                  ],
-                });
-              }}
-            >
-              Add Item
-            </button>
-          </Grid>
           {/* Row 1: SI, Date, Time */}
           <Grid item xs={12} sm={4}>
             <TextField
@@ -662,6 +589,80 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
               placeholder="e.g., PO-12345"
               disabled={isSubmitting}
             />
+          </Grid>
+
+          <Grid item xs={12}>
+            <h3>Sale Items</h3>
+            {formData.items.map((item, index) => (
+              <Grid container spacing={1} key={index} alignItems="center">
+                <Grid item xs={4}>
+                  <TextField
+                    label="Inventory Item ID"
+                    value={item.inventory_item}
+                    onChange={(e) => {
+                      const newItems = [...formData.items];
+                      newItems[index].inventory_item = e.target.value;
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <TextField
+                    label="Quantity"
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const newItems = [...formData.items];
+                      newItems[index].quantity = e.target.value === '' ? '' : Number(e.target.value);
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <TextField
+                    label="Unit Price"
+                    type="number"
+                    value={item.unit_price}
+                    onChange={(e) => {
+                      const newItems = [...formData.items];
+                      newItems[index].unit_price = e.target.value === '' ? '' : Number(e.target.value);
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={2}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newItems = formData.items.filter((_, i) => i !== index);
+                      setFormData({ ...formData, items: newItems });
+                    }}
+                  >
+                    Remove
+                  </button>
+                </Grid>
+              </Grid>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setFormData({
+                  ...formData,
+                  items: [
+                    ...formData.items,
+                    { inventory_item: '', quantity: '', unit_price: '' },
+                  ],
+                });
+              }}
+            >
+              Add Item
+            </button>
           </Grid>
           
           {/* Row 3: Pickup Qty, Deliver Qty, Price */}
