@@ -150,4 +150,47 @@ Allow authorized HR/superuser users to bulk delete attendance punchcard records 
 - Add automated tests for cleanup endpoints.  
 - Automate README updates with latest features and change logs.
 
---- 
+---
+
+### Feature: Sales Module Enhancements (Iceplant + Inventory)
+
+**Goal:**
+Support dual-mode sales (Iceplant and Inventory), accurate invoicing, expandable sales list, and robust backend handling.
+
+---
+
+**Backend:**
+
+- Extend Sale model to support nested SaleItems for inventory sales.
+- Fix serializer to handle nested items, extract IDs correctly.
+- Calculate totals including nested items.
+- Store payment info, status, and buyer details.
+
+---
+
+**Frontend:**
+
+- Dual-mode toggle: Iceplant vs. Inventory sale.
+- Inventory sale supports multiple items with quantity and unit price.
+- Correct subtotal and payment calculations.
+- Invoice displays both Iceplant and inventory items with accurate totals.
+- Sales list:
+  - Shows summary row with total quantity and cost.
+  - Expandable to show detailed items and payment info.
+  - Sorted by sale date and time descending.
+- Fix regex validation and input handling.
+
+---
+
+**Status:**
+Implemented, tested, and deployed.
+
+---
+
+**Next:**
+- Add cleanup tools for Sales data similar to Attendance.
+- Add audit logs for sales deletions.
+- Improve reporting and export features.
+- Extend to Expenses and Inventory modules.
+
+---

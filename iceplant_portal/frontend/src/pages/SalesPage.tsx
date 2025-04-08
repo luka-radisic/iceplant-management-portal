@@ -1018,11 +1018,21 @@ const SalesPage: React.FC = (): React.ReactElement => {
                         
                         return (
                           <React.Fragment key={sale.id}>
-                            <TableRow>
+                            <TableRow
+                              hover
+                              onClick={() => {
+                                sale._expanded = !sale._expanded;
+                                setSales([...sales]);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
                               <TableCell>
                                 <Button
                                   color="primary"
-                                  onClick={() => handlePrintSale(sale)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePrintSale(sale);
+                                  }}
                                   sx={{
                                     textDecoration: 'none',
                                     p: 0,
@@ -1038,8 +1048,20 @@ const SalesPage: React.FC = (): React.ReactElement => {
                               <TableCell>{sale.sale_date}</TableCell>
                               <TableCell>{sale.sale_time}</TableCell>
                               <TableCell>{sale.buyer_name}</TableCell>
-                              <TableCell align="right">{sale.total_quantity}</TableCell>
-                              <TableCell align="right">{formatCurrency(sale.total_cost)}</TableCell>
+                              <TableCell align="right">
+                                {
+                                  (sale.pickup_quantity || 0) + (sale.delivery_quantity || 0) +
+                                  (Array.isArray(sale.items) ? sale.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) : 0)
+                                }
+                              </TableCell>
+                              <TableCell align="right">
+                                {formatCurrency(
+                                  (sale.pickup_quantity * parseFloat(String(sale.price_per_block)) || 0) +
+                                  (sale.delivery_quantity * parseFloat(String(sale.price_per_block)) || 0) +
+                                  (Array.isArray(sale.items) ? sale.items.reduce((sum, item) =>
+                                    sum + (Number(item.unit_price) * Number(item.quantity)), 0) : 0)
+                                )}
+                              </TableCell>
                               <TableCell>
                                 {sale.payment_status}
                                 {isPartiallyPaid && balance > 0 && (
@@ -1054,44 +1076,49 @@ const SalesPage: React.FC = (): React.ReactElement => {
                                       aria-label="actions"
                                       aria-controls={`actions-menu-${sale.id}`}
                                       aria-haspopup="true"
-                                      onClick={(event) => handleMenuOpen(event, sale)}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleMenuOpen(event, sale);
+                                      }}
                                       size="small"
                                   >
                                       <MoreVertIcon />
                                   </IconButton>
                               </TableCell>
                             </TableRow>
-                            <TableRow>
-                              <TableCell colSpan={9} sx={{ p: 1, backgroundColor: '#f9f9f9' }}>
-                                {sale.items && sale.items.length > 0 ? (
-                                  <Table size="small">
-                                    <TableHead>
-                                      <TableRow>
-                                        <TableCell>Inventory Item</TableCell>
-                                        <TableCell align="right">Quantity</TableCell>
-                                        <TableCell align="right">Unit Price</TableCell>
-                                        <TableCell align="right">Total Price</TableCell>
-                                      </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                      {sale.items.map((item: any, idx: number) => (
-                                        <TableRow key={idx}>
-                                          <TableCell>{item.inventory_item}</TableCell>
-                                          <TableCell align="right">{item.quantity}</TableCell>
-                                          <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
-                                          <TableCell align="right">{formatCurrency(item.total_price)}</TableCell>
+                            {sale._expanded && (
+                              <TableRow>
+                                <TableCell colSpan={9} sx={{ p: 1, backgroundColor: '#f9f9f9' }}>
+                                  {sale.items && sale.items.length > 0 ? (
+                                    <Table size="small">
+                                      <TableHead>
+                                        <TableRow>
+                                          <TableCell>Inventory Item</TableCell>
+                                          <TableCell align="right">Quantity</TableCell>
+                                          <TableCell align="right">Unit Price</TableCell>
+                                          <TableCell align="right">Total Price</TableCell>
                                         </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                ) : (
-                                  <Typography variant="body2" color="text.secondary">
-                                    No sale items
-                                  </Typography>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                            </React.Fragment>
+                                      </TableHead>
+                                      <TableBody>
+                                        {sale.items.map((item: any, idx: number) => (
+                                          <TableRow key={idx}>
+                                            <TableCell>{item.inventory_item}</TableCell>
+                                            <TableCell align="right">{item.quantity}</TableCell>
+                                            <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
+                                            <TableCell align="right">{formatCurrency(item.total_price)}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  ) : (
+                                    <Typography variant="body2" color="text.secondary">
+                                      No sale items
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
                         );
                       })
                     ) : (
