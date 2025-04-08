@@ -591,162 +591,166 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
             />
           </Grid>
 
-          <Grid item xs={12}>
-            <h3>Sale Items</h3>
-            {formData.items.map((item, index) => (
-              <Grid container spacing={1} key={index} alignItems="center">
-                <Grid item xs={4}>
-                  <TextField
-                    label="Inventory Item ID"
-                    value={item.inventory_item}
-                    onChange={(e) => {
-                      const newItems = [...formData.items];
-                      newItems[index].inventory_item = e.target.value;
-                      setFormData({ ...formData, items: newItems });
-                    }}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Quantity"
-                    type="number"
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const newItems = [...formData.items];
-                      newItems[index].quantity = e.target.value === '' ? '' : Number(e.target.value);
-                      setFormData({ ...formData, items: newItems });
-                    }}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Unit Price"
-                    type="number"
-                    value={item.unit_price}
-                    onChange={(e) => {
-                      const newItems = [...formData.items];
-                      newItems[index].unit_price = e.target.value === '' ? '' : Number(e.target.value);
-                      setFormData({ ...formData, items: newItems });
-                    }}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={2}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newItems = formData.items.filter((_, i) => i !== index);
-                      setFormData({ ...formData, items: newItems });
-                    }}
-                  >
-                    Remove
-                  </button>
-                </Grid>
+          {props.isIceplantMode && (
+            <>
+              <Grid item xs={12}>
+                <h3>Sale Items</h3>
+                {formData.items.map((item, index) => (
+                  <Grid container spacing={1} key={index} alignItems="center">
+                    <Grid item xs={4}>
+                      <TextField
+                        label="Inventory Item ID"
+                        value={item.inventory_item}
+                        onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].inventory_item = e.target.value;
+                          setFormData({ ...formData, items: newItems });
+                        }}
+                        fullWidth
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <TextField
+                        label="Quantity"
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].quantity = e.target.value === '' ? '' : Number(e.target.value);
+                          setFormData({ ...formData, items: newItems });
+                        }}
+                        fullWidth
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <TextField
+                        label="Unit Price"
+                        type="number"
+                        value={item.unit_price}
+                        onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].unit_price = e.target.value === '' ? '' : Number(e.target.value);
+                          setFormData({ ...formData, items: newItems });
+                        }}
+                        fullWidth
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={2}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newItems = formData.items.filter((_, i) => i !== index);
+                          setFormData({ ...formData, items: newItems });
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </Grid>
+                  </Grid>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      items: [
+                        ...formData.items,
+                        { inventory_item: '', quantity: '', unit_price: '' },
+                      ],
+                    });
+                  }}
+                >
+                  Add Item
+                </button>
               </Grid>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  ...formData,
-                  items: [
-                    ...formData.items,
-                    { inventory_item: '', quantity: '', unit_price: '' },
-                  ],
-                });
-              }}
-            >
-              Add Item
-            </button>
-          </Grid>
-          
-          {/* Row 3: Pickup Qty, Deliver Qty, Price */}
-           <Grid item xs={12} sm={4}>
-            <TextField
-              required
-              fullWidth
-              label="Pickup Quantity"
-              name="pickup_quantity"
-              type="text"
-              inputMode="numeric"
-              value={formData.pickup_quantity}
-              onChange={handleQuantityChange}
-              InputProps={{
-                endAdornment: <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>blocks</Box>,
-              }}
-              disabled={isSubmitting}
-              error={!!errors.pickup_quantity}
-              helperText={errors.pickup_quantity}
-            />
-          </Grid>
-           <Grid item xs={12} sm={4}>
-            <TextField
-              required
-              fullWidth
-              label="Delivery Quantity"
-              name="delivery_quantity"
-              type="text"
-              inputMode="numeric"
-              value={formData.delivery_quantity}
-              onChange={handleQuantityChange}
-              InputProps={{
-                endAdornment: <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>blocks</Box>,
-              }}
-              disabled={isSubmitting}
-              error={!!errors.delivery_quantity}
-              helperText={errors.delivery_quantity}
-            />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField
-              required
-              fullWidth
-              label="Price Per Block"
-              name="price_per_block"
-              type="text"
-              inputMode="decimal"
-              value={formData.price_per_block}
-              onChange={handleCurrencyChange}
-              disabled={isSubmitting}
-              error={!!errors.price_per_block}
-              helperText={errors.price_per_block}
-              InputProps={{
-                endAdornment: formData.price_per_block !== '' ? 
-                  <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>
-                    {formatCurrency(formData.price_per_block)}
-                  </Box> : null
-              }}
-            />
-          </Grid>
-          
-          {/* Row 4: Brine 1, Brine 2 */}
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Brine 1 Identifier"
-              name="brine1_identifier"
-              value={formData.brine1_identifier}
-              onChange={handleChange}
-              placeholder="Enter brine batch number"
-              disabled={isSubmitting}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Brine 2 Identifier"
-              name="brine2_identifier"
-              value={formData.brine2_identifier}
-              onChange={handleChange}
-              placeholder="Enter brine batch number"
-              disabled={isSubmitting}
-            />
-          </Grid>
+              
+              {/* Row 3: Pickup Qty, Deliver Qty, Price */}
+               <Grid item xs={12} sm={4}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Pickup Quantity"
+                  name="pickup_quantity"
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.pickup_quantity}
+                  onChange={handleQuantityChange}
+                  InputProps={{
+                    endAdornment: <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>blocks</Box>,
+                  }}
+                  disabled={isSubmitting}
+                  error={!!errors.pickup_quantity}
+                  helperText={errors.pickup_quantity}
+                />
+              </Grid>
+               <Grid item xs={12} sm={4}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Delivery Quantity"
+                  name="delivery_quantity"
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.delivery_quantity}
+                  onChange={handleQuantityChange}
+                  InputProps={{
+                    endAdornment: <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>blocks</Box>,
+                  }}
+                  disabled={isSubmitting}
+                  error={!!errors.delivery_quantity}
+                  helperText={errors.delivery_quantity}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Price Per Block"
+                  name="price_per_block"
+                  type="text"
+                  inputMode="decimal"
+                  value={formData.price_per_block}
+                  onChange={handleCurrencyChange}
+                  disabled={isSubmitting}
+                  error={!!errors.price_per_block}
+                  helperText={errors.price_per_block}
+                  InputProps={{
+                    endAdornment: formData.price_per_block !== '' ?
+                      <Box component="span" sx={{ ml: 1, color: 'text.secondary' }}>
+                        {formatCurrency(formData.price_per_block)}
+                      </Box> : null
+                  }}
+                />
+              </Grid>
+              
+              {/* Row 4: Brine 1, Brine 2 */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Brine 1 Identifier"
+                  name="brine1_identifier"
+                  value={formData.brine1_identifier}
+                  onChange={handleChange}
+                  placeholder="Enter brine batch number"
+                  disabled={isSubmitting}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Brine 2 Identifier"
+                  name="brine2_identifier"
+                  value={formData.brine2_identifier}
+                  onChange={handleChange}
+                  placeholder="Enter brine batch number"
+                  disabled={isSubmitting}
+                />
+              </Grid>
+            </>
+          )}
 
           {/* Row 5: Cash Amount, PO Amount */}
           <Grid item xs={12} sm={6}>
