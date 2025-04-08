@@ -284,6 +284,24 @@ const SalePrintView: React.FC = () => {
                   <TableCell align="right">{formatCurrency(sale.delivery_quantity * parseFloat(String(sale.price_per_block)))}</TableCell>
                 </TableRow>
               )}
+
+              {/* Inventory sale items */}
+              {Array.isArray(sale.items) && sale.items.length > 0 && sale.items.map((item, idx) => {
+                let label;
+                if ('inventory_item_name' in item && item.inventory_item_name) {
+                  label = item.inventory_item_name;
+                } else {
+                  label = `Item ${item.inventory_item}`;
+                }
+                return (
+                  <TableRow key={idx}>
+                    <TableCell>{String(label)}</TableCell>
+                    <TableCell align="right">{item.quantity}</TableCell>
+                    <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
+                    <TableCell align="right">{formatCurrency(item.quantity * parseFloat(String(item.unit_price)))}</TableCell>
+                  </TableRow>
+                );
+              })}
               
               {/* Totals */}
               <TableRow>
@@ -296,7 +314,16 @@ const SalePrintView: React.FC = () => {
                   )}
                 </TableCell>
                 <TableCell align="right"><Typography fontWeight="bold">Sub Total:</Typography></TableCell>
-                <TableCell align="right">{formatCurrency(sale.total_cost)}</TableCell>
+                <TableCell align="right">
+                  {formatCurrency(
+                    (
+                      (sale.pickup_quantity * parseFloat(String(sale.price_per_block)) || 0) +
+                      (sale.delivery_quantity * parseFloat(String(sale.price_per_block)) || 0) +
+                      (Array.isArray(sale.items) ? sale.items.reduce((sum, item) =>
+                        sum + (Number(item.unit_price) * Number(item.quantity)), 0) : 0)
+                    )
+                  )}
+                </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell align="right"><Typography fontWeight="bold">Total Paid:</Typography></TableCell>
@@ -324,10 +351,10 @@ const SalePrintView: React.FC = () => {
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6}>
             <Typography variant="subtitle2">Payment Details:</Typography>
-            {sale.cash_amount > 0 && (
+            {Number(sale.cash_amount) > 0 && (
               <Typography variant="body2">Cash: {formatCurrency(sale.cash_amount)}</Typography>
             )}
-            {sale.po_amount > 0 && (
+            {Number(sale.po_amount) > 0 && (
               <Typography variant="body2">PO Amount: {formatCurrency(sale.po_amount)}</Typography>
             )}
           </Grid>
