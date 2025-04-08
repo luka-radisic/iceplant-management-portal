@@ -119,3 +119,14 @@ flowchart TD
 - Document and review all migration changes carefully.
 
 ---
+
+## 9. Additional Recommendations
+
+- **Backup before production migrations:** Always take a database backup before applying migrations on staging or production.
+- **Leverage database transactions:** Django runs migrations in transactions by default; avoid raw SQL outside migrations that bypass this safety.
+- **Version control fixtures:** If using fixtures for initial data, version them alongside migrations to ensure consistency.
+- **Maintain consistent environments:** Use `requirements.txt` or `pip freeze` to keep dependencies aligned across dev, staging, and production.
+- **Document manual SQL changes:** If raw SQL is necessary, document it clearly and avoid unless absolutely required.
+- **Regularly audit migration status:** Use `showmigrations` and `migrate --plan` to verify applied migrations and detect issues early.
+
+---
