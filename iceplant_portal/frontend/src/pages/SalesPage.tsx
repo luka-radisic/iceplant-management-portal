@@ -49,7 +49,19 @@ import { useSnackbar } from 'notistack';
 import SalesForm from '../components/sales/SalesForm';
 import StatusChip from '../components/common/StatusChip';
 import { apiService, endpoints } from '../services/api';
-import { Sale } from '../types/sales';
+import { Sale as BaseSale } from '../types/sales';
+
+interface SaleItem {
+  id?: string;
+  inventory_item: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
+interface Sale extends BaseSale {
+  items: SaleItem[];
+}
 import { BuyerLight } from '../types/buyers';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
@@ -64,9 +76,18 @@ import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 
 
+interface SaleItem {
+  id?: string;
+  inventory_item: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
 declare module '../types/sales' {
   interface Sale {
     is_iceplant: boolean;
+    items: SaleItem[];
   }
 }
 
@@ -947,49 +968,81 @@ const SalesPage: React.FC = (): React.ReactElement => {
                         }
                         
                         return (
-                          <TableRow key={sale.id}>
-                            <TableCell>
-                              <Button 
-                                color="primary" 
-                                onClick={() => handlePrintSale(sale)}
-                                sx={{ 
-                                  textDecoration: 'none', 
-                                  p: 0, 
-                                  minWidth: 'auto',
-                                  textAlign: 'left',
-                                  fontWeight: 'inherit',
-                                  fontSize: 'inherit'
-                                }}
-                              >
-                                {sale.si_number}
-                              </Button>
-                            </TableCell>
-                            <TableCell>{sale.sale_date}</TableCell>
-                            <TableCell>{sale.sale_time}</TableCell>
-                            <TableCell>{sale.buyer_name}</TableCell>
-                            <TableCell align="right">{sale.total_quantity}</TableCell>
-                            <TableCell align="right">{formatCurrency(sale.total_cost)}</TableCell>
-                            <TableCell>
-                              {sale.payment_status}
-                              {isPartiallyPaid && balance > 0 && (
-                                <Typography variant="caption" display="block" sx={{ color: 'warning.main', fontSize: '0.75rem' }}>
-                                  (Balance: {formatCurrency(balance)})
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell>{renderStatus(sale.status)}</TableCell>
-                            <TableCell padding="none">
-                                <IconButton
-                                    aria-label="actions"
-                                    aria-controls={`actions-menu-${sale.id}`}
-                                    aria-haspopup="true"
-                                    onClick={(event) => handleMenuOpen(event, sale)}
-                                    size="small"
+                          <>
+                            <TableRow key={sale.id}>
+                              <TableCell>
+                                <Button
+                                  color="primary"
+                                  onClick={() => handlePrintSale(sale)}
+                                  sx={{
+                                    textDecoration: 'none',
+                                    p: 0,
+                                    minWidth: 'auto',
+                                    textAlign: 'left',
+                                    fontWeight: 'inherit',
+                                    fontSize: 'inherit'
+                                  }}
                                 >
-                                    <MoreVertIcon />
-                                </IconButton>
-                            </TableCell>
-                          </TableRow>
+                                  {sale.si_number}
+                                </Button>
+                              </TableCell>
+                              <TableCell>{sale.sale_date}</TableCell>
+                              <TableCell>{sale.sale_time}</TableCell>
+                              <TableCell>{sale.buyer_name}</TableCell>
+                              <TableCell align="right">{sale.total_quantity}</TableCell>
+                              <TableCell align="right">{formatCurrency(sale.total_cost)}</TableCell>
+                              <TableCell>
+                                {sale.payment_status}
+                                {isPartiallyPaid && balance > 0 && (
+                                  <Typography variant="caption" display="block" sx={{ color: 'warning.main', fontSize: '0.75rem' }}>
+                                    (Balance: {formatCurrency(balance)})
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell>{renderStatus(sale.status)}</TableCell>
+                              <TableCell padding="none">
+                                  <IconButton
+                                      aria-label="actions"
+                                      aria-controls={`actions-menu-${sale.id}`}
+                                      aria-haspopup="true"
+                                      onClick={(event) => handleMenuOpen(event, sale)}
+                                      size="small"
+                                  >
+                                      <MoreVertIcon />
+                                  </IconButton>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell colSpan={9} sx={{ p: 1, backgroundColor: '#f9f9f9' }}>
+                                {sale.items && sale.items.length > 0 ? (
+                                  <Table size="small">
+                                    <TableHead>
+                                      <TableRow>
+                                        <TableCell>Inventory Item</TableCell>
+                                        <TableCell align="right">Quantity</TableCell>
+                                        <TableCell align="right">Unit Price</TableCell>
+                                        <TableCell align="right">Total Price</TableCell>
+                                      </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                      {sale.items.map((item: any, idx: number) => (
+                                        <TableRow key={idx}>
+                                          <TableCell>{item.inventory_item}</TableCell>
+                                          <TableCell align="right">{item.quantity}</TableCell>
+                                          <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
+                                          <TableCell align="right">{formatCurrency(item.total_price)}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    No sale items
+                                  </Typography>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          </>
                         );
                       })
                     ) : (
