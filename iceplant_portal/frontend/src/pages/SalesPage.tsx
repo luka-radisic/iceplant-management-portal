@@ -178,7 +178,12 @@ const SalesPage: React.FC = (): React.ReactElement => {
       sale.buyer_name,
       sale.sale_date,
       sale.status,
-      sale.total_cost,
+      (
+        (sale.pickup_quantity * parseFloat(String(sale.price_per_block)) || 0) +
+        (sale.delivery_quantity * parseFloat(String(sale.price_per_block)) || 0) +
+        (Array.isArray(sale.items) ? sale.items.reduce((sum, item) =>
+          sum + (Number(item.unit_price) * Number(item.quantity)), 0) : 0)
+      ),
     ]);
 
     autoTable(doc, {
@@ -328,11 +333,23 @@ const SalesPage: React.FC = (): React.ReactElement => {
       
       if (response && response.results) {
         console.log(`[SalesPage] Setting ${response.results.length} sales results from page ${page}`);
-        setSales(response.results);
+        setSales(
+          [...response.results].sort((a, b) => {
+            const dateA = new Date(`${a.sale_date}T${a.sale_time}`);
+            const dateB = new Date(`${b.sale_date}T${b.sale_time}`);
+            return dateB.getTime() - dateA.getTime();
+          })
+        );
         setTotalItems(response.count || 0);
         console.log(`[SalesPage] Total items: ${response.count}, pages: ${Math.ceil((response.count || 0) / pageSize)}`);
       } else if (Array.isArray(response)) {
-        setSales(response);
+        setSales(
+          [...response].sort((a, b) => {
+            const dateA = new Date(`${a.sale_date}T${a.sale_time}`);
+            const dateB = new Date(`${b.sale_date}T${b.sale_time}`);
+            return dateB.getTime() - dateA.getTime();
+          })
+        );
         setTotalItems(response.length);
       } else {
         setSales([]);
