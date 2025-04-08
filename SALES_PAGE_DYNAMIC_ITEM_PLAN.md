@@ -1,126 +1,114 @@
-# Sales Page Enhancement Plan: Dynamic Item Names & Stock Validation
-
----
+# Separation of Iceplant Sale and Regular Inventory Sale
 
 ## Objective
-
-Replace manual Item ID entry with dynamic Item Name selection, enforce stock validation, and update the Sales Page for better usability and data integrity.
-
----
-
-## 1. Current State Summary
-
-- **Dual Mode Sales Page** supports Iceplant and Inventory sales.
-- **Inventory sales** currently require manual entry of Item IDs.
-- **Backend** links sale items to inventory via FK but exposes only IDs.
-- **No stock validation** during sale creation.
-- **Project plan** calls for dynamic item selection and respecting stock counts.
+Create a clear separation between Iceplant sales and regular inventory sales in the UI, validation, and backend logic.
 
 ---
 
-## 2. Planned Enhancements
+## Key Principles
 
-### Backend
+- **When Iceplant Sale is OFF (regular sale):**
+  - Hide Iceplant-specific fields.
+  - Disable Iceplant-specific functions and validations.
+  - Prevent backend from requiring Iceplant-specific data.
+  - UI should not allow or require any Iceplant-related input.
 
-- **Expose Item Names:**
-  - Extend `SaleItemSerializer` to include a read-only `inventory_item_name` sourced from `self.inventory_item.item_name`.
-  
-- **Stock Validation:**
-  - In `SaleSerializer.create()` and `update()`:
-    - For each sale item:
-      - Fetch the `Inventory` object.
-      - Check if `inventory.quantity >= requested quantity`.
-      - If not, raise a validation error.
-      - If yes, deduct the quantity and save the inventory record.
-      
-- **Inventory API:**
-  - Ensure endpoint `/api/inventory/items/` returns:
-    - `id`
-    - `item_name`
-    - `quantity`
-    - Only items marked `"For Sale"`.
+- **When Iceplant Sale is ON (Iceplant sale):**
+  - Show Iceplant-specific fields.
+  - Enforce Iceplant-specific validations.
+  - Enable Iceplant-specific functions.
 
 ---
 
-### Frontend
+## Implementation Plan
 
-- **Replace Manual ID Input:**
-  - In `SalesForm.tsx`, replace "Inventory Item ID" text field with an **Autocomplete** or **Dropdown**.
-  - Populate options dynamically from inventory API.
-  - Show `item_name` and optionally stock count.
-  - Store selected item's `id` in form data.
-  
-- **Display Item Names:**
-  - In sales tables, display `item.inventory_item_name` instead of ID.
-  
-- **Stock Awareness:**
-  - Optionally, show current stock next to each item in dropdown.
-  - Disable or warn if requested quantity exceeds available stock (client-side check).
+### 1. Identify Iceplant-specific fields and functions
 
----
-
-### Documentation
-
-- Update this plan and `SALES_PAGE_REDESIGN_PLAN.md` to reflect:
-  - Dynamic item selector.
-  - Backend stock validation.
-  - API response examples.
+- Fields:
+  - `pickup_quantity`
+  - `delivery_quantity`
+  - `price_per_block`
+  - Brine identifiers
+  - Any other Iceplant-specific data
+- Functions:
+  - Total cost calculation
+  - Overpayment validation
+  - Iceplant-specific API logic
 
 ---
 
-## 3. Data Flow Diagram
+### 2. Conditional UI rendering
+
+- Wrap Iceplant-specific fields in:
+  ```tsx
+  {formData.is_iceplant && (
+    // Iceplant fields here
+  )}
+  ```
+- This hides them when `is_iceplant` is false.
+
+---
+
+### 3. Conditional validation
+
+- Enforce Iceplant-specific validations **only if** `formData.is_iceplant` is true.
+- Skip these validations for regular sales.
+
+---
+
+### 4. Conditional API payload
+
+- Always send zero or omit Iceplant fields when `is_iceplant` is false.
+- Backend should accept zero/default values for these fields in regular sales.
+
+---
+
+### 5. Disable Iceplant-specific functions
+
+- Wrap calculations and logic in:
+  ```tsx
+  if (formData.is_iceplant) {
+    // Iceplant-specific logic
+  }
+  ```
+- Skip these when `is_iceplant` is false.
+
+---
+
+### 6. UI toggle
+
+- The "Iceplant Sale" toggle acts as a **mode switch**.
+- When toggled ON, enable all Iceplant features.
+- When toggled OFF, hide/disable all Iceplant features.
+
+---
+
+## Mermaid Diagram
 
 ```mermaid
 flowchart TD
-    subgraph Frontend
-        A[User selects Item Name<br>from dropdown]
-        B[Quantity input]
-        C[Submit Sale]
-    end
-
-    subgraph Backend
-        D[Receive Sale with Item IDs & Quantities]
-        E[Fetch Inventory Item]
-        F{Stock >= Quantity?}
-        G[Deduct Stock & Save Sale]
-        H[Return Error: Insufficient Stock]
-    end
-
-    A --> C
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    F -- Yes --> G
-    F -- No --> H
+    A[User toggles Iceplant Sale switch]
+    A -->|ON| B[Show Iceplant fields]
+    A -->|ON| C[Enable Iceplant validations]
+    A -->|ON| D[Enable Iceplant functions]
+    A -->|OFF| E[Hide Iceplant fields]
+    A -->|OFF| F[Disable Iceplant validations]
+    A -->|OFF| G[Disable Iceplant functions]
 ```
 
 ---
 
-## 4. Implementation Steps
+## Summary
 
-1. **Backend**
-   - Extend serializers.
-   - Add stock validation logic.
-   - Adjust API responses.
-   
-2. **Frontend**
-   - Replace ID input with dynamic selector.
-   - Display item names.
-   - Add client-side stock checks.
-   
-3. **Testing**
-   - Attempt sales with sufficient and insufficient stock.
-   - Verify UI updates.
-   - Confirm API responses.
+- The toggle **fully controls** the UI, validation, and logic.
+- When OFF, the app behaves as a **regular inventory sale**.
+- When ON, the app behaves as an **Iceplant sale** with all related features.
 
 ---
 
-## 5. Expected Outcome
+## Next Steps
 
-- **User-friendly** item selection.
-- **Accurate** stock management.
-- **Reduced errors** from manual ID entry.
-- **Future-proof** design aligned with multi-category sales.
-
----
+- Implement this separation in the UI components.
+- Adjust validation logic accordingly.
+- Update API payload shaping.
+- Test both modes thoroughly.

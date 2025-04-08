@@ -646,7 +646,30 @@ const SalesPage: React.FC = (): React.ReactElement => {
       enqueueSnackbar('SI Number, Buyer Name, and Sale Date are required.', { variant: 'warning' });
       return false;
     }
-    // Add more specific validation rules if needed
+
+    if (sale.is_iceplant) {
+      if (!sale.pickup_quantity || sale.pickup_quantity <= 0) {
+        enqueueSnackbar('Pickup Quantity must be greater than zero for Iceplant sales.', { variant: 'warning' });
+        return false;
+      }
+      if (sale.delivery_quantity === undefined || sale.delivery_quantity < 0) {
+        enqueueSnackbar('Delivery Quantity cannot be negative.', { variant: 'warning' });
+        return false;
+      }
+      if (!sale.price_per_block || parseFloat(sale.price_per_block) <= 0) {
+        enqueueSnackbar('Price per Block must be greater than zero.', { variant: 'warning' });
+        return false;
+      }
+      if (!sale.brine1_identifier || sale.brine1_identifier.trim() === '') {
+        enqueueSnackbar('Brine 1 Identifier is required for Iceplant sales.', { variant: 'warning' });
+        return false;
+      }
+      if (!sale.brine2_identifier || sale.brine2_identifier.trim() === '') {
+        enqueueSnackbar('Brine 2 Identifier is required for Iceplant sales.', { variant: 'warning' });
+        return false;
+      }
+    }
+
     return true;
   };
 
@@ -714,7 +737,16 @@ const SalesPage: React.FC = (): React.ReactElement => {
       }
       
       // Remove the buyer object if it exists, we only need buyer_id
-      delete dataToSend.buyer; 
+      delete dataToSend.buyer;
+
+      // If not an Iceplant sale, zero or clear Iceplant-specific fields
+      if (!editableSale.is_iceplant) {
+        dataToSend.pickup_quantity = 0;
+        dataToSend.delivery_quantity = 0;
+        dataToSend.price_per_block = 0;
+        dataToSend.brine1_identifier = '';
+        dataToSend.brine2_identifier = '';
+      }
 
       console.log('[SalesPage] Sending updated sale data:', dataToSend);
       await apiService.put(`${endpoints.sales}${editableSale.id}/`, dataToSend);

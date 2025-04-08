@@ -342,9 +342,31 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
     const currentErrors: Record<string, string> = {};
     if (!formData.si_number) currentErrors.si_number = "SI Number is required";
     if (!formData.buyer_name) currentErrors.buyer_name = "Buyer Name is required";
-    if (!formData.price_per_block) currentErrors.price_per_block = "Price per Block is required";
-    if ((formData.pickup_quantity || 0) + (formData.delivery_quantity || 0) <= 0) {
-      currentErrors.quantity = "At least Pickup or Delivery Quantity must be greater than 0";
+
+    if (formData.is_iceplant) {
+      if (!formData.price_per_block) {
+        currentErrors.price_per_block = "Price per Block is required";
+      }
+      if ((formData.pickup_quantity || 0) + (formData.delivery_quantity || 0) <= 0) {
+        currentErrors.quantity = "At least Pickup or Delivery Quantity must be greater than 0";
+      }
+    }
+
+    // Additional validation for Inventory sales
+    if (!formData.is_iceplant) {
+      const invalidItems = formData.items.filter(
+        (item) =>
+          !item.inventory_item ||
+          !item.quantity ||
+          isNaN(Number(item.quantity)) ||
+          Number(item.quantity) <= 0
+      );
+      if (invalidItems.length > 0) {
+        currentErrors.items = "All inventory items must have a valid item and positive quantity.";
+      }
+      if (formData.items.length === 0) {
+        currentErrors.items = "At least one inventory item is required.";
+      }
     }
     if (!formData.sale_date) currentErrors.sale_date = "Sale Date is required";
 
@@ -375,7 +397,7 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
     setErrors({}); // Clear previous errors
 
     // Prepare data for API, ensure date is formatted
-    const dataToSend = {
+    const dataToSend: any = {
       ...formData,
       sale_date: formData.sale_date, // Already formatted by handleDateChange
       pickup_quantity: Number(formData.pickup_quantity) || 0,
@@ -385,8 +407,42 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
       po_amount: Number(formData.po_amount) || 0,
       buyer_id: selectedBuyer ? selectedBuyer.id : undefined,
     };
+
+    // Defensive fix: ensure inventory_item is ID, not object
+    if (Array.isArray(dataToSend.items)) {
+      dataToSend.items = dataToSend.items.map(item => {
+        let inv = item.inventory_item;
+        if (inv && typeof inv === 'object') {
+          if ('id' in inv) {
+            inv = inv.id;
+          } else if ('pk' in inv) {
+            inv = inv.pk;
+          } else {
+            inv = '';
+          }
+        }
+        return {
+          ...item,
+          inventory_item: inv
+        };
+      });
+    }
+
+    if (dataToSend.is_iceplant) {
+      if (dataToSend.brine1_identifier == null) dataToSend.brine1_identifier = '';
+      if (dataToSend.brine2_identifier == null) dataToSend.brine2_identifier = '';
+      // Remove items array for Iceplant sales to avoid backend confusion
+      if ('items' in dataToSend) {
+        delete dataToSend.items;
+      }
+    }
     
-    console.log("Submitting sale data:", dataToSend);
+    console.log("Submitting sale data:", JSON.stringify(dataToSend, null, 2));
+    if (Array.isArray(dataToSend.items)) {
+      dataToSend.items.forEach((item, idx) => {
+        console.log(`Item[${idx}] inventory_item type: ${typeof item.inventory_item}, value:`, item.inventory_item);
+      });
+    }
 
     try {
       const response = await apiService.post(endpoints.sales, dataToSend);
@@ -599,9 +655,9 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
               name="po_number"
               value={formData.po_number}
               onChange={handleChange}
-              inputProps={{ 
-                pattern: '[A-Za-z0-9-]*',
-                title: 'Alphanumeric characters only' 
+              inputProps={{
+                pattern: '[A-Za-z0-9\\-]*',
+                title: 'Alphanumeric characters only'
               }}
               placeholder="e.g., PO-12345"
               disabled={isSubmitting}

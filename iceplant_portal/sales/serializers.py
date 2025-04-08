@@ -127,6 +127,9 @@ class SaleSerializer(serializers.ModelSerializer):
         # Create nested sale items with stock validation
         for item_data in items_data:
             inventory_id = item_data.get('inventory_item')
+            # Defensive fix: if inventory_id is an Inventory object, extract its pk
+            if hasattr(inventory_id, 'pk'):
+                inventory_id = inventory_id.pk
             quantity = item_data.get('quantity', 0)
 
             try:
