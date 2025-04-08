@@ -43,7 +43,7 @@ interface SaleFormData {
   is_iceplant: boolean;
   items: {
     id?: string; // for existing items during update
-    inventory_item: string; // inventory item ID
+    inventory_item: string | { id?: string; pk?: string }; // inventory item ID or object
     quantity: number | '';
     unit_price: number | '';
   }[];
@@ -410,7 +410,7 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
 
     // Defensive fix: ensure inventory_item is ID, not object
     if (Array.isArray(dataToSend.items)) {
-      dataToSend.items = dataToSend.items.map(item => {
+      dataToSend.items = dataToSend.items.map((item: SaleFormData['items'][number]) => {
         let inv = item.inventory_item;
         if (inv && typeof inv === 'object') {
           if ('id' in inv) {
@@ -439,7 +439,7 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
     
     console.log("Submitting sale data:", JSON.stringify(dataToSend, null, 2));
     if (Array.isArray(dataToSend.items)) {
-      dataToSend.items.forEach((item, idx) => {
+      dataToSend.items.forEach((item: SaleFormData['items'][number], idx: number) => {
         console.log(`Item[${idx}] inventory_item type: ${typeof item.inventory_item}, value:`, item.inventory_item);
       });
     }

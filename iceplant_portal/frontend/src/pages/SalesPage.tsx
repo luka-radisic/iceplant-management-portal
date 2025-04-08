@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import {
   Box,
   Typography,
@@ -798,17 +799,20 @@ const SalesPage: React.FC = (): React.ReactElement => {
             <Typography variant="h6" gutterBottom>
               Enter New Sale
             </Typography>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isIceplantMode}
-                  onChange={(e) => setIsIceplantMode(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label="Iceplant Sale"
-              sx={{ ml: 2 }}
-            />
+            <ButtonGroup variant="outlined" color="primary" sx={{ ml: 2 }}>
+              <Button
+                variant={isIceplantMode ? 'contained' : 'outlined'}
+                onClick={() => setIsIceplantMode(true)}
+              >
+                Iceplant Sale
+              </Button>
+              <Button
+                variant={!isIceplantMode ? 'contained' : 'outlined'}
+                onClick={() => setIsIceplantMode(false)}
+              >
+                Inventory Sale
+              </Button>
+            </ButtonGroup>
           </Box>
           <SalesForm onSaleAdded={handleSaleAdded} isIceplantMode={isIceplantMode} />
         </Paper>
@@ -1270,26 +1274,38 @@ const SalesPage: React.FC = (): React.ReactElement => {
                </Box>
              </DialogTitle>
              <DialogContent>
-               <FormControlLabel
-                 control={
-                   <Checkbox
-                     checked={editableSale?.is_iceplant}
-                     onChange={(e) =>
-                       setEditableSale(prev => {
-                         if (!prev) return prev;
-                         return {
-                           ...prev,
-                           id: prev.id,  // preserve required id
-                           is_iceplant: e.target.checked,
-                         };
-                       })
-                     }
-                     color="primary"
-                   />
-                 }
-                 label="Is Iceplant Sale?"
-                 sx={{ mb: 2 }}
-               />
+               <ButtonGroup variant="outlined" color="primary" sx={{ mb: 2 }}>
+                 <Button
+                   variant={editableSale?.is_iceplant ? 'contained' : 'outlined'}
+                   onClick={() =>
+                     setEditableSale(prev => {
+                       if (!prev) return prev;
+                       return {
+                         ...prev,
+                         id: prev.id,
+                         is_iceplant: true,
+                       };
+                     })
+                   }
+                 >
+                   Iceplant Sale
+                 </Button>
+                 <Button
+                   variant={!editableSale?.is_iceplant ? 'contained' : 'outlined'}
+                   onClick={() =>
+                     setEditableSale(prev => {
+                       if (!prev) return prev;
+                       return {
+                         ...prev,
+                         id: prev.id,
+                         is_iceplant: false,
+                       };
+                     })
+                   }
+                 >
+                   Inventory Sale
+                 </Button>
+               </ButtonGroup>
                {editableSale ? (
                  <Grid container spacing={2} sx={{ mt: 1 }}>
                    <Grid item xs={12} md={6}>
