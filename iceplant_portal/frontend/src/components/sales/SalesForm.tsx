@@ -43,7 +43,7 @@ interface SaleFormData {
   is_iceplant: boolean;
   items: {
     id?: string; // for existing items during update
-    inventory_item: string | { id?: string; pk?: string }; // inventory item ID or object
+    inventory_item: string | { id?: string; pk?: string } | undefined; // inventory item ID or object or undefined
     quantity: number | '';
     unit_price: number | '';
   }[];
@@ -666,7 +666,7 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
 
           <Grid item xs={12}>
             <h3>Sale Items</h3>
-            {!props.isIceplantMode && (
+            {!isIceplantMode && (
                 <>
                     {formData.items.map((item, index) => (
                         <Grid container spacing={1} key={index} alignItems="center">
@@ -746,7 +746,7 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
             </button>
           </Grid>
 
-          {props.isIceplantMode && (
+          {isIceplantMode && (
             <>
               {/* Row 3: Pickup Qty, Deliver Qty, Price */}
               <Grid item xs={12} sm={4}>

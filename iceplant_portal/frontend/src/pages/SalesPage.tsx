@@ -17,7 +17,6 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Chip,
   TextField,
   Select,
   FormControl,
@@ -34,9 +33,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Autocomplete,
-  Checkbox,
-  FormControlLabel
+  Autocomplete
 } from '@mui/material';
 
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -62,6 +59,7 @@ interface SaleItem {
 
 interface Sale extends BaseSale {
   items: SaleItem[];
+  _expanded?: boolean;
 }
 import { BuyerLight } from '../types/buyers';
 import { useAuth } from '../contexts/AuthContext';
@@ -89,6 +87,7 @@ declare module '../types/sales' {
   interface Sale {
     is_iceplant: boolean;
     items: SaleItem[];
+    _expanded?: boolean;
   }
 }
 
@@ -588,7 +587,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
   };
 
   // Update Autocomplete handlers
-  const handleBuyerFilterChange = (event: any, newValue: string | BuyerLight | null) => {
+  const handleBuyerFilterChange = (_event: any, newValue: string | BuyerLight | null) => {
     console.log('[SalesPage] Buyer filter selection changed:', newValue);
     let buyerNameToSet = '';
     if (typeof newValue === 'string') {
@@ -604,7 +603,7 @@ const SalesPage: React.FC = (): React.ReactElement => {
     }
   };
 
-  const handleBuyerInputChange = (event: any, newInputValue: string, reason: string) => {
+  const handleBuyerInputChange = (_event: any, newInputValue: string, reason: string) => {
     console.log(`[SalesPage] Buyer input changed: '${newInputValue}', reason: ${reason}`);
     // Only update the state for display as user types
     // The actual filter trigger happens via onChange (handleBuyerFilterChange)
