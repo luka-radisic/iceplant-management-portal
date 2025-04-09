@@ -1,6 +1,6 @@
 import random
 from django.core.management.base import BaseCommand
-from inventory.models import InventoryItem
+from inventory.models import Inventory
 
 INVENTORY_ITEMS = [
     # Ice plant
@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if options['reset']:
-            InventoryItem.objects.all().delete()
+            Inventory.objects.all().delete()
             self.stdout.write(self.style.WARNING('Existing inventory deleted.'))
 
         volume = min(options['volume'], len(INVENTORY_ITEMS))
@@ -36,12 +36,11 @@ class Command(BaseCommand):
             name, unit, min_level = INVENTORY_ITEMS[i]
             quantity = random.randint(min_level + 5, min_level + 100)
 
-            InventoryItem.objects.update_or_create(
-                name=name,
+            Inventory.objects.update_or_create(
+                item_name=name,
                 defaults={
                     'unit': unit,
                     'quantity': quantity,
-                    'min_level': min_level,
                 }
             )
         self.stdout.write(self.style.SUCCESS(f'{volume} inventory items generated successfully.'))

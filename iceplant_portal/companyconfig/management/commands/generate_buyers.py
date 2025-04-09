@@ -45,7 +45,6 @@ class Command(BaseCommand):
             Buyer.objects.update_or_create(
                 name=company,
                 defaults={
-                    'contact_person': contact_person,
                     'phone': phone,
                     'email': email,
                     'address': address,

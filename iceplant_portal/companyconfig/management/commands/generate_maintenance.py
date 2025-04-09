@@ -4,19 +4,42 @@ from django.utils import timezone
 from maintenance.models import MaintenanceItem, MaintenanceRecord
 
 EQUIPMENT = [
+    # Ice Plant
     "Brine Tank 1", "Brine Tank 2", "Brine Tank 3",
     "Compressor Unit 1", "Compressor Unit 2",
-    "Ice Block Molds", "Delivery Truck ABC-1234",
-    "Refrigeration Unit A", "Refrigeration Unit B",
-    "Welding Machine", "Cutting Machine"
+    "Ice Block Molds", "Refrigeration Unit A", "Refrigeration Unit B",
+    # Warehouse
+    "Forklift 1", "Forklift 2", "Pallet Jack 1", "Warehouse Conveyor",
+    # Office
+    "Office Aircon 1", "Office Aircon 2", "Printer A", "Printer B", "Server Rack",
+    # Vehicles
+    "Delivery Truck ABC-1234", "Delivery Truck XYZ-5678",
+    # Workshop
+    "Welding Machine", "Cutting Machine", "Drill Press", "Lathe Machine"
 ]
 
 DESCRIPTIONS = [
     "Routine cleaning", "Oil change", "Leak repair", "Electrical inspection",
-    "Parts replacement", "Calibration", "Pressure test", "Filter replacement"
+    "Parts replacement", "Calibration", "Pressure test", "Filter replacement",
+    "Software update", "Firmware upgrade", "Battery replacement", "Coolant refill",
+    "Safety inspection", "Emergency repair", "Noise troubleshooting", "Overhaul"
 ]
 
-STATUSES = ["Completed", "Scheduled", "In Progress"]
+STATUSES = ["completed", "scheduled", "in_progress"]
+
+MAINTENANCE_TYPES = ["scheduled", "emergency", "preventive", "corrective"]
+
+ISSUES = [
+    "Overheating detected", "Unusual noise", "Leak found", "Electrical fault",
+    "Wear and tear", "Calibration drift", "Software bug", "Power failure",
+    "Low coolant", "Filter clogging", "Battery low", "Corrosion observed"
+]
+
+RECOMMENDATIONS = [
+    "Monitor closely", "Schedule follow-up", "Replace worn parts", "Upgrade firmware",
+    "Increase inspection frequency", "Train staff", "Order spare parts", "Improve ventilation",
+    "Lubricate moving parts", "Check power supply", "Replace filters regularly"
+]
 
 def random_date():
     start = timezone.datetime(2025, 1, 1, tzinfo=timezone.get_current_timezone())
@@ -39,23 +62,36 @@ class Command(BaseCommand):
         # Create equipment items
         equipment_objs = []
         for eq_name in EQUIPMENT:
-            eq, _ = MaintenanceItem.objects.get_or_create(name=eq_name)
+            eq, _ = MaintenanceItem.objects.get_or_create(equipment_name=eq_name)
             equipment_objs.append(eq)
 
         volume = options['volume']
         for _ in range(volume):
             equipment = random.choice(equipment_objs)
             description = random.choice(DESCRIPTIONS)
-            cost = random.randint(1000, 50000)
+            cost = round(random.uniform(500, 50000), 2)
             date = random_date().date()
-            status = random.choice(STATUSES)
+            status = random.choices(
+                ["completed", "scheduled", "in_progress"],
+                weights=[0.5, 0.3, 0.2]
+            )[0]
+            maintenance_type = random.choice(MAINTENANCE_TYPES)
+            issue = random.choice(ISSUES)
+            recommendation = random.choice(RECOMMENDATIONS)
+            performed_by = random.choice(["Technician A", "Technician B", "Vendor X", "Vendor Y", "In-house Staff"])
+            duration = round(random.uniform(0.5, 8.0), 1)
 
             MaintenanceRecord.objects.create(
-                equipment=equipment,
-                description=description,
+                maintenance_item=equipment,
+                maintenance_type=maintenance_type,
+                performed_by=performed_by,
                 cost=cost,
                 maintenance_date=date,
                 status=status,
+                issues_found=issue,
+                actions_taken=description,
+                recommendations=recommendation,
+                duration=duration
             )
 
         self.stdout.write(self.style.SUCCESS(f'{volume} maintenance records generated successfully.'))

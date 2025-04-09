@@ -3,8 +3,7 @@
 echo "Generating Users..."
 python iceplant_portal/manage.py generate_users --reset
 
-echo "Generating Employees..."
-python iceplant_portal/manage.py generate_employees --reset --volume=50
+# Skipping Employees generation (deprecated)
 
 echo "Generating Buyers..."
 python iceplant_portal/manage.py generate_buyers --reset --volume=50

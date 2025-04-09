@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from sales.models import Sale, SaleItem
 from buyers.models import Buyer
-from inventory.models import InventoryItem
+from inventory.models import Inventory
 
 STATUSES = ["Completed", "Pending", "Cancelled"]
 
@@ -26,7 +26,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('Existing sales and sale items deleted.'))
 
         buyers = list(Buyer.objects.all())
-        inventory_items = list(InventoryItem.objects.all())
+        inventory_items = list(Inventory.objects.all())
 
         if not buyers or not inventory_items:
             self.stdout.write(self.style.ERROR('Buyers and inventory must exist before generating sales.'))
@@ -52,7 +52,7 @@ class Command(BaseCommand):
                 status=status,
                 buyer=buyer,
                 buyer_name=buyer.name,
-                buyer_contact=buyer.contact_person,
+                buyer_contact=buyer.phone,
                 po_number=f"PO-{random.randint(1000,9999)}",
                 is_iceplant=True,
                 pickup_quantity=pickup_qty,
