@@ -35,6 +35,45 @@ interface WeekendRecord {
 }
 
 const WeekendWork: React.FC = () => {
+
+  function getCookie(name: string) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  const updateApprovalStatus = async (id: number, status: string) => {
+    try {
+      const csrfToken = getCookie('csrftoken');
+      const response = await fetch(`/api/attendance/attendance/${id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken || '',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ approval_status: status }),
+      });
+      if (!response.ok) throw new Error('Failed to update approval status');
+      // Update local state
+      setRecords((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, approval_status: status } : r
+        )
+      );
+    } catch (error) {
+      alert('Error updating approval status: ' + (error as Error).message);
+    }
+  };
   const [records, setRecords] = useState<WeekendRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -363,7 +402,7 @@ const WeekendWork: React.FC = () => {
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          alert(`Approve record ${record.id}`);
+                          updateApprovalStatus(record.id, 'approved');
                         }}
                       >
                         Approve
@@ -384,7 +423,7 @@ const WeekendWork: React.FC = () => {
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          alert(`Reject record ${record.id}`);
+                          updateApprovalStatus(record.id, 'rejected');
                         }}
                       >
                         Reject
