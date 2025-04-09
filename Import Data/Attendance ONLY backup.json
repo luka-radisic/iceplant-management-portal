@@ -109,19 +109,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 9,
-  "fields": {
-    "employee_id": "14",
-    "employee_name": "Beldeniza Francisco A.",
-    "check_in": "2025-04-05T00:12:55Z",
-    "check_out": "2025-04-05T00:12:58Z",
-    "department": "Atlantis Fishing Development Corp\\Mechanic",
-    "import_date": "2025-04-09T00:53:19.393Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 10,
   "fields": {
     "employee_id": "122",
@@ -187,19 +174,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 16,
-  "fields": {
-    "employee_id": "17",
-    "employee_name": "Bustillos Jenny T.",
-    "check_in": "2025-04-05T00:09:19Z",
-    "check_out": "2025-04-05T00:09:22Z",
-    "department": "Atlantis Fishing Development Corp\\ADMIN",
-    "import_date": "2025-04-09T00:53:19.397Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 17,
   "fields": {
     "employee_id": "65",
@@ -252,19 +226,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 22,
-  "fields": {
-    "employee_id": "143",
-    "employee_name": "REPOLLO ERICSON",
-    "check_in": "2025-04-05T00:01:01Z",
-    "check_out": "2025-04-05T00:01:04Z",
-    "department": "Atlantis Fishing Development Corp\\Weekly",
-    "import_date": "2025-04-09T00:53:19.401Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 23,
   "fields": {
     "employee_id": "145",
@@ -273,19 +234,6 @@
     "check_out": null,
     "department": "Atlantis Fishing Development Corp\\Mechanic",
     "import_date": "2025-04-09T00:53:19.402Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 25,
-  "fields": {
-    "employee_id": "28",
-    "employee_name": "Dayanan Joeffel S.",
-    "check_in": "2025-04-04T23:59:11Z",
-    "check_out": "2025-04-04T23:59:14Z",
-    "department": "Atlantis Fishing Development Corp\\Mechanic",
-    "import_date": "2025-04-09T00:53:19.403Z",
     "hr_notes": null
   }
 },
@@ -304,32 +252,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 28,
-  "fields": {
-    "employee_id": "21",
-    "employee_name": "Catabijan Jhon P.",
-    "check_in": "2025-04-04T23:57:45Z",
-    "check_out": "2025-04-04T23:57:49Z",
-    "department": "Atlantis Fishing Development Corp\\Mechanic",
-    "import_date": "2025-04-09T00:53:19.406Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 30,
-  "fields": {
-    "employee_id": "48",
-    "employee_name": "Helladoga Joel S.",
-    "check_in": "2025-04-04T23:54:39Z",
-    "check_out": "2025-04-04T23:54:43Z",
-    "department": "Atlantis Fishing Development Corp\\Mechanic",
-    "import_date": "2025-04-09T00:53:19.407Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 31,
   "fields": {
     "employee_id": "72",
@@ -343,84 +265,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 33,
-  "fields": {
-    "employee_id": "120",
-    "employee_name": "Borlaza Joel O.",
-    "check_in": "2025-04-04T23:53:45Z",
-    "check_out": "2025-04-04T23:53:48Z",
-    "department": "Atlantis Fishing Development Corp\\290",
-    "import_date": "2025-04-09T00:53:19.409Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 36,
-  "fields": {
-    "employee_id": "140",
-    "employee_name": "Milan Jay O.",
-    "check_in": "2025-04-04T23:51:11Z",
-    "check_out": "2025-04-04T23:51:18Z",
-    "department": "Atlantis Fishing Development Corp\\Weekly",
-    "import_date": "2025-04-09T00:53:19.411Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 38,
-  "fields": {
-    "employee_id": "144",
-    "employee_name": "Ybañez Edgar",
-    "check_in": "2025-04-04T23:50:43Z",
-    "check_out": "2025-04-04T23:50:46Z",
-    "department": "Atlantis Fishing Development Corp\\Weekly",
-    "import_date": "2025-04-09T00:53:19.413Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 40,
-  "fields": {
-    "employee_id": "36",
-    "employee_name": "Encarnado Anthony",
-    "check_in": "2025-04-04T23:49:46Z",
-    "check_out": "2025-04-04T23:49:49Z",
-    "department": "Atlantis Fishing Development Corp\\289",
-    "import_date": "2025-04-09T00:53:19.414Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 43,
-  "fields": {
-    "employee_id": "115",
-    "employee_name": "Anuncio Adelino",
-    "check_in": "2025-04-04T23:47:11Z",
-    "check_out": "2025-04-04T23:47:17Z",
-    "department": "Atlantis Fishing Development Corp\\295",
-    "import_date": "2025-04-09T00:53:19.416Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 45,
-  "fields": {
-    "employee_id": "74",
-    "employee_name": "Omaña Edwin",
-    "check_in": "2025-04-04T23:43:27Z",
-    "check_out": "2025-04-04T23:43:31Z",
-    "department": "Atlantis Fishing Development Corp\\Mechanic",
-    "import_date": "2025-04-09T00:53:19.417Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 46,
   "fields": {
     "employee_id": "7",
@@ -429,32 +273,6 @@
     "check_out": null,
     "department": "Atlantis Fishing Development Corp\\Mechanic",
     "import_date": "2025-04-09T00:53:19.418Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 50,
-  "fields": {
-    "employee_id": "105",
-    "employee_name": "Toñon Claudio N",
-    "check_in": "2025-04-04T23:42:33Z",
-    "check_out": "2025-04-04T23:42:42Z",
-    "department": "Atlantis Fishing Development Corp\\290",
-    "import_date": "2025-04-09T00:53:19.422Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 52,
-  "fields": {
-    "employee_id": "25",
-    "employee_name": "Comajes Ricardo A.",
-    "check_in": "2025-04-04T23:38:01Z",
-    "check_out": "2025-04-04T23:38:04Z",
-    "department": "Atlantis Fishing Development Corp\\Mechanic",
-    "import_date": "2025-04-09T00:53:19.423Z",
     "hr_notes": null
   }
 },
@@ -512,32 +330,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 58,
-  "fields": {
-    "employee_id": "148",
-    "employee_name": "Glen Beterbo",
-    "check_in": "2025-04-04T22:59:11Z",
-    "check_out": "2025-04-04T22:59:14Z",
-    "department": "Atlantis Fishing Development Corp\\289",
-    "import_date": "2025-04-09T00:53:19.427Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 60,
-  "fields": {
-    "employee_id": "141",
-    "employee_name": "BRIGOLE JIMBOY",
-    "check_in": "2025-04-04T22:54:13Z",
-    "check_out": "2025-04-04T22:54:16Z",
-    "department": "Atlantis Fishing Development Corp\\Weekly",
-    "import_date": "2025-04-09T00:53:19.428Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 61,
   "fields": {
     "employee_id": "59",
@@ -546,19 +338,6 @@
     "check_out": null,
     "department": "Atlantis Fishing Development Corp\\Fiber",
     "import_date": "2025-04-09T00:53:19.428Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 63,
-  "fields": {
-    "employee_id": "80",
-    "employee_name": "Palao Ricalin C.",
-    "check_in": "2025-04-04T22:19:35Z",
-    "check_out": "2025-04-04T22:19:37Z",
-    "department": "Atlantis Fishing Development Corp\\289",
-    "import_date": "2025-04-09T00:53:19.430Z",
     "hr_notes": null
   }
 },
@@ -2254,19 +2033,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 485,
-  "fields": {
-    "employee_id": "5",
-    "employee_name": "Amores Anastacio",
-    "check_in": "2025-04-01T23:57:29Z",
-    "check_out": "2025-04-01T23:58:03Z",
-    "department": "Atlantis Fishing Development Corp\\Mechanic",
-    "import_date": "2025-04-09T00:53:19.754Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 490,
   "fields": {
     "employee_id": "140",
@@ -2431,19 +2197,6 @@
     "check_out": null,
     "department": "Atlantis Fishing Development Corp\\292",
     "import_date": "2025-04-09T00:53:19.777Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 516,
-  "fields": {
-    "employee_id": "43",
-    "employee_name": "Ganato Jourdan",
-    "check_in": "2025-04-01T23:39:15Z",
-    "check_out": "2025-04-01T23:39:18Z",
-    "department": "Atlantis Fishing Development Corp\\292",
-    "import_date": "2025-04-09T00:53:19.778Z",
     "hr_notes": null
   }
 },
@@ -2639,19 +2392,6 @@
     "check_out": "2025-04-02T09:11:13Z",
     "department": "Atlantis Fishing Development Corp\\Mechanic",
     "import_date": "2025-04-09T00:53:19.803Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 549,
-  "fields": {
-    "employee_id": "118",
-    "employee_name": "Batac Arnel B.",
-    "check_in": "2025-04-01T22:45:33Z",
-    "check_out": "2025-04-01T22:45:36Z",
-    "department": "Atlantis Fishing Development Corp\\Ice_Plant",
-    "import_date": "2025-04-09T00:53:19.805Z",
     "hr_notes": null
   }
 },
@@ -2891,19 +2631,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 608,
-  "fields": {
-    "employee_id": "78",
-    "employee_name": "Pagdato Lovely Jem S.",
-    "check_in": "2025-03-31T23:57:47Z",
-    "check_out": "2025-03-31T23:57:53Z",
-    "department": "Atlantis Fishing Development Corp\\292",
-    "import_date": "2025-04-09T00:53:19.858Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 609,
   "fields": {
     "employee_id": "53",
@@ -3068,19 +2795,6 @@
     "check_out": null,
     "department": "Atlantis Fishing Development Corp\\ADMIN",
     "import_date": "2025-04-09T00:53:19.882Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 643,
-  "fields": {
-    "employee_id": "10",
-    "employee_name": "Bajamonde Dioscoro P.",
-    "check_in": "2025-03-31T19:41:38Z",
-    "check_out": "2025-03-31T19:42:30Z",
-    "department": "Atlantis Fishing Development Corp\\293",
-    "import_date": "2025-04-09T00:53:19.890Z",
     "hr_notes": null
   }
 },
@@ -4087,19 +3801,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 891,
-  "fields": {
-    "employee_id": "77",
-    "employee_name": "Padinit Reynante B.",
-    "check_in": "2025-03-29T22:18:54Z",
-    "check_out": "2025-03-29T22:18:57Z",
-    "department": "Atlantis Fishing Development Corp\\Ice_Plant",
-    "import_date": "2025-04-09T00:53:20.093Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 892,
   "fields": {
     "employee_id": "6",
@@ -4160,19 +3861,6 @@
     "check_out": null,
     "department": "Atlantis Fishing Development Corp\\ADMIN",
     "import_date": "2025-04-09T00:53:20.097Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 974,
-  "fields": {
-    "employee_id": "105",
-    "employee_name": "Toñon Claudio N",
-    "check_in": "2025-03-29T09:01:31Z",
-    "check_out": "2025-03-29T09:05:47Z",
-    "department": "Atlantis Fishing Development Corp\\290",
-    "import_date": "2025-04-09T00:53:20.272Z",
     "hr_notes": null
   }
 },
@@ -4251,19 +3939,6 @@
     "check_out": "2025-03-29T10:07:46Z",
     "department": "Atlantis Fishing Development Corp\\292",
     "import_date": "2025-04-09T00:53:20.293Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 995,
-  "fields": {
-    "employee_id": "137",
-    "employee_name": "VILLARIN RAMONITO",
-    "check_in": "2025-03-29T00:19:42Z",
-    "check_out": "2025-03-29T00:19:51Z",
-    "department": "Atlantis Fishing Development Corp\\Weekly",
-    "import_date": "2025-04-09T00:53:20.297Z",
     "hr_notes": null
   }
 },
@@ -4451,19 +4126,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 1015,
-  "fields": {
-    "employee_id": "122",
-    "employee_name": "Cherra Mae Opeña",
-    "check_in": "2025-03-29T00:06:07Z",
-    "check_out": "2025-03-29T00:06:10Z",
-    "department": "Atlantis Fishing Development Corp\\ADMIN",
-    "import_date": "2025-04-09T00:53:20.318Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 1016,
   "fields": {
     "employee_id": "63",
@@ -4646,19 +4308,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 1042,
-  "fields": {
-    "employee_id": "78",
-    "employee_name": "Pagdato Lovely Jem S.",
-    "check_in": "2025-03-28T23:49:44Z",
-    "check_out": "2025-03-28T23:50:45Z",
-    "department": "Atlantis Fishing Development Corp\\292",
-    "import_date": "2025-04-09T00:53:20.344Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 1043,
   "fields": {
     "employee_id": "24",
@@ -4719,19 +4368,6 @@
     "check_out": "2025-03-29T09:16:09Z",
     "department": "Atlantis Fishing Development Corp\\294",
     "import_date": "2025-04-09T00:53:20.349Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 1051,
-  "fields": {
-    "employee_id": "120",
-    "employee_name": "Borlaza Joel O.",
-    "check_in": "2025-03-28T23:40:13Z",
-    "check_out": "2025-03-28T23:40:19Z",
-    "department": "Atlantis Fishing Development Corp\\290",
-    "import_date": "2025-04-09T00:53:20.352Z",
     "hr_notes": null
   }
 },
@@ -5023,19 +4659,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 1162,
-  "fields": {
-    "employee_id": "55",
-    "employee_name": "Labra Adonis B.",
-    "check_in": "2025-03-28T08:03:27Z",
-    "check_out": "2025-03-28T08:03:28Z",
-    "department": "Atlantis Fishing Development Corp\\ADMIN",
-    "import_date": "2025-04-09T00:53:20.450Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 1163,
   "fields": {
     "employee_id": "72",
@@ -5070,19 +4693,6 @@
     "check_out": "2025-03-28T14:05:22Z",
     "department": "Atlantis Fishing Development Corp\\Ice_Plant",
     "import_date": "2025-04-09T00:53:20.457Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 1172,
-  "fields": {
-    "employee_id": "116",
-    "employee_name": "Cabatbat Jade M.",
-    "check_in": "2025-03-28T00:41:08Z",
-    "check_out": "2025-03-28T00:41:09Z",
-    "department": "Atlantis Fishing Development Corp\\293",
-    "import_date": "2025-04-09T00:53:20.459Z",
     "hr_notes": null
   }
 },
@@ -6375,19 +5985,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 1425,
-  "fields": {
-    "employee_id": "115",
-    "employee_name": "Anuncio Adelino",
-    "check_in": "2025-03-26T23:45:41Z",
-    "check_out": "2025-03-26T23:45:47Z",
-    "department": "Atlantis Fishing Development Corp\\295",
-    "import_date": "2025-04-09T00:53:20.653Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 1428,
   "fields": {
     "employee_id": "68",
@@ -6895,19 +6492,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 1581,
-  "fields": {
-    "employee_id": "107",
-    "employee_name": "Tuanquin Romeo U.",
-    "check_in": "2025-03-26T00:08:47Z",
-    "check_out": "2025-03-26T00:08:51Z",
-    "department": "Atlantis Fishing Development Corp\\295",
-    "import_date": "2025-04-09T00:53:20.776Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 1582,
   "fields": {
     "employee_id": "55",
@@ -7064,19 +6648,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 1598,
-  "fields": {
-    "employee_id": "89",
-    "employee_name": "Rama Rengie",
-    "check_in": "2025-03-25T23:56:18Z",
-    "check_out": "2025-03-25T23:56:21Z",
-    "department": "Atlantis Fishing Development Corp\\295",
-    "import_date": "2025-04-09T00:53:20.790Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 1599,
   "fields": {
     "employee_id": "39",
@@ -7181,19 +6752,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 1615,
-  "fields": {
-    "employee_id": "62",
-    "employee_name": "Mabaga Jonathan R.",
-    "check_in": "2025-03-25T23:51:08Z",
-    "check_out": "2025-03-25T23:51:11Z",
-    "department": "Atlantis Fishing Development Corp\\295",
-    "import_date": "2025-04-09T00:53:20.804Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 1617,
   "fields": {
     "employee_id": "120",
@@ -7215,19 +6773,6 @@
     "check_out": "2025-03-26T09:08:22Z",
     "department": "Atlantis Fishing Development Corp\\294",
     "import_date": "2025-04-09T00:53:20.808Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 1620,
-  "fields": {
-    "employee_id": "99",
-    "employee_name": "Semblante Jessie Rey",
-    "check_in": "2025-03-25T23:47:27Z",
-    "check_out": "2025-03-25T23:47:30Z",
-    "department": "Atlantis Fishing Development Corp\\293",
-    "import_date": "2025-04-09T00:53:20.809Z",
     "hr_notes": null
   }
 },
@@ -7280,19 +6825,6 @@
     "check_out": "2025-03-26T09:04:37Z",
     "department": "Atlantis Fishing Development Corp\\Mechanic",
     "import_date": "2025-04-09T00:53:20.819Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 1629,
-  "fields": {
-    "employee_id": "66",
-    "employee_name": "Maruto Benjo Y.",
-    "check_in": "2025-03-25T23:39:25Z",
-    "check_out": "2025-03-25T23:39:28Z",
-    "department": "Atlantis Fishing Development Corp\\295",
-    "import_date": "2025-04-09T00:53:20.822Z",
     "hr_notes": null
   }
 },
@@ -7475,19 +7007,6 @@
     "check_out": "2025-03-26T09:59:48Z",
     "department": "Atlantis Fishing Development Corp\\Fiber",
     "import_date": "2025-04-09T00:53:20.841Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 1654,
-  "fields": {
-    "employee_id": "109",
-    "employee_name": "Vallejo Reil R.",
-    "check_in": "2025-03-25T22:40:03Z",
-    "check_out": "2025-03-25T22:40:06Z",
-    "department": "Atlantis Fishing Development Corp\\295",
-    "import_date": "2025-04-09T00:53:20.843Z",
     "hr_notes": null
   }
 },
@@ -8702,19 +8221,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 2000,
-  "fields": {
-    "employee_id": "108",
-    "employee_name": "Bacaling Romeo L.",
-    "check_in": "2025-03-24T00:13:08Z",
-    "check_out": "2025-03-24T00:13:24Z",
-    "department": "Atlantis Fishing Development Corp\\Mechanic",
-    "import_date": "2025-04-09T00:53:21.117Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 2004,
   "fields": {
     "employee_id": "14",
@@ -9495,19 +9001,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 2123,
-  "fields": {
-    "employee_id": "56",
-    "employee_name": "Lagmay Eddie J.",
-    "check_in": "2025-03-23T00:08:34Z",
-    "check_out": "2025-03-23T00:08:37Z",
-    "department": "Atlantis Fishing Development Corp\\287",
-    "import_date": "2025-04-09T00:53:21.240Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 2125,
   "fields": {
     "employee_id": "95",
@@ -9568,19 +9061,6 @@
     "check_out": "2025-03-23T09:21:28Z",
     "department": "Atlantis Fishing Development Corp\\295",
     "import_date": "2025-04-09T00:53:21.248Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 2133,
-  "fields": {
-    "employee_id": "15",
-    "employee_name": "Beterbo Cesar C.",
-    "check_in": "2025-03-22T23:09:15Z",
-    "check_out": "2025-03-22T23:09:18Z",
-    "department": "Atlantis Fishing Development Corp\\287",
-    "import_date": "2025-04-09T00:53:21.252Z",
     "hr_notes": null
   }
 },
@@ -10158,19 +9638,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 2297,
-  "fields": {
-    "employee_id": "137",
-    "employee_name": "VILLARIN RAMONITO",
-    "check_in": "2025-03-21T23:42:57Z",
-    "check_out": "2025-03-21T23:43:00Z",
-    "department": "Atlantis Fishing Development Corp\\Weekly",
-    "import_date": "2025-04-09T00:53:21.402Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 2299,
   "fields": {
     "employee_id": "74",
@@ -10522,19 +9989,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 2350,
-  "fields": {
-    "employee_id": "77",
-    "employee_name": "Padinit Reynante B.",
-    "check_in": "2025-03-21T11:34:49Z",
-    "check_out": "2025-03-21T11:34:52Z",
-    "department": "Atlantis Fishing Development Corp\\Ice_Plant",
-    "import_date": "2025-04-09T00:53:21.447Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 2441,
   "fields": {
     "employee_id": "6",
@@ -10712,19 +10166,6 @@
     "check_out": "2025-03-21T09:19:21Z",
     "department": "Atlantis Fishing Development Corp\\ADMIN",
     "import_date": "2025-04-09T00:53:21.544Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 2461,
-  "fields": {
-    "employee_id": "12",
-    "employee_name": "Bandiola Hiromi F.",
-    "check_in": "2025-03-21T00:09:09Z",
-    "check_out": "2025-03-21T00:09:13Z",
-    "department": "Atlantis Fishing Development Corp\\ADMIN",
-    "import_date": "2025-04-09T00:53:21.547Z",
     "hr_notes": null
   }
 },
@@ -10933,19 +10374,6 @@
     "check_out": "2025-03-21T09:53:28Z",
     "department": "Atlantis Fishing Development Corp\\295",
     "import_date": "2025-04-09T00:53:21.562Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 2485,
-  "fields": {
-    "employee_id": "99",
-    "employee_name": "Semblante Jessie Rey",
-    "check_in": "2025-03-20T23:56:20Z",
-    "check_out": "2025-03-20T23:56:23Z",
-    "department": "Atlantis Fishing Development Corp\\293",
-    "import_date": "2025-04-09T00:53:21.564Z",
     "hr_notes": null
   }
 },
@@ -12472,19 +11900,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 2868,
-  "fields": {
-    "employee_id": "116",
-    "employee_name": "Cabatbat Jade M.",
-    "check_in": "2025-03-19T00:14:33Z",
-    "check_out": "2025-03-19T00:14:36Z",
-    "department": "Atlantis Fishing Development Corp\\293",
-    "import_date": "2025-04-09T00:53:21.872Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 2870,
   "fields": {
     "employee_id": "38",
@@ -13187,19 +12602,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 2950,
-  "fields": {
-    "employee_id": "47",
-    "employee_name": "Halaman Ariel T.",
-    "check_in": "2025-03-18T22:08:14Z",
-    "check_out": "2025-03-18T22:08:18Z",
-    "department": "Atlantis Fishing Development Corp\\Ice_Plant",
-    "import_date": "2025-04-09T00:53:21.933Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 2951,
   "fields": {
     "employee_id": "77",
@@ -13260,19 +12662,6 @@
     "check_out": "2025-03-19T08:03:11Z",
     "department": "Atlantis Fishing Development Corp\\ADMIN",
     "import_date": "2025-04-09T00:53:21.940Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 2963,
-  "fields": {
-    "employee_id": "77",
-    "employee_name": "Padinit Reynante B.",
-    "check_in": "2025-03-18T11:07:03Z",
-    "check_out": "2025-03-18T11:07:06Z",
-    "department": "Atlantis Fishing Development Corp\\Ice_Plant",
-    "import_date": "2025-04-09T00:53:21.945Z",
     "hr_notes": null
   }
 },
@@ -13603,19 +12992,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 3128,
-  "fields": {
-    "employee_id": "23",
-    "employee_name": "Claro Anthony A.",
-    "check_in": "2025-03-18T00:07:46Z",
-    "check_out": "2025-03-18T00:07:53Z",
-    "department": "Atlantis Fishing Development Corp\\293",
-    "import_date": "2025-04-09T00:53:22.099Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 3130,
   "fields": {
     "employee_id": "101",
@@ -13876,19 +13252,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 3165,
-  "fields": {
-    "employee_id": "75",
-    "employee_name": "Ondap Willijado L.",
-    "check_in": "2025-03-17T23:49:44Z",
-    "check_out": "2025-03-17T23:49:48Z",
-    "department": "Atlantis Fishing Development Corp\\291",
-    "import_date": "2025-04-09T00:53:22.129Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 3168,
   "fields": {
     "employee_id": "74",
@@ -14144,19 +13507,6 @@
     "check_out": "2025-03-18T09:05:37Z",
     "department": "Atlantis Fishing Development Corp\\Mechanic",
     "import_date": "2025-04-09T00:53:22.157Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 3200,
-  "fields": {
-    "employee_id": "4",
-    "employee_name": "Alvarez Juniel D.",
-    "check_in": "2025-03-17T23:13:37Z",
-    "check_out": "2025-03-17T23:13:43Z",
-    "department": "Atlantis Fishing Development Corp\\291",
-    "import_date": "2025-04-09T00:53:22.160Z",
     "hr_notes": null
   }
 },
@@ -15046,19 +14396,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 3434,
-  "fields": {
-    "employee_id": "35",
-    "employee_name": "Dueñas Antonino",
-    "check_in": "2025-03-16T23:36:57Z",
-    "check_out": "2025-03-16T23:37:02Z",
-    "department": "Atlantis Fishing Development Corp\\285",
-    "import_date": "2025-04-09T00:53:22.329Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 3436,
   "fields": {
     "employee_id": "66",
@@ -15210,19 +14547,6 @@
     "check_out": "2025-03-17T09:57:58Z",
     "department": "Atlantis Fishing Development Corp\\Fiber",
     "import_date": "2025-04-09T00:53:22.343Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 3456,
-  "fields": {
-    "employee_id": "1",
-    "employee_name": "Acenas Wilson Joel L.",
-    "check_in": "2025-03-16T23:12:56Z",
-    "check_out": "2025-03-16T23:13:02Z",
-    "department": "Atlantis Fishing Development Corp\\287",
-    "import_date": "2025-04-09T00:53:22.345Z",
     "hr_notes": null
   }
 },
@@ -15665,19 +14989,6 @@
     "check_out": null,
     "department": "Atlantis Fishing Development Corp\\ADMIN",
     "import_date": "2025-04-09T00:53:22.482Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 3680,
-  "fields": {
-    "employee_id": "149",
-    "employee_name": "Mayordomo Romeo",
-    "check_in": "2025-03-15T00:25:47Z",
-    "check_out": "2025-03-15T00:25:48Z",
-    "department": "Atlantis Fishing Development Corp\\289",
-    "import_date": "2025-04-09T00:53:22.483Z",
     "hr_notes": null
   }
 },
@@ -16380,19 +15691,6 @@
     "check_out": "2025-03-15T09:06:57Z",
     "department": "Atlantis Fishing Development Corp\\Mechanic",
     "import_date": "2025-04-09T00:53:22.663Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 3775,
-  "fields": {
-    "employee_id": "104",
-    "employee_name": "Sucayre Romel F.",
-    "check_in": "2025-03-14T23:27:43Z",
-    "check_out": "2025-03-14T23:27:48Z",
-    "department": "Atlantis Fishing Development Corp\\287",
-    "import_date": "2025-04-09T00:53:22.665Z",
     "hr_notes": null
   }
 },
@@ -18933,19 +18231,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 4458,
-  "fields": {
-    "employee_id": "11",
-    "employee_name": "Balungcas Jayson C.",
-    "check_in": "2025-03-12T09:02:01Z",
-    "check_out": "2025-03-12T09:02:04Z",
-    "department": "Atlantis Fishing Development Corp\\291",
-    "import_date": "2025-04-09T00:53:23.118Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 4470,
   "fields": {
     "employee_id": "27",
@@ -21073,19 +20358,6 @@
     "check_out": "2025-03-11T08:01:04Z",
     "department": "Atlantis Fishing Development Corp\\ADMIN",
     "import_date": "2025-04-09T00:53:23.407Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 4866,
-  "fields": {
-    "employee_id": "4",
-    "employee_name": "Alvarez Juniel D.",
-    "check_in": "2025-03-10T10:15:25Z",
-    "check_out": "2025-03-10T10:15:28Z",
-    "department": "Atlantis Fishing Development Corp\\291",
-    "import_date": "2025-04-09T00:53:23.412Z",
     "hr_notes": null
   }
 },
@@ -24575,32 +23847,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 5724,
-  "fields": {
-    "employee_id": "6",
-    "employee_name": "Arellano Mark Anthony",
-    "check_in": "2025-03-06T12:35:49Z",
-    "check_out": "2025-03-06T12:36:18Z",
-    "department": "Atlantis Fishing Development Corp\\Ice_Plant",
-    "import_date": "2025-04-09T00:53:24.008Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 5726,
-  "fields": {
-    "employee_id": "27",
-    "employee_name": "Cueva Jerome F.",
-    "check_in": "2025-03-06T12:16:36Z",
-    "check_out": "2025-03-06T12:16:39Z",
-    "department": "Atlantis Fishing Development Corp\\Ice_Plant",
-    "import_date": "2025-04-09T00:53:24.009Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 5827,
   "fields": {
     "employee_id": "45",
@@ -25571,19 +24817,6 @@
     "check_out": "2025-03-06T06:02:01Z",
     "department": "Atlantis Fishing Development Corp\\Mechanic",
     "import_date": "2025-04-09T00:53:24.196Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
-  "pk": 6070,
-  "fields": {
-    "employee_id": "107",
-    "employee_name": "Tuanquin Romeo U.",
-    "check_in": "2025-03-05T09:05:37Z",
-    "check_out": "2025-03-05T09:05:44Z",
-    "department": "Atlantis Fishing Development Corp\\295",
-    "import_date": "2025-04-09T00:53:24.259Z",
     "hr_notes": null
   }
 },
@@ -29905,19 +29138,6 @@
 },
 {
   "model": "attendance.attendance",
-  "pk": 7051,
-  "fields": {
-    "employee_id": "76",
-    "employee_name": "Oro Franz A.",
-    "check_in": "2025-02-28T21:53:56Z",
-    "check_out": "2025-02-28T21:53:59Z",
-    "department": "Atlantis Fishing Development Corp\\296",
-    "import_date": "2025-04-09T00:53:24.941Z",
-    "hr_notes": null
-  }
-},
-{
-  "model": "attendance.attendance",
   "pk": 7053,
   "fields": {
     "employee_id": "91",
@@ -29955,733 +29175,6 @@
   }
 },
 {
-  "model": "sales.sale",
-  "pk": 1,
-  "fields": {
-    "si_number": "",
-    "sale_date": "2025-04-09",
-    "sale_time": "01:07:47.582",
-    "status": "completed",
-    "buyer": "760391da-c651-4378-9434-36d96bdbdca6",
-    "buyer_name": "Cool Drinks Co.",
-    "buyer_contact": null,
-    "po_number": null,
-    "is_iceplant": true,
-    "pickup_quantity": 0,
-    "delivery_quantity": 0,
-    "brine1_identifier": null,
-    "brine2_identifier": null,
-    "price_per_block": "0.00",
-    "cash_amount": "0.00",
-    "po_amount": "0.00",
-    "notes": null,
-    "created_at": "2025-04-09T01:07:47.583Z",
-    "updated_at": "2025-04-09T01:07:47.583Z"
-  }
-},
-{
-  "model": "sales.sale",
-  "pk": 2,
-  "fields": {
-    "si_number": "",
-    "sale_date": "2025-04-09",
-    "sale_time": "01:11:40.054",
-    "status": "completed",
-    "buyer": "5f24940c-55da-4256-9a86-a80858893957",
-    "buyer_name": "Cool Drinks Co.",
-    "buyer_contact": null,
-    "po_number": null,
-    "is_iceplant": true,
-    "pickup_quantity": 0,
-    "delivery_quantity": 0,
-    "brine1_identifier": null,
-    "brine2_identifier": null,
-    "price_per_block": "0.00",
-    "cash_amount": "0.00",
-    "po_amount": "0.00",
-    "notes": null,
-    "created_at": "2025-04-09T01:11:40.055Z",
-    "updated_at": "2025-04-09T01:11:40.055Z"
-  }
-},
-{
-  "model": "sales.sale",
-  "pk": 3,
-  "fields": {
-    "si_number": "",
-    "sale_date": "2025-04-09",
-    "sale_time": "01:11:40.062",
-    "status": "completed",
-    "buyer": "289e0fd9-8ca2-4dbe-804a-e55b3b73e291",
-    "buyer_name": "Steel Fabricators Inc.",
-    "buyer_contact": null,
-    "po_number": null,
-    "is_iceplant": true,
-    "pickup_quantity": 0,
-    "delivery_quantity": 0,
-    "brine1_identifier": null,
-    "brine2_identifier": null,
-    "price_per_block": "0.00",
-    "cash_amount": "0.00",
-    "po_amount": "0.00",
-    "notes": null,
-    "created_at": "2025-04-09T01:11:40.062Z",
-    "updated_at": "2025-04-09T01:11:40.062Z"
-  }
-},
-{
-  "model": "sales.sale",
-  "pk": 4,
-  "fields": {
-    "si_number": "",
-    "sale_date": "2025-04-09",
-    "sale_time": "01:11:40.068",
-    "status": "completed",
-    "buyer": "b9732dca-3b2f-4170-8090-33dcc4bb0385",
-    "buyer_name": "Hardware Depot",
-    "buyer_contact": null,
-    "po_number": null,
-    "is_iceplant": true,
-    "pickup_quantity": 0,
-    "delivery_quantity": 0,
-    "brine1_identifier": null,
-    "brine2_identifier": null,
-    "price_per_block": "0.00",
-    "cash_amount": "0.00",
-    "po_amount": "0.00",
-    "notes": null,
-    "created_at": "2025-04-09T01:11:40.068Z",
-    "updated_at": "2025-04-09T01:11:40.068Z"
-  }
-},
-{
-  "model": "sales.sale",
-  "pk": 5,
-  "fields": {
-    "si_number": "",
-    "sale_date": "2025-04-09",
-    "sale_time": "01:16:39.899",
-    "status": "completed",
-    "buyer": "b69bedad-42c2-4dcb-83e8-9ed0bbc474a0",
-    "buyer_name": "Cool Drinks Co.",
-    "buyer_contact": null,
-    "po_number": null,
-    "is_iceplant": true,
-    "pickup_quantity": 0,
-    "delivery_quantity": 0,
-    "brine1_identifier": null,
-    "brine2_identifier": null,
-    "price_per_block": "0.00",
-    "cash_amount": "0.00",
-    "po_amount": "0.00",
-    "notes": null,
-    "created_at": "2025-04-09T01:16:39.899Z",
-    "updated_at": "2025-04-09T01:16:39.899Z"
-  }
-},
-{
-  "model": "sales.sale",
-  "pk": 6,
-  "fields": {
-    "si_number": "",
-    "sale_date": "2025-04-09",
-    "sale_time": "01:16:39.907",
-    "status": "completed",
-    "buyer": "36dadb72-3b09-4910-9979-7e935c098d10",
-    "buyer_name": "Steel Fabricators Inc.",
-    "buyer_contact": null,
-    "po_number": null,
-    "is_iceplant": true,
-    "pickup_quantity": 0,
-    "delivery_quantity": 0,
-    "brine1_identifier": null,
-    "brine2_identifier": null,
-    "price_per_block": "0.00",
-    "cash_amount": "0.00",
-    "po_amount": "0.00",
-    "notes": null,
-    "created_at": "2025-04-09T01:16:39.908Z",
-    "updated_at": "2025-04-09T01:16:39.908Z"
-  }
-},
-{
-  "model": "sales.sale",
-  "pk": 7,
-  "fields": {
-    "si_number": "",
-    "sale_date": "2025-04-09",
-    "sale_time": "01:16:39.914",
-    "status": "completed",
-    "buyer": "a02a4be8-511f-4d84-95f1-1297225de913",
-    "buyer_name": "Hardware Depot",
-    "buyer_contact": null,
-    "po_number": null,
-    "is_iceplant": true,
-    "pickup_quantity": 0,
-    "delivery_quantity": 0,
-    "brine1_identifier": null,
-    "brine2_identifier": null,
-    "price_per_block": "0.00",
-    "cash_amount": "0.00",
-    "po_amount": "0.00",
-    "notes": null,
-    "created_at": "2025-04-09T01:16:39.914Z",
-    "updated_at": "2025-04-09T01:16:39.914Z"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 1,
-  "fields": {
-    "sale": 2,
-    "inventory_item": 6,
-    "quantity": 10,
-    "unit_price": "100.00",
-    "total_price": "1000.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 2,
-  "fields": {
-    "sale": 2,
-    "inventory_item": 6,
-    "quantity": 5,
-    "unit_price": "100.00",
-    "total_price": "500.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 3,
-  "fields": {
-    "sale": 3,
-    "inventory_item": 7,
-    "quantity": 20,
-    "unit_price": "250.00",
-    "total_price": "5000.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 4,
-  "fields": {
-    "sale": 3,
-    "inventory_item": 8,
-    "quantity": 10,
-    "unit_price": "150.00",
-    "total_price": "1500.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 5,
-  "fields": {
-    "sale": 4,
-    "inventory_item": 9,
-    "quantity": 5,
-    "unit_price": "80.00",
-    "total_price": "400.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 6,
-  "fields": {
-    "sale": 4,
-    "inventory_item": 10,
-    "quantity": 20,
-    "unit_price": "30.00",
-    "total_price": "600.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 7,
-  "fields": {
-    "sale": 5,
-    "inventory_item": 11,
-    "quantity": 10,
-    "unit_price": "100.00",
-    "total_price": "1000.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 8,
-  "fields": {
-    "sale": 5,
-    "inventory_item": 11,
-    "quantity": 5,
-    "unit_price": "100.00",
-    "total_price": "500.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 9,
-  "fields": {
-    "sale": 6,
-    "inventory_item": 12,
-    "quantity": 20,
-    "unit_price": "250.00",
-    "total_price": "5000.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 10,
-  "fields": {
-    "sale": 6,
-    "inventory_item": 13,
-    "quantity": 10,
-    "unit_price": "150.00",
-    "total_price": "1500.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 11,
-  "fields": {
-    "sale": 7,
-    "inventory_item": 14,
-    "quantity": 5,
-    "unit_price": "80.00",
-    "total_price": "400.00"
-  }
-},
-{
-  "model": "sales.saleitem",
-  "pk": 12,
-  "fields": {
-    "sale": 7,
-    "inventory_item": 15,
-    "quantity": 20,
-    "unit_price": "30.00",
-    "total_price": "600.00"
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 1,
-  "fields": {
-    "item_name": "Ice Block 50kg",
-    "quantity": 500,
-    "last_updated": "2025-04-09T01:07:47.573Z",
-    "created_at": "2025-04-09T01:07:47.573Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 2,
-  "fields": {
-    "item_name": "Steel Rebar 12mm",
-    "quantity": 200,
-    "last_updated": "2025-04-09T01:07:47.576Z",
-    "created_at": "2025-04-09T01:07:47.576Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 3,
-  "fields": {
-    "item_name": "Welding Rods 5kg",
-    "quantity": 100,
-    "last_updated": "2025-04-09T01:07:47.578Z",
-    "created_at": "2025-04-09T01:07:47.578Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 4,
-  "fields": {
-    "item_name": "Hammer",
-    "quantity": 50,
-    "last_updated": "2025-04-09T01:07:47.579Z",
-    "created_at": "2025-04-09T01:07:47.579Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 5,
-  "fields": {
-    "item_name": "Nails 1kg",
-    "quantity": 300,
-    "last_updated": "2025-04-09T01:07:47.581Z",
-    "created_at": "2025-04-09T01:07:47.581Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 6,
-  "fields": {
-    "item_name": "Ice Block 50kg",
-    "quantity": 500,
-    "last_updated": "2025-04-09T01:11:40.045Z",
-    "created_at": "2025-04-09T01:11:40.045Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 7,
-  "fields": {
-    "item_name": "Steel Rebar 12mm",
-    "quantity": 200,
-    "last_updated": "2025-04-09T01:11:40.048Z",
-    "created_at": "2025-04-09T01:11:40.048Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 8,
-  "fields": {
-    "item_name": "Welding Rods 5kg",
-    "quantity": 100,
-    "last_updated": "2025-04-09T01:11:40.049Z",
-    "created_at": "2025-04-09T01:11:40.049Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 9,
-  "fields": {
-    "item_name": "Hammer",
-    "quantity": 50,
-    "last_updated": "2025-04-09T01:11:40.050Z",
-    "created_at": "2025-04-09T01:11:40.050Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 10,
-  "fields": {
-    "item_name": "Nails 1kg",
-    "quantity": 300,
-    "last_updated": "2025-04-09T01:11:40.052Z",
-    "created_at": "2025-04-09T01:11:40.052Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 11,
-  "fields": {
-    "item_name": "Ice Block 50kg",
-    "quantity": 500,
-    "last_updated": "2025-04-09T01:16:39.889Z",
-    "created_at": "2025-04-09T01:16:39.889Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 12,
-  "fields": {
-    "item_name": "Steel Rebar 12mm",
-    "quantity": 200,
-    "last_updated": "2025-04-09T01:16:39.891Z",
-    "created_at": "2025-04-09T01:16:39.891Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 13,
-  "fields": {
-    "item_name": "Welding Rods 5kg",
-    "quantity": 100,
-    "last_updated": "2025-04-09T01:16:39.893Z",
-    "created_at": "2025-04-09T01:16:39.893Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 14,
-  "fields": {
-    "item_name": "Hammer",
-    "quantity": 50,
-    "last_updated": "2025-04-09T01:16:39.895Z",
-    "created_at": "2025-04-09T01:16:39.895Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "inventory.inventory",
-  "pk": 15,
-  "fields": {
-    "item_name": "Nails 1kg",
-    "quantity": 300,
-    "last_updated": "2025-04-09T01:16:39.896Z",
-    "created_at": "2025-04-09T01:16:39.896Z",
-    "unit": "unit",
-    "minimum_level": 10
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "10480658-ca15-469a-929e-426fbd44f7ed",
-  "fields": {
-    "name": "Steel Fabricators Inc.",
-    "email": null,
-    "phone": "2345678901",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:07:20.542Z",
-    "updated_at": "2025-04-09T01:07:20.542Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "289e0fd9-8ca2-4dbe-804a-e55b3b73e291",
-  "fields": {
-    "name": "Steel Fabricators Inc.",
-    "email": null,
-    "phone": "2345678901",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:11:40.040Z",
-    "updated_at": "2025-04-09T01:11:40.040Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "349773e2-dfb1-4265-ab6c-c3b354559e79",
-  "fields": {
-    "name": "Hardware Depot",
-    "email": null,
-    "phone": "3456789012",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:07:47.570Z",
-    "updated_at": "2025-04-09T01:07:47.570Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "36dadb72-3b09-4910-9979-7e935c098d10",
-  "fields": {
-    "name": "Steel Fabricators Inc.",
-    "email": null,
-    "phone": "2345678901",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:16:39.883Z",
-    "updated_at": "2025-04-09T01:16:39.883Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "5b487940-a2ce-42f2-9df0-3278011dcb35",
-  "fields": {
-    "name": "Hardware Depot",
-    "email": null,
-    "phone": "3456789012",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:07:20.545Z",
-    "updated_at": "2025-04-09T01:07:20.545Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "5f24940c-55da-4256-9a86-a80858893957",
-  "fields": {
-    "name": "Cool Drinks Co.",
-    "email": null,
-    "phone": "1234567890",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:11:40.034Z",
-    "updated_at": "2025-04-09T01:11:40.034Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "760391da-c651-4378-9434-36d96bdbdca6",
-  "fields": {
-    "name": "Cool Drinks Co.",
-    "email": null,
-    "phone": "1234567890",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:07:47.561Z",
-    "updated_at": "2025-04-09T01:07:47.561Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "a02a4be8-511f-4d84-95f1-1297225de913",
-  "fields": {
-    "name": "Hardware Depot",
-    "email": null,
-    "phone": "3456789012",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:16:39.886Z",
-    "updated_at": "2025-04-09T01:16:39.886Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "b69bedad-42c2-4dcb-83e8-9ed0bbc474a0",
-  "fields": {
-    "name": "Cool Drinks Co.",
-    "email": null,
-    "phone": "1234567890",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:16:39.878Z",
-    "updated_at": "2025-04-09T01:16:39.878Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "b9732dca-3b2f-4170-8090-33dcc4bb0385",
-  "fields": {
-    "name": "Hardware Depot",
-    "email": null,
-    "phone": "3456789012",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:11:40.043Z",
-    "updated_at": "2025-04-09T01:11:40.043Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "c88d3bff-2181-428c-80e1-8c30d1d71abb",
-  "fields": {
-    "name": "Cool Drinks Co.",
-    "email": null,
-    "phone": "1234567890",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:07:20.536Z",
-    "updated_at": "2025-04-09T01:07:20.536Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
-  "model": "buyers.buyer",
-  "pk": "de0cac7f-fe73-4fa3-a95c-cb377da47e85",
-  "fields": {
-    "name": "Steel Fabricators Inc.",
-    "email": null,
-    "phone": "2345678901",
-    "address": null,
-    "city": null,
-    "state": null,
-    "postal_code": null,
-    "company_name": null,
-    "tax_id": null,
-    "business_type": null,
-    "created_at": "2025-04-09T01:07:47.568Z",
-    "updated_at": "2025-04-09T01:07:47.568Z",
-    "is_active": true,
-    "notes": null
-  }
-},
-{
   "model": "companyconfig.companysettings",
   "pk": 1,
   "fields": {
@@ -30706,6 +29199,156 @@
     "invoice_footer_text": "",
     "created_at": "2025-04-09T00:51:32.588Z",
     "updated_at": "2025-04-09T00:57:20.068Z"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 1,
+  "fields": {
+    "user": 1,
+    "scope": "sales",
+    "timestamp": "2025-04-09T01:57:34.833Z",
+    "details": "Deleted records: {'sales': 19}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 2,
+  "fields": {
+    "user": 1,
+    "scope": "maintenance",
+    "timestamp": "2025-04-09T01:57:53.932Z",
+    "details": "Deleted records: {'maintenance': 42}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 3,
+  "fields": {
+    "user": 1,
+    "scope": "expenses",
+    "timestamp": "2025-04-09T01:58:03.329Z",
+    "details": "Deleted records: {'expenses': 0}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 4,
+  "fields": {
+    "user": 1,
+    "scope": "maintenance",
+    "timestamp": "2025-04-09T01:58:23.089Z",
+    "details": "Deleted records: {'maintenance': 0}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 5,
+  "fields": {
+    "user": 1,
+    "scope": "maintenance",
+    "timestamp": "2025-04-09T02:00:02.560Z",
+    "details": "Deleted records: {'maintenance': 0}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 6,
+  "fields": {
+    "user": 1,
+    "scope": "maintenance",
+    "timestamp": "2025-04-09T02:00:21.263Z",
+    "details": "Deleted records: {'maintenance': 0}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 7,
+  "fields": {
+    "user": 1,
+    "scope": "inventory",
+    "timestamp": "2025-04-09T02:01:18.809Z",
+    "details": "Deleted records: {'sales': 0, 'maintenance_records': 0, 'maintenance_items': 37, 'inventory': 15}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 8,
+  "fields": {
+    "user": 1,
+    "scope": "maintenance",
+    "timestamp": "2025-04-09T02:01:29.506Z",
+    "details": "Deleted records: {'maintenance': 0}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 9,
+  "fields": {
+    "user": 1,
+    "scope": "buyers",
+    "timestamp": "2025-04-09T02:03:48.838Z",
+    "details": "Deleted records: {}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 10,
+  "fields": {
+    "user": 1,
+    "scope": "buyers",
+    "timestamp": "2025-04-09T02:04:06.080Z",
+    "details": "Deleted records: {}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 11,
+  "fields": {
+    "user": 1,
+    "scope": "buyers",
+    "timestamp": "2025-04-09T02:05:29.637Z",
+    "details": "Deleted records: {}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 12,
+  "fields": {
+    "user": 1,
+    "scope": "buyers",
+    "timestamp": "2025-04-09T02:08:17.937Z",
+    "details": "Deleted records: {}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 13,
+  "fields": {
+    "user": 1,
+    "scope": "buyers",
+    "timestamp": "2025-04-09T02:09:40.451Z",
+    "details": "Deleted records: {}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 14,
+  "fields": {
+    "user": 1,
+    "scope": "buyers",
+    "timestamp": "2025-04-09T02:11:40.016Z",
+    "details": "Deleted records: {}"
+  }
+},
+{
+  "model": "companyconfig.deletionlog",
+  "pk": 15,
+  "fields": {
+    "user": 1,
+    "scope": "buyers",
+    "timestamp": "2025-04-09T02:13:24.477Z",
+    "details": "Deleted records: {'buyers': 12}"
   }
 },
 {
