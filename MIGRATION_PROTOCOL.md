@@ -130,3 +130,26 @@ flowchart TD
 - **Regularly audit migration status:** Use `showmigrations` and `migrate --plan` to verify applied migrations and detect issues early.
 
 ---
+
+## 10. **Critical Rules to Prevent Migration Inconsistencies**
+
+- **NEVER use `'__latest__'` in migration dependencies.** Always pin to explicit migration names.
+- **Create migrations in strict order:** schema changes first, apply immediately, then data/permission migrations.
+- **Apply migrations immediately after creation.** Do not leave unapplied migrations lingering.
+- **Avoid updating old migrations' dependencies.** Instead, create new migrations for new dependencies.
+- **Use merge migrations (`makemigrations --merge`)** to resolve branch conflicts early.
+- **Automate migration checks in CI/CD** and block merges if inconsistencies are detected.
+- **Document explicit dependencies and migration order** in every migration-related task.
+
+---
+
+## 11. **Automation Note**
+
+- When preparing migrations, **automatically enforce**:
+  - No `'__latest__'` dependencies.
+  - Explicit dependency pinning.
+  - Immediate migration application.
+  - Merge conflict resolution before new migrations.
+- **CI/CD pipelines must fail** if these rules are violated.
+
+---

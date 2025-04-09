@@ -35,11 +35,17 @@ class CompanySettings(models.Model):
         default=0,
         help_text="Default tax percentage to apply on sales invoices"
     )
+    tax_enabled = models.BooleanField(
+        default=False,
+        help_text="Is tax enabled for the company"
+    )
+    #     help_text="Enable or disable tax calculation on sales"
+    # )
     
     # Industry-specific fields
     ice_block_weight = models.DecimalField(
-        max_digits=6, 
-        decimal_places=2, 
+        max_digits=6,
+        decimal_places=2,
         default=100.00,
         help_text="Default weight of a single ice block in kg"
     )
@@ -51,14 +57,14 @@ class CompanySettings(models.Model):
     # Logo and branding
     company_logo = models.ImageField(
         upload_to=company_logo_upload_path,
-        blank=True, 
+        blank=True,
         null=True,
         help_text="Company logo for UI and printed documents"
     )
     
     # Footer text for invoices/receipts
     invoice_footer_text = models.TextField(
-        blank=True, 
+        blank=True,
         null=True,
         help_text="Text to appear at the bottom of invoices"
     )

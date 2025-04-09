@@ -119,8 +119,8 @@ class Migration(migrations.Migration):
         # Ensure apps whose permissions are needed are migrated first
         ('attendance', '0017_alter_importlog_options_importlog_user'),
         ('buyers', '__latest__'),
-        ('companyconfig', '__latest__'),
-        ('expenses', '__latest__'),
+        ('companyconfig', '0002_companysettings_tax_percentage'),
+        ('expenses', '0003_alter_expense_options_alter_expense_created_by'),
         ('inventory', '__latest__'),
         ('maintenance', '__latest__'),
         ('sales', '__latest__'),

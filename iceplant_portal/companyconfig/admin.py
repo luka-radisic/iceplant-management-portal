@@ -19,7 +19,7 @@ class CompanySettingsAdmin(admin.ModelAdmin):
             'fields': ('phone_number', 'alternate_phone', 'email', 'website')
         }),
         ('Tax & Business Information', {
-            'fields': ('tax_id', 'business_registration')
+            'fields': ('tax_id', 'business_registration', 'tax_enabled', 'tax_percentage')
         }),
         ('Ice Plant Specific Settings', {
             'fields': ('ice_block_weight', 'production_capacity')
