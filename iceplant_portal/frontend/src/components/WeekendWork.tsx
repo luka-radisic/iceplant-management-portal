@@ -234,6 +234,7 @@ const WeekendWork: React.FC = () => {
               onChange={(e) => setApprovalStatusFilter(e.target.value)}
               fullWidth
               SelectProps={{ native: true }}
+              InputLabelProps={{ shrink: true }}
             >
               <option value="">All</option>
               <option value="pending">Pending</option>
