@@ -243,24 +243,6 @@ const WeekendWork: React.FC = () => {
             </TextField>
           </Grid>
           <Grid item xs={12} sm={3}>
-            <TextField
-              select
-              label="Weekend Day"
-              value={weekendDaysFilter}
-              onChange={(e) => setWeekendDaysFilter(e.target.value)}
-              fullWidth
-              SelectProps={{ native: true }}
-              InputLabelProps={{ shrink: true }}
-            >
-              <option value="">All Days</option>
-              <option value="0">Sunday</option>
-              <option value="1">Monday</option>
-              <option value="2">Tuesday</option>
-              <option value="3">Wednesday</option>
-              <option value="4">Thursday</option>
-              <option value="5">Friday</option>
-              <option value="6">Saturday</option>
-            </TextField>
           </Grid>
           <Grid item xs={12} container spacing={1} justifyContent="flex-end" sx={{ mt: 1 }}>
             <Grid item>
@@ -333,26 +315,24 @@ const WeekendWork: React.FC = () => {
                       </Button>
                     </TableCell>
                     <TableCell>{record.department}</TableCell>
-                    <TableCell>{record.approval_status}</TableCell>
-                    <TableCell>
-                      <Button size="small" onClick={(e) => { e.stopPropagation(); alert(`Approve record ${record.id}`); }}>
-                        Approve
-                      </Button>
-                      <Button size="small" color="error" onClick={(e) => { e.stopPropagation(); alert(`Reject record ${record.id}`); }}>
-                        Reject
-                      </Button>
-                    </TableCell>
                     <TableCell>{record.date}</TableCell>
                     <TableCell>{record.punch_in}</TableCell>
                     <TableCell>{record.punch_out}</TableCell>
                     <TableCell>{record.duration}</TableCell>
                     <TableCell>
-                      {record.has_hr_note && (
-                        <span title="HR Note attached" style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '18px' }}>
-                          &#9888;
-                        </span>
-                      )}
+                      {record.has_hr_note ? (
+                        <>
+                          Yes
+                          <span
+                            title="HR Note attached"
+                            style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '18px', marginLeft: '4px' }}
+                          >
+                            &#9888;
+                          </span>
+                        </>
+                      ) : null}
                     </TableCell>
+                    <TableCell>{record.approval_status}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -545,6 +545,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     from rest_framework.permissions import AllowAny
     @action(detail=False, methods=['get'], url_path='weekend-work', permission_classes=[AllowAny])
     def weekend_work(self, request):
+        from django.utils import timezone
+        import pytz
+        manila_tz = pytz.timezone('Asia/Manila')
         """
         Returns attendance records for configurable weekend days within a date range, with filters.
         """
@@ -578,7 +581,14 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 pass
 
         # Filter by weekend days
-        queryset = [r for r in queryset if localtime(r.check_in).weekday() in weekend_days]
+        queryset = [
+            r for r in queryset
+            if (
+                timezone.localtime(r.check_in, manila_tz).date() >= start_date and
+                timezone.localtime(r.check_in, manila_tz).date() <= end_date and
+                timezone.localtime(r.check_in, manila_tz).weekday() == 6  # 6 = Sunday
+            )
+        ]
 
         # Filter by department
         if department_filter:
