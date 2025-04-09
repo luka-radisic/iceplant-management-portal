@@ -11,3 +11,9 @@ urlpatterns = [
     path('', include(router.urls)),
     path('public-info/', public_company_info, name='public-company-info'),
 ]
+
+from .views import DatabaseDeleteAPIView
+
+urlpatterns += [
+    path('admin-tools/delete-data/', DatabaseDeleteAPIView.as_view(), name='delete-database-data'),
+]

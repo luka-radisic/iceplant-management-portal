@@ -3,6 +3,7 @@ import AttendanceTools from '../components/AttendanceTools';
 import CleanupTools from '../components/CleanupTools';
 import DatabaseBackupTools from '../components/DatabaseBackupTools'; // Import DatabaseBackupTools
 import AttendanceCleanupTool from '../components/AttendanceCleanupTool';
+import DatabaseManagementTools from '../components/DatabaseManagementTools';
 
 export default function ToolsPage() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -61,6 +62,10 @@ export default function ToolsPage() {
         </Grid>
         */}
       </Grid>
+
+      <Box mt={4}>
+        <DatabaseManagementTools />
+      </Box>
     </Container>
   );
 } 

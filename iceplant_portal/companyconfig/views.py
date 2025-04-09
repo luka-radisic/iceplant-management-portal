@@ -179,3 +179,120 @@ class CompanySettingsViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(settings)
         return Response(serializer.data)
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAdminUser
+from django.db import transaction
+from django.contrib.auth import get_user_model
+from .models import DeletionLog
+
+class DatabaseDeleteAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_superuser:
+            return Response({'error': 'Superuser privileges required.'}, status=403)
+
+        scope = request.data.get('scope')
+        backup_confirmed = request.data.get('backup_confirmed')
+        buyers_mode = request.data.get('buyers_mode', 'all')
+
+        if scope not in ['sales', 'attendance', 'inventory', 'expenses', 'maintenance', 'buyers', 'all']:
+            return Response({'error': 'Invalid scope.'}, status=400)
+
+        if not backup_confirmed:
+            return Response({'error': 'Backup confirmation required.'}, status=400)
+
+        try:
+            with transaction.atomic():
+                deleted = {}
+
+                # Enforce deletion order to avoid ProtectedError
+                if scope in ['all', 'inventory']:
+                    # 1. Delete Sales first
+                    from sales.models import Sale
+                    count, _ = Sale.objects.all().delete()
+                    deleted['sales'] = count
+
+                    # 2. Delete Buyers second (if not buyers-only scope)
+                    if scope != 'buyers':
+                        from buyers.models import Buyer
+                        count, _ = Buyer.objects.all().delete()
+                        deleted['buyers'] = count
+
+                    # 3. Delete Maintenance Records third
+                    from maintenance.models import MaintenanceRecord
+                    count, _ = MaintenanceRecord.objects.all().delete()
+                    deleted['maintenance_records'] = count
+
+                    # 4. Delete Maintenance Equipment fourth
+                    from maintenance.models import MaintenanceItem
+                    count, _ = MaintenanceItem.objects.all().delete()
+                    deleted['maintenance_items'] = count
+
+                    # 5. Delete Inventory fifth
+                    from inventory.models import Inventory
+                    count, _ = Inventory.objects.all().delete()
+                    deleted['inventory'] = count
+
+                    if scope == 'all':
+                        # 6. Delete Attendance
+                        from attendance.models import AttendanceRecord
+                        count, _ = AttendanceRecord.objects.all().delete()
+                        deleted['attendance'] = count
+
+                        # 7. Delete Expenses
+                        from expenses.models import Expense
+                        count, _ = Expense.objects.all().delete()
+                        deleted['expenses'] = count
+
+                elif scope == 'buyers':
+                    # Handle buyers deletion separately
+                    from buyers.models import Buyer
+                    if buyers_mode == 'inactive':
+                        count, _ = Buyer.objects.filter(is_active=False).delete()
+                    else:
+                        count, _ = Buyer.objects.all().delete()
+                    deleted['buyers'] = count
+
+                else:
+                    # For other scopes, delete independently
+                    if scope == 'sales':
+                        from sales.models import Sale
+                        count, _ = Sale.objects.all().delete()
+                        deleted['sales'] = count
+
+                    if scope == 'attendance':
+                        from attendance.models import AttendanceRecord
+                        count, _ = AttendanceRecord.objects.all().delete()
+                        deleted['attendance'] = count
+
+                    if scope == 'expenses':
+                        from expenses.models import Expense
+                        count, _ = Expense.objects.all().delete()
+                        deleted['expenses'] = count
+
+                    if scope == 'maintenance':
+                        from maintenance.models import MaintenanceRecord
+                        count, _ = MaintenanceRecord.objects.all().delete()
+                        deleted['maintenance'] = count
+
+                    if scope == 'inventory':
+                        from inventory.models import Inventory
+                        count, _ = Inventory.objects.all().delete()
+                        deleted['inventory'] = count
+
+                # Log the deletion
+                DeletionLog.objects.create(
+                    user=user,
+                    scope=scope,
+                    details=f"Deleted records: {deleted}"
+                )
+
+            from buyers.models import Buyer
+            remaining_buyers = Buyer.objects.count()
+            return Response({'status': 'success', 'deleted': deleted, 'remaining_buyers': remaining_buyers})
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            return Response({'error': str(e), 'traceback': tb}, status=500)

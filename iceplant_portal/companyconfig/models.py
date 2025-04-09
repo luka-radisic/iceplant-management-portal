@@ -87,3 +87,11 @@ class CompanySettings(models.Model):
         """
         settings, created = cls.objects.get_or_create(pk=1)
         return settings
+class DeletionLog(models.Model):
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    scope = models.CharField(max_length=50, help_text="Scope of deletion: sales, attendance, all")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    details = models.TextField(blank=True, null=True, help_text="Additional details or affected models")
+
+    def __str__(self):
+        return f"{self.timestamp} - {self.user} - {self.scope}"
