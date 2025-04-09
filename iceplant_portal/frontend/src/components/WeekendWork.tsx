@@ -228,12 +228,18 @@ const WeekendWork: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={3}>
             <TextField
+              select
               label="Approval Status"
               value={approvalStatusFilter}
               onChange={(e) => setApprovalStatusFilter(e.target.value)}
-              placeholder="pending, approved, rejected"
               fullWidth
-            />
+              SelectProps={{ native: true }}
+            >
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </TextField>
           </Grid>
           <Grid item xs={12} sm={3}>
             <TextField
