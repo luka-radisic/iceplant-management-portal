@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+
+
 import {
   Box,
   Button,
@@ -29,6 +31,7 @@ interface WeekendRecord {
   duration: string;
   department: string;
   has_hr_note: boolean;
+  approval_status: string;
 }
 
 const WeekendWork: React.FC = () => {
@@ -43,6 +46,11 @@ const WeekendWork: React.FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [endDate, setEndDate] = useState<Date | null>(new Date());
 
+  const [departmentFilter, setDepartmentFilter] = useState<string>('');
+  const [employeeFilter, setEmployeeFilter] = useState<string>('');
+  const [approvalStatusFilter, setApprovalStatusFilter] = useState<string>('');
+  const [weekendDaysFilter, setWeekendDaysFilter] = useState<string>('5,6'); // default Saturday, Sunday
+
   const fetchWeekendWork = useCallback(async () => {
     setLoading(true);
     try {
@@ -51,6 +59,11 @@ const WeekendWork: React.FC = () => {
       if (endDate) params.append('end_date', format(endDate, 'yyyy-MM-dd'));
       params.append('page', (page + 1).toString());
       params.append('page_size', rowsPerPage.toString());
+
+      if (departmentFilter) params.append('department', departmentFilter);
+      if (employeeFilter) params.append('employee_id', employeeFilter);
+      if (approvalStatusFilter) params.append('approval_status', approvalStatusFilter);
+      if (weekendDaysFilter) params.append('weekend_days', weekendDaysFilter);
 
       const response = await fetch(`/api/attendance/attendance/weekend-work/?${params.toString()}`, {
         credentials: 'include'
@@ -197,7 +210,41 @@ const WeekendWork: React.FC = () => {
               />
             </LocalizationProvider>
           </Grid>
-          <Grid item xs={12} sm={6} container spacing={1} justifyContent="flex-end">
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Department"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Employee ID"
+              value={employeeFilter}
+              onChange={(e) => setEmployeeFilter(e.target.value)}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Approval Status"
+              value={approvalStatusFilter}
+              onChange={(e) => setApprovalStatusFilter(e.target.value)}
+              placeholder="pending, approved, rejected"
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField
+              label="Weekend Days (comma-separated)"
+              value={weekendDaysFilter}
+              onChange={(e) => setWeekendDaysFilter(e.target.value)}
+              placeholder="5,6"
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} container spacing={1} justifyContent="flex-end" sx={{ mt: 1 }}>
             <Grid item>
               <Button variant="contained" onClick={() => handleExport('excel')}>
                 Export Excel
@@ -235,6 +282,7 @@ const WeekendWork: React.FC = () => {
                   <TableCell>Punch Out</TableCell>
                   <TableCell>Duration</TableCell>
                   <TableCell>HR Note</TableCell>
+                  <TableCell>Approval Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -267,6 +315,15 @@ const WeekendWork: React.FC = () => {
                       </Button>
                     </TableCell>
                     <TableCell>{record.department}</TableCell>
+                    <TableCell>{record.approval_status}</TableCell>
+                    <TableCell>
+                      <Button size="small" onClick={(e) => { e.stopPropagation(); alert(`Approve record ${record.id}`); }}>
+                        Approve
+                      </Button>
+                      <Button size="small" color="error" onClick={(e) => { e.stopPropagation(); alert(`Reject record ${record.id}`); }}>
+                        Reject
+                      </Button>
+                    </TableCell>
                     <TableCell>{record.date}</TableCell>
                     <TableCell>{record.punch_in}</TableCell>
                     <TableCell>{record.punch_out}</TableCell>
