@@ -269,9 +269,20 @@ const WeekendWork: React.FC = () => {
         <Paper elevation={6} sx={{ boxShadow: '0 4px 20px rgba(0,0,0,0.15)', borderRadius: 2 }}>
           <TableContainer>
             <Table size="small" stickyHeader sx={{
-              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
-              '& tbody tr:hover': { backgroundColor: '#fafafa' },
-              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+              '& thead th': {
+                backgroundColor: '#e3f2fd',
+                fontWeight: 'bold',
+                color: '#333',
+                borderBottom: '1px solid #ccc',
+              },
+              '& tbody td': {
+                borderBottom: '1px solid #eee',
+                padding: '6px 12px',
+                color: '#333',
+              },
+              '& tbody tr:hover': {
+                backgroundColor: '#f9f9f9',
+              },
             }}>
               <TableHead>
                 <TableRow>
@@ -283,6 +294,7 @@ const WeekendWork: React.FC = () => {
                   <TableCell>Duration</TableCell>
                   <TableCell>HR Note</TableCell>
                   <TableCell>Approval Status</TableCell>
+                  <TableCell>HR Approval</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -333,6 +345,51 @@ const WeekendWork: React.FC = () => {
                       ) : null}
                     </TableCell>
                     <TableCell>{record.approval_status}</TableCell>
+                    <TableCell>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="success"
+                        sx={{
+                          minWidth: '70px',
+                          mr: 1,
+                          textTransform: 'none',
+                          borderColor: '#4caf50',
+                          color: '#4caf50',
+                          '&:hover': {
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderColor: '#4caf50',
+                          },
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert(`Approve record ${record.id}`);
+                        }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        sx={{
+                          minWidth: '70px',
+                          textTransform: 'none',
+                          borderColor: '#f44336',
+                          color: '#f44336',
+                          '&:hover': {
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                            borderColor: '#f44336',
+                          },
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert(`Reject record ${record.id}`);
+                        }}
+                      >
+                        Reject
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
