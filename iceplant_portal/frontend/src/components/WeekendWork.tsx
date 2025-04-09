@@ -79,7 +79,7 @@ const WeekendWork: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, page, rowsPerPage]);
+  }, [startDate, endDate, page, rowsPerPage, departmentFilter, employeeFilter, approvalStatusFilter, weekendDaysFilter]);
 
   useEffect(() => {
     fetchWeekendWork();
