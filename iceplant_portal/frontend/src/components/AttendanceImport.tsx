@@ -11,6 +11,7 @@ import {
   TableHead,
   TableRow,
   Typography,
+  LinearProgress,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { useEffect, useState } from 'react';
@@ -19,6 +20,7 @@ import ImportResultDialog from './ImportResultDialog';
 
 export default function AttendanceImport() {
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [importLogs, setImportLogs] = useState<any[]>([]);
   const { enqueueSnackbar } = useSnackbar();
 
@@ -39,7 +41,25 @@ export default function AttendanceImport() {
 
     setUploading(true);
     try {
-      const response = await apiService.upload('/api/attendance/attendance/import_xlsx/', file);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await import('axios').then(({ default: axios }) =>
+        axios.post('/api/attendance/attendance/import_xlsx/', formData, {
+          baseURL: 'http://127.0.0.1:8000',
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Token ${localStorage.getItem('token') || ''}`,
+          },
+          onUploadProgress: (progressEvent: any) => {
+            if (progressEvent.lengthComputable) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percentCompleted);
+            }
+          },
+        })
+      );
+
       enqueueSnackbar(
         `Import request submitted`,
         { variant: 'success' }
@@ -48,7 +68,7 @@ export default function AttendanceImport() {
 
       let importLogDetails = null;
       try {
-        const logResponse = await apiService.get(`/api/attendance/import-logs/${response.import_log_id}/`);
+        const logResponse = await apiService.get(`/api/attendance/import-logs/${response.data.import_log_id}/`);
         importLogDetails = logResponse;
       } catch (logError) {
         console.error('Failed to fetch import log details:', logError);
@@ -73,6 +93,7 @@ export default function AttendanceImport() {
       });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
       event.target.value = '';
       setIsResultDialogOpen(true);
     }
@@ -118,6 +139,18 @@ export default function AttendanceImport() {
             {uploading ? 'Uploading...' : 'Upload XLSX File'}
           </Button>
         </label>
+
+        {uploading && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" gutterBottom>
+              Uploading...
+            </Typography>
+            <Box sx={{ width: '80%', margin: '0 auto' }}>
+              <LinearProgress />
+            </Box>
+          </Box>
+        )}
+
         <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
           Upload attendance records from Smart PSS Lite XLSX export
         </Typography>
