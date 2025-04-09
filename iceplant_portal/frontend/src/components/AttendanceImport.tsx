@@ -1,3 +1,4 @@
+import React from 'react';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import {
   Box,
@@ -19,6 +20,7 @@ import apiService from '../services/api';
 import ImportResultDialog from './ImportResultDialog';
 
 export default function AttendanceImport() {
+  const uploadButtonRef = React.useRef<HTMLButtonElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importLogs, setImportLogs] = useState<any[]>([]);
@@ -116,7 +118,12 @@ export default function AttendanceImport() {
     <Box>
       <ImportResultDialog
         open={isResultDialogOpen}
-        onClose={() => setIsResultDialogOpen(false)}
+        onClose={() => {
+          setIsResultDialogOpen(false);
+          setTimeout(() => {
+            uploadButtonRef.current?.focus();
+          }, 0);
+        }}
         importResult={importResult}
       />
 
@@ -135,6 +142,7 @@ export default function AttendanceImport() {
             component="span"
             disabled={uploading}
             startIcon={uploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+            ref={uploadButtonRef}
           >
             {uploading ? 'Uploading...' : 'Upload XLSX File'}
           </Button>
