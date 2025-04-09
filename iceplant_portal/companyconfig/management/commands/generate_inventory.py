@@ -1,6 +1,7 @@
 import random
 from django.core.management.base import BaseCommand
 from inventory.models import Inventory
+from django.utils import timezone
 
 INVENTORY_ITEMS = [
     # Ice plant

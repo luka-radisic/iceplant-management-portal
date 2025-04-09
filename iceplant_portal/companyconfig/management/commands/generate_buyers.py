@@ -1,6 +1,7 @@
 import random
 from django.core.management.base import BaseCommand
 from buyers.models import Buyer
+from django.utils import timezone
 
 BUYER_COMPANIES = [
     ("Gensan Fresh Seafood Trading", "Seafood Trading"),
