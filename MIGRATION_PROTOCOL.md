@@ -153,3 +153,9 @@ flowchart TD
 - **CI/CD pipelines must fail** if these rules are violated.
 
 ---
+
+## Test Data Protocol
+
+For comprehensive test data generation procedures, dependencies, and database-specific notes, refer to [UNIFIED_TEST_DATA_PROTOCOL.md](./UNIFIED_TEST_DATA_PROTOCOL.md).
+
+---
