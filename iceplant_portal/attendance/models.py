@@ -79,6 +79,11 @@ class Attendance(models.Model):
     import_date = models.DateTimeField(auto_now_add=True)
     # Add HR-only notes field
     hr_notes = models.TextField(blank=True, null=True, help_text='Internal notes visible only to HR')
+    approval_status = models.CharField(
+        max_length=20,
+        choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')],
+        default='pending'
+    )
     
     def save(self, *args, **kwargs):
         # Ensure times are stored in UTC

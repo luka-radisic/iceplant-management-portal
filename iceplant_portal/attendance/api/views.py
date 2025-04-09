@@ -546,17 +546,56 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='weekend-work', permission_classes=[AllowAny])
     def weekend_work(self, request):
         """
-        Returns attendance records where the punch date is a Sunday.
+        Returns attendance records for configurable weekend days within a date range, with filters.
         """
         from django.utils.timezone import localtime
         from datetime import datetime
+
+        # Parse query params
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+        weekend_days_str = request.query_params.get('weekend_days', '5,6')  # Default Saturday, Sunday
+        department_filter = request.query_params.get('department')
+        employee_id_filter = request.query_params.get('employee_id')
+        approval_status_filter = request.query_params.get('approval_status')
+
+        weekend_days = set(int(day.strip()) for day in weekend_days_str.split(',') if day.strip().isdigit())
+
         queryset = self.get_queryset()
-        queryset = [r for r in queryset if localtime(r.check_in).weekday() == 6]
+
+        # Filter by date range
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                queryset = queryset.filter(check_in__date__gte=start_date)
+            except:
+                pass
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                queryset = queryset.filter(check_in__date__lte=end_date)
+            except:
+                pass
+
+        # Filter by weekend days
+        queryset = [r for r in queryset if localtime(r.check_in).weekday() in weekend_days]
+
+        # Filter by department
+        if department_filter:
+            queryset = [r for r in queryset if r.department == department_filter]
+
+        # Filter by employee_id
+        if employee_id_filter:
+            queryset = [r for r in queryset if r.employee_id == employee_id_filter]
+
+        # Filter by approval_status
+        if approval_status_filter:
+            queryset = [r for r in queryset if getattr(r, 'approval_status', '') == approval_status_filter]
 
         page = self.paginate_queryset(queryset)
-        if page is not None:
+        def serialize(records):
             data = []
-            for record in page:
+            for record in records:
                 punch_in_local = localtime(record.check_in)
                 punch_out_local = localtime(record.check_out) if record.check_out else None
                 duration = None
@@ -574,33 +613,15 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     'punch_out': punch_out_local.time().strftime('%H:%M:%S') if punch_out_local else '',
                     'duration': duration or '',
                     'department': department_name,
+                    'approval_status': getattr(record, 'approval_status', 'pending'),
                     'has_hr_note': bool(getattr(record, 'hr_notes', '')),
                 })
-            return self.get_paginated_response(data)
+            return data
 
-        # If pagination is not enabled, return full list
-        data = []
-        for record in queryset:
-            punch_in_local = localtime(record.check_in)
-            punch_out_local = localtime(record.check_out) if record.check_out else None
-            duration = None
-            if record.check_in and record.check_out:
-                duration = str(record.check_out - record.check_in)
-            department_name = getattr(record, 'department', '')
-            prefix = "Atlantis Fishing Development Corp\\"
-            if department_name.startswith(prefix):
-                department_name = department_name[len(prefix):]
-            data.append({
-                'id': record.id,
-                'employee_name': getattr(record, 'employee_name', ''),
-                'date': punch_in_local.date().isoformat(),
-                'punch_in': punch_in_local.time().strftime('%H:%M:%S'),
-                'punch_out': punch_out_local.time().strftime('%H:%M:%S') if punch_out_local else '',
-                'duration': duration or '',
-                'department': department_name,
-                'has_hr_note': bool(getattr(record, 'hr_notes', '')),
-            })
-        return Response(data)
+        if page is not None:
+            return self.get_paginated_response(serialize(page))
+
+        return Response(serialize(queryset))
 
     @action(detail=False, methods=['get'], url_path='stats')
     def get_attendance_stats(self, request):
