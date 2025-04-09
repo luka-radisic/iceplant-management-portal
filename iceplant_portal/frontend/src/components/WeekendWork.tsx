@@ -49,7 +49,7 @@ const WeekendWork: React.FC = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [employeeFilter, setEmployeeFilter] = useState<string>('');
   const [approvalStatusFilter, setApprovalStatusFilter] = useState<string>('');
-  const [weekendDaysFilter, setWeekendDaysFilter] = useState<string>('5,6'); // default Saturday, Sunday
+  const [weekendDaysFilter, setWeekendDaysFilter] = useState<string>('0'); // default Sunday
 
   const fetchWeekendWork = useCallback(async () => {
     setLoading(true);
@@ -244,12 +244,23 @@ const WeekendWork: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={3}>
             <TextField
-              label="Weekend Days (comma-separated)"
+              select
+              label="Weekend Day"
               value={weekendDaysFilter}
               onChange={(e) => setWeekendDaysFilter(e.target.value)}
-              placeholder="5,6"
               fullWidth
-            />
+              SelectProps={{ native: true }}
+              InputLabelProps={{ shrink: true }}
+            >
+              <option value="">All Days</option>
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+            </TextField>
           </Grid>
           <Grid item xs={12} container spacing={1} justifyContent="flex-end" sx={{ mt: 1 }}>
             <Grid item>
