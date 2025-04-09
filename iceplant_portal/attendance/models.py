@@ -84,6 +84,7 @@ class Attendance(models.Model):
         choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')],
         default='pending'
     )
+    checked = models.BooleanField(default=False, help_text='Indicates initial processing before HR approval')
     
     def save(self, *args, **kwargs):
         # Ensure times are stored in UTC
