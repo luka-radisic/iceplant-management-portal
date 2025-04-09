@@ -237,9 +237,14 @@ class DatabaseDeleteAPIView(APIView):
 
                     if scope == 'all':
                         # 6. Delete Attendance
-                        from attendance.models import AttendanceRecord
-                        count, _ = AttendanceRecord.objects.all().delete()
+                        from attendance.models import Attendance
+                        count, _ = Attendance.objects.all().delete()
                         deleted['attendance'] = count
+
+                        # 6b. Delete Employee Profiles
+                        from attendance.models import EmployeeProfile
+                        count, _ = EmployeeProfile.objects.all().delete()
+                        deleted['employee_profiles'] = count
 
                         # 7. Delete Expenses
                         from expenses.models import Expense
@@ -263,9 +268,14 @@ class DatabaseDeleteAPIView(APIView):
                         deleted['sales'] = count
 
                     if scope == 'attendance':
-                        from attendance.models import AttendanceRecord
-                        count, _ = AttendanceRecord.objects.all().delete()
+                        from attendance.models import Attendance
+                        count, _ = Attendance.objects.all().delete()
                         deleted['attendance'] = count
+
+                        # Also delete Employee Profiles
+                        from attendance.models import EmployeeProfile
+                        count, _ = EmployeeProfile.objects.all().delete()
+                        deleted['employee_profiles'] = count
 
                     if scope == 'expenses':
                         from expenses.models import Expense
