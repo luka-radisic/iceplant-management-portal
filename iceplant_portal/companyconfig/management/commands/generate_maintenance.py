@@ -61,8 +61,27 @@ class Command(BaseCommand):
 
         # Create equipment items
         equipment_objs = []
-        for eq_name in EQUIPMENT:
-            eq, _ = MaintenanceItem.objects.get_or_create(equipment_name=eq_name)
+        equipment_types = ['Compressor', 'Condenser', 'Pump', 'Freezer', 'Vehicle', 'Tool', 'Office Equipment']
+        locations = ['Plant A', 'Plant B', 'Warehouse', 'Office']
+
+        for idx, eq_name in enumerate(EQUIPMENT, 1):
+            eq, _ = MaintenanceItem.objects.update_or_create(
+                equipment_name=eq_name,
+                defaults={
+                    'equipment_type': random.choice(equipment_types),
+                    'model_number': f'MODEL-{idx}',
+                    'serial_number': f'SERIAL-{idx}',
+                    'location': random.choice(locations),
+                    'installation_date': timezone.datetime(2023, 1, 1).date(),
+                    'maintenance_frequency': random.choice([1, 3, 6]),
+                    'frequency_unit': 'months',
+                    'next_maintenance_date': timezone.datetime(2025, 5, 1).date(),
+                    'status': 'operational',
+                    'notes': 'Auto-generated equipment',
+                    'created_at': timezone.now(),
+                    'updated_at': timezone.now(),
+                }
+            )
             equipment_objs.append(eq)
 
         volume = options['volume']
@@ -91,7 +110,10 @@ class Command(BaseCommand):
                 issues_found=issue,
                 actions_taken=description,
                 recommendations=recommendation,
-                duration=duration
+                duration=duration,
+                parts_replaced='Filter, Oil',
+                created_at=timezone.now(),
+                updated_at=timezone.now(),
             )
 
         self.stdout.write(self.style.SUCCESS(f'{volume} maintenance records generated successfully.'))

@@ -41,6 +41,9 @@ class Command(BaseCommand):
                 defaults={
                     'unit': unit,
                     'quantity': quantity,
+                    'minimum_level': min_level,
+                    'created_at': timezone.now(),
+                    'last_updated': timezone.now(),
                 }
             )
         self.stdout.write(self.style.SUCCESS(f'{volume} inventory items generated successfully.'))

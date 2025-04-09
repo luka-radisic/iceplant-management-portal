@@ -57,6 +57,15 @@ class Command(BaseCommand):
             self.stdout.write('Generating maintenance data...')
             self.generate_maintenance_data()
 
+            self.stdout.write('Generating employee shifts...')
+            self.generate_employee_shifts()
+
+            self.stdout.write('Generating department shifts...')
+            self.generate_department_shifts()
+
+            self.stdout.write('Generating import logs...')
+            self.generate_import_logs()
+
             self.stdout.write(self.style.SUCCESS('Sample data generation complete.'))
 
     def reset_data(self):
@@ -193,7 +202,9 @@ class Command(BaseCommand):
                     'tax_id': f'TAX-{1000 + idx}',
                     'business_type': business_type,
                     'is_active': True,
-                    'notes': f'{business_type} client located in {address}, contact person: {contact_person}'
+                    'notes': f'{business_type} client located in {address}, contact person: {contact_person}',
+                    'created_at': timezone.now(),
+                    'updated_at': timezone.now(),
                 }
             )
 
@@ -222,6 +233,9 @@ class Command(BaseCommand):
                     'payment_method': 'cash' if i % 2 == 0 else 'bank_transfer',
                     'ice_plant_allocation': round(random.uniform(50, 500), 2),
                     'notes': f'Notes for expense {i}',
+                    'receipt': '',
+                    'created_at': timezone.now(),
+                    'updated_at': timezone.now(),
                     'created_by': random.choice(users),
                     'approved': bool(i % 2),
                     'approved_by': random.choice(users),
@@ -316,6 +330,11 @@ class Command(BaseCommand):
                     'brine1_identifier': f'BR1-{i}',
                     'brine2_identifier': f'BR2-{i}',
                     'price_per_block': round(random.uniform(50, 100), 2),
+                    'cash_amount': round(random.uniform(100, 1000), 2),
+                    'po_amount': round(random.uniform(100, 1000), 2),
+                    'notes': f'Sale notes {i}',
+                    'created_at': timezone.now(),
+                    'updated_at': timezone.now(),
                 }
             )
             # Create 1-3 sale items per sale
@@ -330,3 +349,56 @@ class Command(BaseCommand):
                     unit_price=unit_price,
                     total_price=quantity * unit_price
                 )
+
+    def generate_import_logs(self):
+        from attendance.models import ImportLog
+        users = list(User.objects.filter(is_staff=True))
+        if not users:
+            users = [User.objects.filter(is_superuser=True).first()]
+
+        for i in range(5):
+            ImportLog.objects.create(
+                filename=f"attendance_import_{i+1}.csv",
+                import_date=timezone.now() - timedelta(days=i),
+                success=True,
+                error_message="",
+                records_imported=random.randint(10, 100),
+                user=random.choice(users)
+            )
+
+    def generate_employee_shifts(self):
+        from attendance.models import EmployeeShift, EmployeeProfile
+        employees = list(EmployeeProfile.objects.all())
+        for emp in employees:
+            EmployeeShift.objects.update_or_create(
+                employee_id=emp.employee_id,
+                department=emp.department,
+                defaults={
+                    'shift_start': '08:00',
+                    'shift_end': '17:00',
+                    'break_duration': 1.0,
+                    'is_night_shift': False,
+                    'is_rotating_shift': False,
+                    'rotation_partner_id': '',
+                    'shift_duration': 8.0,
+                    'use_department_settings': False,
+                }
+            )
+
+    def generate_department_shifts(self):
+        from attendance.models import DepartmentShift
+        departments = ['Harvester', 'Operator', 'Driver', 'Admin']
+        for dept in departments:
+            DepartmentShift.objects.update_or_create(
+                department=dept,
+                defaults={
+                    'shift_type': 'day',
+                    'shift_start': '08:00',
+                    'shift_end': '17:00',
+                    'break_duration': 1.0,
+                    'is_rotating_shift': False,
+                    'shift_duration': 8.0,
+                    'created_at': timezone.now(),
+                    'updated_at': timezone.now(),
+                }
+            )

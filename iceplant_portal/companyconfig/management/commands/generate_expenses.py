@@ -56,14 +56,25 @@ class Command(BaseCommand):
             description = f"{category.name} payment to {payee}"
 
             Expense.objects.create(
-                category=category,
+                category=category.name,
+                category_object=category,
                 payee=payee,
                 amount=amount,
                 date=date,
+                purchase_date=date,
+                vendor=f"Vendor {random.randint(1, 20)}",
                 payment_method=payment_method,
                 description=description,
+                reference_number=f"REF-{random.randint(1000,9999)}",
+                ice_plant_allocation=round(random.uniform(50, 500), 2),
+                notes=f"Notes for expense {description}",
+                receipt='',
+                created_at=timezone.now(),
+                updated_at=timezone.now(),
                 created_by=user,
+                approved=True,
                 approved_by=user,
+                approved_date=timezone.now(),
             )
 
         self.stdout.write(self.style.SUCCESS(f'{volume} expenses generated successfully.'))

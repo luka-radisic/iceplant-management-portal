@@ -60,6 +60,11 @@ class Command(BaseCommand):
                 brine1_identifier=brine1,
                 brine2_identifier=brine2,
                 price_per_block=price_per_block,
+                cash_amount=round(random.uniform(100, 1000), 2),
+                po_amount=round(random.uniform(100, 1000), 2),
+                notes=f"Sale notes {i+1}",
+                created_at=timezone.now(),
+                updated_at=timezone.now(),
             )
 
             num_items = random.randint(1, 3)

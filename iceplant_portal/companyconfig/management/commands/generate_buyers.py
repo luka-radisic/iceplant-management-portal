@@ -48,8 +48,16 @@ class Command(BaseCommand):
                     'phone': phone,
                     'email': email,
                     'address': address,
+                    'city': 'General Santos City',
+                    'state': 'South Cotabato',
+                    'postal_code': '9500',
+                    'company_name': company,
+                    'tax_id': f"TAX-{1000 + i}",
                     'business_type': business_type,
+                    'is_active': True,
                     'notes': notes,
+                    'created_at': timezone.now(),
+                    'updated_at': timezone.now(),
                 }
             )
         self.stdout.write(self.style.SUCCESS(f'{volume} buyers generated successfully.'))

@@ -284,4 +284,108 @@ This script resets and generates fresh, detailed Filipino-context test data for 
 - This supplements the previous unified protocol, providing a scalable, maintainable, and production-like test dataset.
 
 ---
+
 ---
+
+## Appendix: Backup Data Model Index & Test Data Alignment (April 2025)
+
+This appendix provides a comprehensive mapping of your backup JSON data to the Django models and their fields, to guide precise and realistic test data generation.
+
+### Purpose
+
+- Ensure test data scripts **match the actual forms and fields** used in the system.
+- Facilitate **accurate data restoration, migration, and automated UI testing**.
+- Align test data with **backup and import/export formats**.
+
+### How to Use
+
+- When generating or modifying test data scripts, **refer to the model names and fields below**.
+- The **backup JSON keys** (e.g., `"attendance.employeeprofile"`) correspond to the Django models listed.
+- Populate **all relevant fields** to ensure data integrity and UI coverage.
+- **Update this appendix** whenever models or fields change.
+
+---
+
+### Detailed Model Index (April 2025)
+
+#### attendance
+
+**EmployeeProfile** (`attendance.employeeprofile`):  
+employee_id, full_name, photo, department, position, date_joined, is_active, track_shifts, department_track_shifts, created_at, updated_at
+
+**Attendance** (`attendance.attendance`):  
+employee_id, employee_name, check_in, check_out, department, import_date, hr_notes
+
+**ImportLog**:  
+filename, import_date, success, error_message, records_imported, user
+
+**EmployeeShift**:  
+employee_id, department, shift_start, shift_end, break_duration, is_night_shift, is_rotating_shift, rotation_partner_id, shift_duration, use_department_settings
+
+**DepartmentShift**:  
+department, shift_type, shift_start, shift_end, break_duration, is_rotating_shift, shift_duration, created_at, updated_at
+
+---
+
+#### buyers
+
+**Buyer** (`buyers.buyer`):  
+id, name, email, phone, address, city, state, postal_code, company_name, tax_id, business_type, created_at, updated_at, is_active, notes
+
+---
+
+#### companyconfig
+
+**CompanySettings**:  
+company_name, company_address_line1, company_address_line2, company_city, company_state, company_postal_code, company_country, phone_number, alternate_phone, email, website, tax_id, business_registration, tax_percentage, tax_enabled, ice_block_weight, production_capacity, company_logo, invoice_footer_text, created_at, updated_at
+
+**DeletionLog**:  
+user, scope, timestamp, details
+
+---
+
+#### expenses
+
+**ExpenseCategory**:  
+name, description
+
+**Expense** (`expenses.expense`):  
+purchase_date, vendor, date, payee, description, amount, category, category_object, reference_number, payment_method, ice_plant_allocation, notes, receipt, created_at, updated_at, created_by, approved, approved_by, approved_date
+
+---
+
+#### inventory
+
+**Inventory** (`inventory.inventory`):  
+item_name, quantity, last_updated, created_at, unit, minimum_level
+
+**InventoryAdjustment**:  
+inventory, previous_quantity, new_quantity, adjustment_amount, adjustment_date, reason, adjusted_by
+
+---
+
+#### maintenance
+
+**MaintenanceItem** (`maintenance.maintenanceitem`):  
+equipment_name, equipment_type, model_number, serial_number, location, installation_date, maintenance_frequency, frequency_unit, next_maintenance_date, status, notes, created_at, updated_at
+
+**MaintenanceRecord** (`maintenance.maintenancerecord`):  
+maintenance_item, maintenance_date, maintenance_type, performed_by, cost, parts_replaced, duration, issues_found, actions_taken, recommendations, status, created_at, updated_at
+
+---
+
+#### sales
+
+**Sale** (`sales.sale`):  
+si_number, sale_date, sale_time, status, buyer, buyer_name, buyer_contact, po_number, is_iceplant, pickup_quantity, delivery_quantity, brine1_identifier, brine2_identifier, price_per_block, cash_amount, po_amount, notes, created_at, updated_at
+
+**SaleItem**:  
+sale, inventory_item, quantity, unit_price, total_price
+
+---
+
+### Final Notes
+
+- This index **reflects the current data model as of April 2025**.
+- Always **cross-check with actual models.py files** when in doubt.
+- Update this appendix **immediately after any model changes** to keep test data scripts aligned.
