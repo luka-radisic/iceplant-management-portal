@@ -15,11 +15,15 @@ import {
 import { useSnackbar } from 'notistack';
 import { useEffect, useState } from 'react';
 import apiService from '../services/api';
+import ImportResultDialog from './ImportResultDialog';
 
 export default function AttendanceImport() {
   const [uploading, setUploading] = useState(false);
   const [importLogs, setImportLogs] = useState<any[]>([]);
   const { enqueueSnackbar } = useSnackbar();
+
+  const [importResult, setImportResult] = useState<any | null>(null);
+  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -28,7 +32,6 @@ export default function AttendanceImport() {
       return;
     }
 
-    // Validate file type
     if (!file.name.endsWith('.xlsx')) {
       enqueueSnackbar('Please select an XLSX file', { variant: 'error' });
       return;
@@ -38,20 +41,40 @@ export default function AttendanceImport() {
     try {
       const response = await apiService.upload('/api/attendance/attendance/import_xlsx/', file);
       enqueueSnackbar(
-        `Successfully imported ${response.import_log_id} attendance records`,
+        `Import request submitted`,
         { variant: 'success' }
       );
       fetchImportLogs();
+
+      let importLogDetails = null;
+      try {
+        const logResponse = await apiService.get(`/api/attendance/import-logs/${response.import_log_id}/`);
+        importLogDetails = logResponse;
+      } catch (logError) {
+        console.error('Failed to fetch import log details:', logError);
+      }
+
+      setImportResult({
+        success: importLogDetails ? importLogDetails.success : true,
+        records_imported: importLogDetails ? importLogDetails.records_imported : 0,
+        error_message: importLogDetails ? importLogDetails.error_message : null,
+      });
     } catch (error: any) {
       console.error('Import failed:', error);
       enqueueSnackbar(
         error.response?.data?.error || 'Failed to import attendance records',
         { variant: 'error' }
       );
+
+      setImportResult({
+        success: false,
+        records_imported: 0,
+        error_message: error.response?.data?.error || error.message || 'Unknown error',
+      });
     } finally {
       setUploading(false);
-      // Reset file input
       event.target.value = '';
+      setIsResultDialogOpen(true);
     }
   };
 
@@ -64,13 +87,18 @@ export default function AttendanceImport() {
     }
   };
 
-  // Fetch import logs on component mount
   useEffect(() => {
     fetchImportLogs();
-  }, []); // Add empty dependency array to run only on mount
+  }, []);
 
   return (
     <Box>
+      <ImportResultDialog
+        open={isResultDialogOpen}
+        onClose={() => setIsResultDialogOpen(false)}
+        importResult={importResult}
+      />
+
       <Box sx={{ mb: 4, textAlign: 'center' }}>
         <input
           accept=".xlsx"
@@ -133,4 +161,4 @@ export default function AttendanceImport() {
       </TableContainer>
     </Box>
   );
-} 
+}
