@@ -527,6 +527,11 @@ const fetchStats = useCallback(async () => {
         ) : (
           <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
             <Table size="small" stickyHeader sx={{
+              fontSize: '12px',
+              '& th, & td': {
+                padding: '4px 8px',
+                whiteSpace: 'nowrap',
+              },
               '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
               '& tbody tr:hover': { backgroundColor: '#fafafa' },
               '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
