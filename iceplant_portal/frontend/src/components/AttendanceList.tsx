@@ -545,7 +545,7 @@ const fetchStats = useCallback(async () => {
                   <TableCell sx={{ fontWeight: 'bold' }}>Day</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>In</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Out</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Duration</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Checked</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Approval</TableCell>
@@ -688,18 +688,12 @@ const fetchStats = useCallback(async () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          {isHrUser ? (
-                            record.hr_notes ? (
-                              <Typography variant="body2">{record.hr_notes}</Typography>
-                            ) : (
-                              '-'
-                            )
-                          ) : record.hr_note_exists ? (
+                          {record.hr_note_exists ? (
+                            // light red color for notice mark
                             <Typography
                               variant="body2"
-                              color="warning.main"
                               title="HR note present"
-                              sx={{ fontWeight: 'bold' }}
+                              sx={{ fontWeight: 'bold', color: '#f28b82' }}
                             >
                               ⚠️
                             </Typography>
