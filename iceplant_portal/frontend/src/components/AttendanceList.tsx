@@ -142,6 +142,12 @@ export default function AttendanceList() {
   }, [page, rowsPerPage, debouncedFilters]);
   const handleToggleChecked = async (record: any) => {
     try {
+      if (record.checked) {
+        const confirmUncheck = window.confirm('Are you sure you want to uncheck this record?');
+        if (!confirmUncheck) {
+          return;
+        }
+      }
       const updated = { checked: !record.checked };
       await apiService.patch(`/api/attendance/attendance/${record.id}/`, updated);
       setRecords((prev: any[]) =>
