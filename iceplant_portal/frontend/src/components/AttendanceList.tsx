@@ -153,6 +153,19 @@ export default function AttendanceList() {
     }
   };
 
+ async function handleUpdateAttendanceApprovalStatus(id: number, status: string) {
+   try {
+     await apiService.patch(`/api/attendance/attendance/${id}/`, { approval_status: status });
+     setRecords((prev: any[]) =>
+       prev.map((record: any) =>
+         record.id === id ? { ...record, approval_status: status } : record
+       )
+     );
+   } catch (error) {
+     console.error('Failed to update approval status:', error);
+   }
+ }
+
 
 const fetchStats = useCallback(async () => {
  setLoadingStats(true);
@@ -190,6 +203,7 @@ const fetchStats = useCallback(async () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
+
     if (!isAuthenticated) return;
     fetchRecords();
     fetchStats();
@@ -529,6 +543,7 @@ const fetchStats = useCallback(async () => {
                   <TableCell sx={{ fontWeight: 'bold' }}>Duration (H:M)</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>HR Note</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Checked</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -630,22 +645,71 @@ const fetchStats = useCallback(async () => {
                             : '-'}
                         </TableCell>
                         <TableCell>
-                          <Switch
-                            checked={record.checked}
-                            onChange={() => handleToggleChecked(record)}
-                            color="primary"
-                          />
+                          {record.duration
+                            ? record.duration.split(':').slice(0, 2).join(':')
+                            : '-'}
                         </TableCell>
                         <TableCell>
                           {getStatusChip(record)}
+                       </TableCell>
+                       <TableCell>
+                         <Switch
+                           checked={record.checked}
+                           onChange={() => handleToggleChecked(record)}
+                           color="primary"
+                         />
                         </TableCell>
                         <TableCell>
-                          {record.has_hr_note && (
-                            <span title="HR Note attached" style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '24px' }}>
-                              &#9888;
-                            </span>
-                          )}
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="success"
+                            sx={{
+                              minWidth: '70px',
+                              textTransform: 'none',
+                              borderColor: '#4caf50',
+                              color: '#4caf50',
+                              '&:hover': {
+                                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                                borderColor: '#4caf50',
+                              },
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateAttendanceApprovalStatus(record.id, 'approved');
+                            }}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            sx={{
+                              minWidth: '70px',
+                              textTransform: 'none',
+                              borderColor: '#f44336',
+                              color: '#f44336',
+                              '&:hover': {
+                                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                borderColor: '#f44336',
+                              },
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateAttendanceApprovalStatus(record.id, 'rejected');
+                            }}
+                          >
+                            Reject
+                          </Button>
                         </TableCell>
+                      <TableCell>
+                        {record.has_hr_note && (
+                          <span title="HR Note attached" style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '24px' }}>
+                            &#9888;
+                          </span>
+                        )}
+                      </TableCell>
                       </TableRow>
                     );
                   })

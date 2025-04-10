@@ -134,6 +134,16 @@ sequenceDiagram
 
 ---
 
+## Recent UI Enhancements (April 2025)
+
+- The **Attendance List** now includes a dedicated **"Checked"** column with an inline toggle switch.
+- The toggle allows immediate marking/unmarking of the "Checked" flag, updating the backend and UI instantly.
+- **Approve** and **Reject** buttons have been added inline for each attendance record, enabling HR to update approval status directly from the list.
+- The **HR Note** column has been moved to the **last** column position for clarity.
+- These changes improve workflow efficiency by allowing inline updates without navigating away from the main attendance list.
+
+---
+
 ## Future Enhancements
 
 - Enforce "Checked" before HR approval.
@@ -145,4 +155,4 @@ sequenceDiagram
 
 ---
 
-## Last updated: April 9, 2025
+## Last updated: April 10, 2025

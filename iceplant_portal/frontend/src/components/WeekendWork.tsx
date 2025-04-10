@@ -15,7 +15,8 @@ import {
   TablePagination,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  Switch
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -32,9 +33,32 @@ interface WeekendRecord {
   department: string;
   has_hr_note: boolean;
   approval_status: string;
+  checked?: boolean;
 }
 
 const WeekendWork: React.FC = () => {
+
+  const handleToggleChecked = async (record: WeekendRecord) => {
+    try {
+      const updated = { checked: !record.checked };
+      await fetch(`/api/attendance/attendance/${record.id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken') || '',
+        },
+        body: JSON.stringify(updated),
+      });
+      setRecords(prev =>
+        prev.map(r =>
+          r.id === record.id ? { ...r, checked: updated.checked } : r
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update checked status', error);
+      alert('Failed to update checked status');
+    }
+  };
 
   function getCookie(name: string) {
     let cookieValue = null;
@@ -382,6 +406,13 @@ const WeekendWork: React.FC = () => {
                           </span>
                         </>
                       ) : null}
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={Boolean(record.checked)}
+                        onChange={() => handleToggleChecked(record)}
+                        color="primary"
+                      />
                     </TableCell>
                     <TableCell>{record.approval_status}</TableCell>
                     <TableCell>
