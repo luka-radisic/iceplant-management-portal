@@ -159,12 +159,35 @@ export default function AttendanceList() {
     }
   };
 
- async function handleUpdateAttendanceApprovalStatus(id: number, status: string) {
+ async function handleUpdateAttendanceApprovalStatus(id: number, newStatus: string, currentStatus: string) {
    try {
-     await apiService.patch(`/api/attendance/attendance/${id}/`, { approval_status: status });
+     let reason = '';
+     const changingFromApproved = currentStatus === 'approved' && newStatus !== 'approved';
+     const isRejecting = newStatus === 'rejected';
+ 
+     if (changingFromApproved || isRejecting) {
+       reason = window.prompt(`Please enter a reason for changing status to ${newStatus}:`) || '';
+       if (!reason.trim()) {
+         return; // cancel if no reason
+       }
+     }
+ 
+     const payload: any = { approval_status: newStatus };
+     if (reason.trim()) {
+       payload.hr_notes = reason;
+     }
+ 
+     await apiService.patch(`/api/attendance/attendance/${id}/`, payload);
+ 
      setRecords((prev: any[]) =>
        prev.map((record: any) =>
-         record.id === id ? { ...record, approval_status: status } : record
+         record.id === id
+           ? {
+               ...record,
+               approval_status: newStatus,
+               ...(reason.trim() && { hr_notes: reason, hr_note_exists: true }),
+             }
+           : record
        )
      );
    } catch (error) {
@@ -678,7 +701,7 @@ const fetchStats = useCallback(async () => {
                                 variant="outlined"
                                 size="small"
                                 color="success"
-                                onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'approved')}
+                                onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'approved', record.approval_status)}
                                 sx={{ mr: 0.5 }}
                               >
                                 Approve
@@ -687,7 +710,7 @@ const fetchStats = useCallback(async () => {
                                 variant="outlined"
                                 size="small"
                                 color="error"
-                                onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'rejected')}
+                                onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status)}
                               >
                                 Reject
                               </Button>
