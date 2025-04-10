@@ -548,7 +548,7 @@ const fetchStats = useCallback(async () => {
                   <TableCell sx={{ fontWeight: 'bold' }}>Duration</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Checked</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>HR Approval</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Approval</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>HR Note</TableCell>
                 </TableRow>
               </TableHead>
@@ -661,17 +661,51 @@ const fetchStats = useCallback(async () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            color="success"
-                            onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'approved')}
-                          >
-                            Approve
-                          </Button>
+                          {isHrUser ? (
+                            <>
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                color="success"
+                                onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'approved')}
+                                sx={{ mr: 0.5 }}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                color="error"
+                                onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'rejected')}
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          ) : (
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', textTransform: 'capitalize' }}>
+                              {record.approval_status}
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell>
-                          {record.hr_note || '-'}
+                          {isHrUser ? (
+                            record.hr_notes ? (
+                              <Typography variant="body2">{record.hr_notes}</Typography>
+                            ) : (
+                              '-'
+                            )
+                          ) : record.hr_note_exists ? (
+                            <Typography
+                              variant="body2"
+                              color="warning.main"
+                              title="HR note present"
+                              sx={{ fontWeight: 'bold' }}
+                            >
+                              ⚠️
+                            </Typography>
+                          ) : (
+                            '-'
+                          )}
                         </TableCell>
                     </TableRow>
                     );

@@ -27,12 +27,12 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
 
 class AttendanceSerializer(serializers.ModelSerializer):
     duration = serializers.SerializerMethodField()
-    has_hr_note = serializers.SerializerMethodField()
-    
+    hr_note_exists = serializers.SerializerMethodField()
+
     class Meta:
         model = Attendance
         fields = '__all__'
-    
+
     def get_duration(self, obj):
         if obj.duration:
             # Format duration as HH:MM:SS
@@ -41,11 +41,16 @@ class AttendanceSerializer(serializers.ModelSerializer):
             return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
         return None
 
-    def get_has_hr_note(self, obj):
+    def get_hr_note_exists(self, obj):
         return bool(obj.hr_notes)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        # Hide HR notes from non-HR users
+        if user and not (user.groups.filter(name__icontains='HR').exists() or user.is_superuser):
+            data.pop('hr_notes', None)
         # Re-introduce prefix stripping for display purposes
         prefix = "Atlantis Fishing Development Corp\\"
         department = data.get("department", "")
