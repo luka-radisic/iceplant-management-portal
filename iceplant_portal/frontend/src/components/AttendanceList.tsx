@@ -701,7 +701,13 @@ const fetchStats = useCallback(async () => {
                                 variant="outlined"
                                 size="small"
                                 color={record.approval_status === 'approved' ? 'inherit' : 'success'}
-                                onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'approved', record.approval_status)}
+                                onClick={() => {
+                                  if (record.approval_status === 'approved') {
+                                    handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status);
+                                  } else {
+                                    handleUpdateAttendanceApprovalStatus(record.id, 'approved', record.approval_status);
+                                  }
+                                }}
                                 sx={{
                                   mr: 0.5,
                                   ...(record.approval_status === 'approved' && {
