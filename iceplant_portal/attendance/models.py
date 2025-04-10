@@ -290,3 +290,20 @@ class DepartmentShift(models.Model):
         verbose_name_plural = 'Department Shifts'
         ordering = ['department', 'shift_type']
         unique_together = ['department', 'shift_type']  # Ensure only one of each shift type per department
+class AttendanceApprovalLog(models.Model):
+    attendance_record = models.ForeignKey('Attendance', on_delete=models.CASCADE, related_name='approval_logs')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    new_status = models.CharField(
+        max_length=20,
+        choices=[('approved', 'Approved'), ('rejected', 'Rejected')],
+    )
+    note = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Attendance Approval Log'
+        verbose_name_plural = 'Attendance Approval Logs'
+
+    def __str__(self):
+        return f"{self.attendance_record} - {self.new_status} by {self.user} on {self.timestamp}"
