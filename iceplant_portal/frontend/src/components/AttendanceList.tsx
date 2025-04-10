@@ -547,9 +547,9 @@ const fetchStats = useCallback(async () => {
                   <TableCell sx={{ fontWeight: 'bold' }}>Check Out</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Duration (H:M)</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>HR Note</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Checked</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>HR Approval</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>HR Note</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
