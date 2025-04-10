@@ -544,6 +544,7 @@ const fetchStats = useCallback(async () => {
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>HR Note</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Checked</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>HR Approval</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -645,72 +646,29 @@ const fetchStats = useCallback(async () => {
                             : '-'}
                         </TableCell>
                         <TableCell>
-                          {record.duration
-                            ? record.duration.split(':').slice(0, 2).join(':')
-                            : '-'}
+                          {getStatusChip(record)}
                         </TableCell>
                         <TableCell>
-                          {getStatusChip(record)}
-                       </TableCell>
-                       <TableCell>
-                         <Switch
-                           checked={record.checked}
-                           onChange={() => handleToggleChecked(record)}
-                           color="primary"
-                         />
+                          <Switch
+                            checked={record.checked}
+                            onChange={() => handleToggleChecked(record)}
+                            color="primary"
+                          />
                         </TableCell>
                         <TableCell>
                           <Button
-                            size="small"
                             variant="outlined"
+                            size="small"
                             color="success"
-                            sx={{
-                              minWidth: '70px',
-                              textTransform: 'none',
-                              borderColor: '#4caf50',
-                              color: '#4caf50',
-                              '&:hover': {
-                                backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                                borderColor: '#4caf50',
-                              },
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUpdateAttendanceApprovalStatus(record.id, 'approved');
-                            }}
+                            onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'approved')}
                           >
                             Approve
                           </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            sx={{
-                              minWidth: '70px',
-                              textTransform: 'none',
-                              borderColor: '#f44336',
-                              color: '#f44336',
-                              '&:hover': {
-                                backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                                borderColor: '#f44336',
-                              },
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUpdateAttendanceApprovalStatus(record.id, 'rejected');
-                            }}
-                          >
-                            Reject
-                          </Button>
                         </TableCell>
-                      <TableCell>
-                        {record.has_hr_note && (
-                          <span title="HR Note attached" style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '24px' }}>
-                            &#9888;
-                          </span>
-                        )}
-                      </TableCell>
-                      </TableRow>
+                        <TableCell>
+                          {record.hr_note || '-'}
+                        </TableCell>
+                    </TableRow>
                     );
                   })
                 )}
