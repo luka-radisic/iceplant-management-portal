@@ -299,6 +299,9 @@ class AttendanceApprovalLog(models.Model):
         choices=[('approved', 'Approved'), ('rejected', 'Rejected')],
     )
     note = models.TextField(blank=True, null=True)
+    shift_start = models.CharField(max_length=10, blank=True, null=True, help_text="Shift start time (HH:MM)")
+    shift_end = models.CharField(max_length=10, blank=True, null=True, help_text="Shift end time (HH:MM)")
+    shift_type = models.CharField(max_length=50, blank=True, null=True, help_text="Shift type (Morning, Night, Rotating)")
 
     class Meta:
         ordering = ['-timestamp']
