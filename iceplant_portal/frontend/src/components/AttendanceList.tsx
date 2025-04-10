@@ -697,37 +697,60 @@ const fetchStats = useCallback(async () => {
                         <TableCell>
                           {isHrUser ? (
                             <>
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                color={record.approval_status === 'approved' ? 'inherit' : 'success'}
-                                onClick={() => {
-                                  if (record.approval_status === 'approved') {
-                                    handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status);
-                                  } else {
-                                    handleUpdateAttendanceApprovalStatus(record.id, 'approved', record.approval_status);
-                                  }
-                                }}
-                                sx={{
-                                  mr: 0.5,
-                                  ...(record.approval_status === 'approved' && {
-                                    color: 'gray',
-                                    borderColor: 'gray',
-                                    cursor: 'pointer',
-                                  }),
-                                }}
-                              >
-                                {record.approval_status === 'approved' ? 'Approved' : 'Approve'}
-                              </Button>
-                              {record.approval_status !== 'approved' && (
+                              {record.approval_status !== 'rejected' && (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  color={record.approval_status === 'approved' ? 'inherit' : 'success'}
+                                  onClick={() => {
+                                    if (record.approval_status === 'approved') {
+                                      handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status);
+                                    } else {
+                                      handleUpdateAttendanceApprovalStatus(record.id, 'approved', record.approval_status);
+                                    }
+                                  }}
+                                  sx={{
+                                    mr: 0.5,
+                                    ...(record.approval_status === 'approved' && {
+                                      color: 'gray',
+                                      borderColor: 'gray',
+                                      cursor: 'pointer',
+                                    }),
+                                  }}
+                                >
+                                  {record.approval_status === 'approved' ? 'Approved' : 'Approve'}
+                                </Button>
+                              )}
+                              {record.approval_status === 'rejected' ? (
                                 <Button
                                   variant="outlined"
                                   size="small"
                                   color="error"
-                                  onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status)}
+                                  onClick={() => {
+                                    // Toggle rejected back to pending (or approved if desired)
+                                    handleUpdateAttendanceApprovalStatus(record.id, 'pending', record.approval_status);
+                                  }}
+                                  sx={{
+                                    backgroundColor: '#ffe6e6',
+                                    color: '#d32f2f',
+                                    borderColor: '#d32f2f',
+                                    mr: 0.5,
+                                    cursor: 'pointer',
+                                  }}
                                 >
-                                  Reject
+                                  Rejected
                                 </Button>
+                              ) : (
+                                record.approval_status !== 'approved' && (
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status)}
+                                  >
+                                    Reject
+                                  </Button>
+                                )
                               )}
                             </>
                           ) : (
