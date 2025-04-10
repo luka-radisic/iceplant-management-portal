@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Switch,
 } from '@mui/material';
 import { format, differenceInMinutes } from 'date-fns';
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -51,6 +52,15 @@ interface AttendanceStats {
   status_distribution: { name: string; value: number }[];
   department_summary: { department: string; count: number }[];
   daily_trend: { date: string; count: number }[];
+
+// TODO: In your attendance table row rendering, add this inside <TableRow>:
+// <TableCell>
+//   <Switch
+//     checked={record.checked}
+//     onChange={() => handleToggleChecked(record)}
+//     color="primary"
+//   />
+// </TableCell>
 }
 
 export default function AttendanceList() {
@@ -130,27 +140,49 @@ export default function AttendanceList() {
       setLoading(false);
     }
   }, [page, rowsPerPage, debouncedFilters]);
-
-  const fetchStats = useCallback(async () => {
-    setLoadingStats(true);
+  const handleToggleChecked = async (record: any) => {
     try {
-      const params = {
-        start_date: debouncedFilters.start_date,
-        end_date: debouncedFilters.end_date,
-        status: debouncedFilters.status === 'all' ? '' : debouncedFilters.status,
-        department: debouncedFilters.department,
-      };
-      console.log('[STATS] Fetching attendance stats with params:', params);
-      const stats = await apiService.getAttendanceStats(params);
-      console.log('[STATS] Received RAW stats data:', JSON.stringify(stats, null, 2));
-      setStatsData(stats);
+      const updated = { checked: !record.checked };
+      await apiService.patch(`/api/attendance/attendance/${record.id}/`, updated);
+      setRecords((prev: any[]) =>
+        prev.map((r: any) => (r.id === record.id ? { ...r, checked: updated.checked } : r))
+      );
     } catch (error) {
-      console.error('[STATS] Error fetching attendance stats:', error);
-      setStatsData(null);
-    } finally {
-      setLoadingStats(false);
+      console.error('Failed to update checked status:', error);
+      alert('Failed to update checked status');
     }
-  }, [debouncedFilters]);
+  };
+
+
+const fetchStats = useCallback(async () => {
+ setLoadingStats(true);
+ try {
+   const params = {
+     start_date: debouncedFilters.start_date,
+     end_date: debouncedFilters.end_date,
+     status: debouncedFilters.status === 'all' ? '' : debouncedFilters.status,
+     department: debouncedFilters.department,
+   };
+   console.log('[STATS] Fetching attendance stats with params:', params);
+   const stats = await apiService.getAttendanceStats(params);
+   console.log('[STATS] Received RAW stats data:', JSON.stringify(stats, null, 2));
+   setStatsData(stats);
+ } catch (error) {
+   console.error('[STATS] Error fetching attendance stats:', error);
+   setStatsData(null);
+ } finally {
+   setLoadingStats(false);
+ }
+}, [debouncedFilters]);
+
+  // TODO: In your attendance table row rendering, add this inside <TableRow>:
+  // <TableCell>
+  //   <Switch
+  //     checked={record.checked}
+  //     onChange={() => handleToggleChecked(record)}
+  //     color="primary"
+  //   />
+  // </TableCell>
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -626,6 +658,8 @@ export default function AttendanceList() {
               rowsPerPageOptions={[10, 25, 50, 100, 200]}
               sx={{ borderTop: '1px solid', borderColor: 'divider' }}
             />
+
+
           </TableContainer>
         )}
 

@@ -3,6 +3,7 @@ from attendance.models import Attendance, EmployeeProfile, EmployeeShift, Depart
 from django.db.models import Q
 
 class AttendanceFilter(filters.FilterSet):
+    checked = filters.BooleanFilter(field_name='checked')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         prefix = "Atlantis Fishing Development Corp\\"
