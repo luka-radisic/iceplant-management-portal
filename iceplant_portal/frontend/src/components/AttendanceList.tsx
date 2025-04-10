@@ -533,7 +533,7 @@ const fetchStats = useCallback(async () => {
             }}>
               <TableHead sx={{ bgcolor: 'grey.300' }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
