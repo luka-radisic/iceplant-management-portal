@@ -700,20 +700,29 @@ const fetchStats = useCallback(async () => {
                               <Button
                                 variant="outlined"
                                 size="small"
-                                color="success"
+                                color={record.approval_status === 'approved' ? 'inherit' : 'success'}
                                 onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'approved', record.approval_status)}
-                                sx={{ mr: 0.5 }}
+                                sx={{
+                                  mr: 0.5,
+                                  ...(record.approval_status === 'approved' && {
+                                    color: 'gray',
+                                    borderColor: 'gray',
+                                    cursor: 'pointer',
+                                  }),
+                                }}
                               >
-                                Approve
+                                {record.approval_status === 'approved' ? 'Approved' : 'Approve'}
                               </Button>
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                color="error"
-                                onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status)}
-                              >
-                                Reject
-                              </Button>
+                              {record.approval_status !== 'approved' && (
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status)}
+                                >
+                                  Reject
+                                </Button>
+                              )}
                             </>
                           ) : (
                             <Typography variant="body2" sx={{ fontWeight: 'bold', textTransform: 'capitalize' }}>
