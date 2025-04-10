@@ -630,6 +630,13 @@ const fetchStats = useCallback(async () => {
                             : '-'}
                         </TableCell>
                         <TableCell>
+                          <Switch
+                            checked={record.checked}
+                            onChange={() => handleToggleChecked(record)}
+                            color="primary"
+                          />
+                        </TableCell>
+                        <TableCell>
                           {getStatusChip(record)}
                         </TableCell>
                         <TableCell>
