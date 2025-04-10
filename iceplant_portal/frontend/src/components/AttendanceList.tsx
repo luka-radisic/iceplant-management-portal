@@ -654,11 +654,16 @@ const fetchStats = useCallback(async () => {
                           {getStatusChip(record)}
                         </TableCell>
                         <TableCell>
-                          <Switch
-                            checked={record.checked}
-                            onChange={() => handleToggleChecked(record)}
-                            color="primary"
-                          />
+                          <Button
+                            onClick={() => handleToggleChecked(record)}
+                            sx={{ minWidth: 'auto', padding: 0 }}
+                          >
+                            {record.checked ? (
+                              <span style={{ color: '#4caf50', fontSize: '20px' }}>✔️</span>
+                            ) : (
+                              <span style={{ color: '#ccc', fontSize: '20px' }}>⭕</span>
+                            )}
+                          </Button>
                         </TableCell>
                         <TableCell>
                           {isHrUser ? (
