@@ -144,6 +144,16 @@ flowchart TD
     - `checked`
 - **Role-based filtering** to hide `hr_note` from Staff.
 
+### Filtering by Approval Status
+
+- The API supports filtering attendance records by the `approval_status` field.
+- Query parameter: `?approval_status=pending` or `approved` or `rejected`.
+- This allows HR to quickly find:
+  - All **pending** approvals
+  - All **approved** records
+  - All **rejected** records
+- **UI Recommendation:** Add a dropdown or filter option in the HR attendance approval interface to select approval status and filter results accordingly.
+
 ---
 
 ## Security & Permissions
