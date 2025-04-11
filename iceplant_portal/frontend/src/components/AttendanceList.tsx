@@ -66,6 +66,59 @@ interface AttendanceStats {
 
 export default function AttendanceList() {
 
+  // Helper to calculate overtime (hours worked beyond 8 per day)
+  function calculateOvertimeMinutes(record: any): number {
+    let minutes = 0;
+    if (record.check_in && record.check_out) {
+      try {
+        minutes = Math.max(0, Math.round((new Date(record.check_out).getTime() - new Date(record.check_in).getTime()) / 60000));
+      } catch {
+        minutes = 0;
+      }
+    } else if (record.duration) {
+      // If duration is in "HH:mm:ss" or "HH:mm" format
+      const parts = record.duration.split(':').map(Number);
+      if (parts.length >= 2) {
+        minutes = parts[0] * 60 + parts[1];
+      }
+    }
+    return minutes > 480 ? minutes - 480 : 0; // Overtime is minutes beyond 8 hours (480 min)
+  }
+
+  // Helper to calculate undertime (hours worked less than 8 per day)
+  function calculateUndertimeMinutes(record: any): number {
+    let minutes = 0;
+    if (record.check_in && record.check_out) {
+      try {
+        minutes = Math.max(0, Math.round((new Date(record.check_out).getTime() - new Date(record.check_in).getTime()) / 60000));
+      } catch {
+        minutes = 0;
+      }
+    } else if (record.duration) {
+      // If duration is in "HH:mm:ss" or "HH:mm" format
+      const parts = record.duration.split(':').map(Number);
+      if (parts.length >= 2) {
+        minutes = parts[0] * 60 + parts[1];
+      }
+    }
+    return minutes > 0 && minutes < 480 ? 480 - minutes : 0; // Undertime is minutes less than 8 hours (480 min)
+  }
+// Helper to determine if a record is a late arrival (after 8:00 AM)
+function isLateArrival(record: any, scheduledHour = 8, scheduledMinute = 0): boolean {
+  if (!record.check_in) return false;
+  try {
+    const checkInDate = new Date(record.check_in);
+    const checkInHour = checkInDate.getHours();
+    const checkInMinute = checkInDate.getMinutes();
+    // Compare to scheduled start time (default 08:00)
+    if (checkInHour > scheduledHour) return true;
+    if (checkInHour === scheduledHour && checkInMinute > scheduledMinute) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
   // Export handler: fetch all filtered records, format as CSV, and trigger download
   /**
    * CSV Export Tool
@@ -481,6 +534,70 @@ const fetchStats = useCallback(async () => {
   console.log('[STATS] Memoized Bar Data:', barChartData);
   console.log('[STATS] Memoized Line Data:', lineChartData);
 
+  // Aggregate overtime per employee for summary
+  const overtimeSummary = useMemo(() => {
+    const summary: { [employeeId: string]: { name: string; department: string; overtimeMinutes: number } } = {};
+    records.forEach((rec) => {
+      const overtime = calculateOvertimeMinutes(rec);
+      if (overtime > 0) {
+        if (!summary[rec.employee_id]) {
+          summary[rec.employee_id] = {
+            name: rec.employee_name,
+            department: rec.department,
+            overtimeMinutes: 0,
+          };
+        }
+        summary[rec.employee_id].overtimeMinutes += overtime;
+      }
+    });
+    // Convert to array and sort by most overtime
+    return Object.entries(summary)
+      .map(([id, data]) => ({ employee_id: id, ...data }))
+      .sort((a, b) => b.overtimeMinutes - a.overtimeMinutes);
+  }, [records]);
+  // Aggregate undertime per employee for summary
+  const undertimeSummary = useMemo(() => {
+    const summary: { [employeeId: string]: { name: string; department: string; undertimeMinutes: number } } = {};
+    records.forEach((rec) => {
+      const undertime = calculateUndertimeMinutes(rec);
+      if (undertime > 0) {
+        if (!summary[rec.employee_id]) {
+          summary[rec.employee_id] = {
+            name: rec.employee_name,
+            department: rec.department,
+            undertimeMinutes: 0,
+          };
+        }
+        summary[rec.employee_id].undertimeMinutes += undertime;
+      }
+    });
+    // Convert to array and sort by most undertime
+    return Object.entries(summary)
+      .map(([id, data]) => ({ employee_id: id, ...data }))
+      .sort((a, b) => b.undertimeMinutes - a.undertimeMinutes);
+  }, [records]);
+
+  // Aggregate late arrivals per employee for summary
+  const lateArrivalSummary = useMemo(() => {
+    const summary: { [employeeId: string]: { name: string; department: string; lateCount: number } } = {};
+    records.forEach((rec) => {
+      if (isLateArrival(rec)) {
+        if (!summary[rec.employee_id]) {
+          summary[rec.employee_id] = {
+            name: rec.employee_name,
+            department: rec.department,
+            lateCount: 0,
+          };
+        }
+        summary[rec.employee_id].lateCount += 1;
+      }
+    });
+    // Convert to array and sort by most late arrivals
+    return Object.entries(summary)
+      .map(([id, data]) => ({ employee_id: id, ...data }))
+      .sort((a, b) => b.lateCount - a.lateCount);
+  }, [records]);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{
@@ -723,6 +840,105 @@ const fetchStats = useCallback(async () => {
           </Box>
         )}
 
+        {/* Overtime Summary Widget */}
+        {!loading && overtimeSummary.length > 0 && (
+          <Paper elevation={2} sx={{ p: 2, mb: 3, width: '100%' }}>
+            <Typography variant="h6" gutterBottom align="center">
+              Overtime Summary by Employee (Filtered)
+            </Typography>
+            <Table size="small" sx={{ minWidth: 400 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Total Overtime (h:mm)</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {overtimeSummary.map((row) => (
+                  <TableRow key={row.employee_id}>
+                    <TableCell>{row.employee_id}</TableCell>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.department}</TableCell>
+                    <TableCell>
+                      {`${Math.floor(row.overtimeMinutes / 60)}:${(row.overtimeMinutes % 60).toString().padStart(2, '0')}`}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+              Overtime is calculated as hours worked beyond 8 per day, per filtered record.
+            </Typography>
+          </Paper>
+        )}
+        {/* Undertime Summary Widget */}
+        {!loading && undertimeSummary.length > 0 && (
+          <Paper elevation={2} sx={{ p: 2, mb: 3, width: '100%' }}>
+            <Typography variant="h6" gutterBottom align="center">
+              Undertime Summary by Employee (Filtered)
+            </Typography>
+            <Table size="small" sx={{ minWidth: 400 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Total Undertime (h:mm)</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {undertimeSummary.map((row) => (
+                  <TableRow key={row.employee_id}>
+                    <TableCell>{row.employee_id}</TableCell>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.department}</TableCell>
+                    <TableCell>
+                      {`${Math.floor(row.undertimeMinutes / 60)}:${(row.undertimeMinutes % 60).toString().padStart(2, '0')}`}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+              Undertime is calculated as hours worked less than 8 per day, per filtered record.
+            </Typography>
+          </Paper>
+        )}
+
+        {/* Late Arrivals Summary Widget */}
+        {!loading && lateArrivalSummary.length > 0 && (
+          <Paper elevation={2} sx={{ p: 2, mb: 3, width: '100%' }}>
+            <Typography variant="h6" gutterBottom align="center">
+              Late Arrivals Summary by Employee (Filtered)
+            </Typography>
+            <Table size="small" sx={{ minWidth: 400 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Total Late Arrivals</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {lateArrivalSummary.map((row) => (
+                  <TableRow key={row.employee_id}>
+                    <TableCell>{row.employee_id}</TableCell>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.department}</TableCell>
+                    <TableCell>{row.lateCount}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+              Late arrival is defined as checking in after 08:00 AM, per filtered record.
+            </Typography>
+          </Paper>
+        )}
+
         {!loading && records.length === 0 && (
           <Box display="flex" justifyContent="center" py={5}>
             <Typography>No attendance records found for the selected date range.</Typography>
@@ -765,6 +981,8 @@ const fetchStats = useCallback(async () => {
                   <TableCell sx={{ fontWeight: 'bold' }}>In</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Out</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>Overtime</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#d23f31' }}>Undertime</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Checked</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Approval</TableCell>
@@ -891,6 +1109,26 @@ const fetchStats = useCallback(async () => {
                           {record.duration
                             ? record.duration.split(':').slice(0, 2).join(':')
                             : '-'}
+                        </TableCell>
+                        {/* Overtime column */}
+                        <TableCell sx={{ color: '#1976d2', fontWeight: 500 }}>
+                          {(() => {
+                            const overtime = calculateOvertimeMinutes(record);
+                            if (overtime > 0) {
+                              return `${Math.floor(overtime / 60)}:${(overtime % 60).toString().padStart(2, '0')}`;
+                            }
+                            return '-';
+                          })()}
+                        </TableCell>
+                        {/* Undertime column */}
+                        <TableCell sx={{ color: '#d23f31', fontWeight: 500 }}>
+                          {(() => {
+                            const undertime = calculateUndertimeMinutes(record);
+                            if (undertime > 0) {
+                              return `${Math.floor(undertime / 60)}:${(undertime % 60).toString().padStart(2, '0')}`;
+                            }
+                            return '-';
+                          })()}
                         </TableCell>
                         <TableCell
                           // Override global nowrap for Status column to allow badge wrapping
