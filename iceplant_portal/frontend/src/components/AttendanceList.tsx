@@ -107,16 +107,22 @@ export default function AttendanceList() {
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {
+      const params: any = {
         page: page + 1,
         page_size: rowsPerPage,
         start_date: debouncedFilters.start_date,
         end_date: debouncedFilters.end_date,
         status: debouncedFilters.status === 'all' ? '' : debouncedFilters.status,
         department: debouncedFilters.department,
-        approval_status: debouncedFilters.approval_status,  // always send approval_status, even if 'all' or ''
         process_checkins: 'false',
       };
+      // Only include approval_status if not 'all' and not empty
+      if (
+        debouncedFilters.approval_status &&
+        debouncedFilters.approval_status !== 'all'
+      ) {
+        params.approval_status = debouncedFilters.approval_status;
+      }
       console.log('Fetching attendance records with params:', params);
 
       const timeoutPromise = new Promise((_, reject) =>
@@ -201,13 +207,19 @@ export default function AttendanceList() {
 const fetchStats = useCallback(async () => {
  setLoadingStats(true);
  try {
-   const params = {
+   const params: any = {
      start_date: debouncedFilters.start_date,
      end_date: debouncedFilters.end_date,
      status: debouncedFilters.status === 'all' ? '' : debouncedFilters.status,
      department: debouncedFilters.department,
-     approval_status: debouncedFilters.approval_status === 'all' ? '' : debouncedFilters.approval_status,
    };
+   // Only include approval_status if not 'all' and not empty
+   if (
+     debouncedFilters.approval_status &&
+     debouncedFilters.approval_status !== 'all'
+   ) {
+     params.approval_status = debouncedFilters.approval_status;
+   }
    console.log('[STATS] Fetching attendance stats with params:', params);
    const stats = await apiService.getAttendanceStats(params);
    console.log('[STATS] Received RAW stats data:', JSON.stringify(stats, null, 2));
