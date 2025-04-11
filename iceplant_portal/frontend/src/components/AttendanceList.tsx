@@ -396,25 +396,6 @@ const fetchStats = useCallback(async () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               {/* Sunday Work Only filter */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Box display="flex" alignItems="center">
-                  <Switch
-                    checked={filters.sunday_only}
-                    onChange={e => {
-                      setFilters(prev => ({
-                        ...prev,
-                        sunday_only: e.target.checked,
-                      }));
-                      setPage(0);
-                    }}
-                    color="primary"
-                    inputProps={{ 'aria-label': 'Sunday Work Only' }}
-                  />
-                  <Typography variant="body2" sx={{ ml: 1 }}>
-                    Sunday Work Only
-                  </Typography>
-                </Box>
-              </Grid>
               <TextField
                 select
                 fullWidth
@@ -447,19 +428,38 @@ const fetchStats = useCallback(async () => {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                select
-                fullWidth
-                label="Approval Status"
-                value={filters.approval_status}
-                onChange={e => handleFilterChange('approval_status', e.target.value)}
-                size="small"
-              >
-                <MenuItem value="all">All Approval Statuses</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="approved">Approved</MenuItem>
-                <MenuItem value="rejected">Rejected</MenuItem>
-              </TextField>
+              <Box display="flex" alignItems="center">
+                <Box display="flex" alignItems="center" mr={2}>
+                  <Switch
+                    checked={filters.sunday_only}
+                    onChange={e => {
+                      setFilters(prev => ({
+                        ...prev,
+                        sunday_only: e.target.checked,
+                      }));
+                      setPage(0);
+                    }}
+                    color="primary"
+                    inputProps={{ 'aria-label': 'Sunday Work Only' }}
+                  />
+                  <Typography variant="body2" sx={{ ml: 1 }}>
+                    Sunday Work Only
+                  </Typography>
+                </Box>
+                <TextField
+                  select
+                  fullWidth
+                  label="Approval Status"
+                  value={filters.approval_status}
+                  onChange={e => handleFilterChange('approval_status', e.target.value)}
+                  size="small"
+                >
+                  <MenuItem value="all">All Approval Statuses</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
+                </TextField>
+              </Box>
             </Grid>
           </Grid>
         </Paper>
