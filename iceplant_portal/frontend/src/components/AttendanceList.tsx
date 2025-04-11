@@ -261,7 +261,7 @@ const fetchStats = useCallback(async () => {
   const getStatusChip = (record: any) => {
     if (isSunday(record.check_in)) {
       return (
-        <Box display="flex" gap={1}>
+        <Box display="flex" gap={1} flexWrap="wrap">
           <Chip label="Off Day" color="info" size="small" variant="outlined" />
           {record.department === 'NO SHOW' ? (
             <Chip label="No Show" color="error" size="small" variant="outlined" />
@@ -357,7 +357,8 @@ const fetchStats = useCallback(async () => {
         p: 2,
         fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
         fontSize: '15px',
-        lineHeight: 1.5
+        lineHeight: 1.5,
+        margin: '0 auto'
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h5">
@@ -370,7 +371,7 @@ const fetchStats = useCallback(async () => {
           )}
         </Box>
 
-        <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
+        <Paper elevation={2} sx={{ p: 2, mb: 3, width: '100%' }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={6} md={3}>
               <DatePicker
@@ -480,7 +481,7 @@ const fetchStats = useCallback(async () => {
         ) : statsData ? (
           <Grid container spacing={3} sx={{ mb: 3 }}>
             <Grid item xs={12} md={4}>
-              <Paper elevation={2} sx={{ p: 2, height: 350 }}>
+              <Paper elevation={2} sx={{ p: 2, height: 350, width: '100%' }}>
                 <Typography variant="h6" gutterBottom align="center">
                   Status Distribution
                 </Typography>
@@ -514,7 +515,7 @@ const fetchStats = useCallback(async () => {
               </Paper>
             </Grid>
             <Grid item xs={12} md={8}>
-              <Paper elevation={2} sx={{ p: 2, height: 350 }}>
+              <Paper elevation={2} sx={{ p: 2, height: 350, width: '100%' }}>
                 <Typography variant="h6" gutterBottom align="center">
                   Present Records by Department
                 </Typography>
@@ -536,7 +537,7 @@ const fetchStats = useCallback(async () => {
               </Paper>
             </Grid>
             <Grid item xs={12}>
-              <Paper elevation={2} sx={{ p: 2, height: 300 }}>
+              <Paper elevation={2} sx={{ p: 2, height: 300, width: '100%' }}>
                 <Typography variant="h6" gutterBottom align="center">
                   Daily Present Trend
                 </Typography>
@@ -581,9 +582,19 @@ const fetchStats = useCallback(async () => {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer component={Paper} elevation={6} sx={{ borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
+          <TableContainer
+            component={Paper}
+            elevation={6}
+            sx={{
+              borderRadius: 2,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              width: '100%',
+              overflowX: 'auto'
+            }}
+          >
             <Table size="small" stickyHeader sx={{
               fontSize: '12px',
+              minWidth: 'max-content',
               '& th, & td': {
                 padding: '4px 8px',
                 whiteSpace: 'nowrap',
@@ -638,7 +649,16 @@ const fetchStats = useCallback(async () => {
                         }}
                       >
                         <TableCell>{record.employee_id}</TableCell>
-                        <TableCell>
+                        <TableCell
+                          sx={{
+                            maxWidth: 180,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            p: 0
+                          }}
+                          title={record.employee_name}
+                        >
                           <Button
                             variant="text"
                             size="small"
@@ -649,6 +669,10 @@ const fetchStats = useCallback(async () => {
                               textAlign: 'left',
                               fontWeight: 500,
                               color: 'text.primary',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
                             }}
                             onClick={() =>
                               setSelectedEmployee({
@@ -660,7 +684,17 @@ const fetchStats = useCallback(async () => {
                             {record.employee_name}
                           </Button>
                         </TableCell>
-                        <TableCell>{record.department}</TableCell>
+                        <TableCell
+                          sx={{
+                            maxWidth: 120,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={record.department}
+                        >
+                          {record.department}
+                        </TableCell>
                         <TableCell>{formatDate(record.check_in)}</TableCell>
                         <TableCell>
                           <Typography
@@ -706,7 +740,16 @@ const fetchStats = useCallback(async () => {
                             ? record.duration.split(':').slice(0, 2).join(':')
                             : '-'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell
+                          // Override global nowrap for Status column to allow badge wrapping
+                          sx={{
+                            whiteSpace: 'normal !important',
+                            wordBreak: 'break-word',
+                            maxWidth: 220,
+                            minWidth: 120,
+                            p: '4px 8px'
+                          }}
+                        >
                           {getStatusChip(record)}
                         </TableCell>
                         <TableCell>

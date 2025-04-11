@@ -48,7 +48,7 @@ export default function Attendance() {
   };
 
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh' }}>
+    <Box sx={{ width: '100%', minHeight: '100vh', margin: '0 auto' }}>
       <Box sx={{
         borderBottom: 1,
         borderColor: 'divider',
