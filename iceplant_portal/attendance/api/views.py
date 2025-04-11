@@ -109,6 +109,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(department='NO SHOW')
         elif status_filter == 'missing-checkout':
             queryset = queryset.filter(check_out__isnull=True).exclude(department='NO SHOW')
+        approval_status = params.get('approval_status')
+        if approval_status:
+            queryset = queryset.filter(approval_status=approval_status)
             
         return queryset
 

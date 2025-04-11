@@ -3,6 +3,7 @@ from attendance.models import Attendance, EmployeeProfile, EmployeeShift, Depart
 from django.db.models import Q
 
 class AttendanceFilter(filters.FilterSet):
+    approval_status = filters.CharFilter(field_name='approval_status', lookup_expr='iexact')
     checked = filters.BooleanFilter(field_name='checked')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,7 +52,7 @@ class AttendanceFilter(filters.FilterSet):
 
     class Meta:
         model = Attendance
-        fields = ['employee_id', 'department', 'import_date']
+        fields = ['employee_id', 'department', 'import_date', 'approval_status']
 
     def filter_department(self, queryset, name, value):
         # When filtering, check for both the cleaned name (value)

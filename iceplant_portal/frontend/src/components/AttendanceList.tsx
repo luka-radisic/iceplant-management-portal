@@ -79,6 +79,7 @@ export default function AttendanceList() {
     end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
     status: 'all',
     department: '',
+    approval_status: 'all',
   });
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -113,6 +114,7 @@ export default function AttendanceList() {
         end_date: debouncedFilters.end_date,
         status: debouncedFilters.status === 'all' ? '' : debouncedFilters.status,
         department: debouncedFilters.department,
+        approval_status: debouncedFilters.approval_status,  // always send approval_status, even if 'all' or ''
         process_checkins: 'false',
       };
       console.log('Fetching attendance records with params:', params);
@@ -204,6 +206,7 @@ const fetchStats = useCallback(async () => {
      end_date: debouncedFilters.end_date,
      status: debouncedFilters.status === 'all' ? '' : debouncedFilters.status,
      department: debouncedFilters.department,
+     approval_status: debouncedFilters.approval_status === 'all' ? '' : debouncedFilters.approval_status,
    };
    console.log('[STATS] Fetching attendance stats with params:', params);
    const stats = await apiService.getAttendanceStats(params);
@@ -440,6 +443,21 @@ const fetchStats = useCallback(async () => {
                     {dept}
                   </MenuItem>
                 ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                select
+                fullWidth
+                label="Approval Status"
+                value={filters.approval_status}
+                onChange={e => handleFilterChange('approval_status', e.target.value)}
+                size="small"
+              >
+                <MenuItem value="all">All Approval Statuses</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
+                <MenuItem value="rejected">Rejected</MenuItem>
               </TextField>
             </Grid>
           </Grid>
