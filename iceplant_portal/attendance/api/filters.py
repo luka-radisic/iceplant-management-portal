@@ -5,6 +5,16 @@ from django.db.models import Q
 class AttendanceFilter(filters.FilterSet):
     approval_status = filters.CharFilter(method='filter_approval_status', label='Approval Status')
     checked = filters.BooleanFilter(field_name='checked')
+    sunday_only = filters.BooleanFilter(method='filter_sunday_only', label='Sunday Only')
+
+    def filter_sunday_only(self, queryset, name, value):
+        """
+        If sunday_only is True, filter records where check_in is a Sunday.
+        """
+        if value:
+            # Django's week_day: Sunday=1, Monday=2, ..., Saturday=7
+            return queryset.extra(where=["EXTRACT(DOW FROM check_in) = 0"])
+        return queryset
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         prefix = "Atlantis Fishing Development Corp\\"

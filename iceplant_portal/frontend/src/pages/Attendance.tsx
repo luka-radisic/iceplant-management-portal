@@ -6,7 +6,6 @@ import {
 import { useState } from 'react';
 import AttendanceImport from '../components/AttendanceImport';
 import AttendanceList from '../components/AttendanceList';
-import WeekendWork from '../components/WeekendWork';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -61,7 +60,6 @@ export default function Attendance() {
         <Tabs value={value} onChange={handleChange} aria-label="attendance tabs">
           <Tab label="Attendance Records" {...a11yProps(0)} />
           <Tab label="Import Attendance" {...a11yProps(1)} />
-          <Tab label="Weekend Work" {...a11yProps(2)} />
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>
@@ -69,9 +67,6 @@ export default function Attendance() {
       </TabPanel>
       <TabPanel value={value} index={1}>
         <AttendanceImport />
-      </TabPanel>
-      <TabPanel value={value} index={2}>
-        <WeekendWork />
       </TabPanel>
     </Box>
   );

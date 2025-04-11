@@ -47,6 +47,7 @@ import EmployeeAttendanceModal from './EmployeeAttendanceModal';
 import { useAuth } from '../contexts/AuthContext';
 import { debounce } from 'lodash';
 import AttendanceCleanupTool from './AttendanceCleanupTool';
+import HRApprovalButtons from './HRApprovalButtons';
 
 interface AttendanceStats {
   status_distribution: { name: string; value: number }[];
@@ -80,6 +81,7 @@ export default function AttendanceList() {
     status: 'all',
     department: '',
     approval_status: 'all',
+    sunday_only: false,
   });
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -115,6 +117,7 @@ export default function AttendanceList() {
         status: debouncedFilters.status === 'all' ? '' : debouncedFilters.status,
         department: debouncedFilters.department,
         process_checkins: 'false',
+        sunday_only: debouncedFilters.sunday_only ? 'true' : undefined,
       };
       // Only include approval_status if not 'all' and not empty
       if (
@@ -167,41 +170,7 @@ export default function AttendanceList() {
     }
   };
 
- async function handleUpdateAttendanceApprovalStatus(id: number, newStatus: string, currentStatus: string) {
-   try {
-     let reason = '';
-     const changingFromApproved = currentStatus === 'approved' && newStatus !== 'approved';
-     const isRejecting = newStatus === 'rejected';
- 
-     if (changingFromApproved || isRejecting) {
-       reason = window.prompt(`Please enter a reason for changing status to ${newStatus}:`) || '';
-       if (!reason.trim()) {
-         return; // cancel if no reason
-       }
-     }
- 
-     const payload: any = { approval_status: newStatus };
-     if (reason.trim()) {
-       payload.hr_notes = reason;
-     }
- 
-     await apiService.patch(`/api/attendance/attendance/${id}/`, payload);
- 
-     setRecords((prev: any[]) =>
-       prev.map((record: any) =>
-         record.id === id
-           ? {
-               ...record,
-               approval_status: newStatus,
-               ...(reason.trim() && { hr_notes: reason, hr_note_exists: true }),
-             }
-           : record
-       )
-     );
-   } catch (error) {
-     console.error('Failed to update approval status:', error);
-   }
- }
+ // HRApprovalButtons handles approval/rejection logic now.
 
 
 const fetchStats = useCallback(async () => {
@@ -426,6 +395,32 @@ const fetchStats = useCallback(async () => {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                select
+                fullWidth
+                label="Status"
+                value={filters.status}
+              />
+              {/* Sunday Work Only filter */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Box display="flex" alignItems="center">
+                  <Switch
+                    checked={filters.sunday_only}
+                    onChange={e => {
+                      setFilters(prev => ({
+                        ...prev,
+                        sunday_only: e.target.checked,
+                      }));
+                      setPage(0);
+                    }}
+                    color="primary"
+                    inputProps={{ 'aria-label': 'Sunday Work Only' }}
+                  />
+                  <Typography variant="body2" sx={{ ml: 1 }}>
+                    Sunday Work Only
+                  </Typography>
+                </Box>
+              </Grid>
               <TextField
                 select
                 fullWidth
@@ -726,63 +721,25 @@ const fetchStats = useCallback(async () => {
                         </TableCell>
                         <TableCell>
                           {isHrUser ? (
-                            <>
-                              {record.approval_status !== 'rejected' && (
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  color={record.approval_status === 'approved' ? 'inherit' : 'success'}
-                                  onClick={() => {
-                                    if (record.approval_status === 'approved') {
-                                      handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status);
-                                    } else {
-                                      handleUpdateAttendanceApprovalStatus(record.id, 'approved', record.approval_status);
-                                    }
-                                  }}
-                                  sx={{
-                                    mr: 0.5,
-                                    ...(record.approval_status === 'approved' && {
-                                      color: 'gray',
-                                      borderColor: 'gray',
-                                      cursor: 'pointer',
-                                    }),
-                                  }}
-                                >
-                                  {record.approval_status === 'approved' ? 'Approved' : 'Approve'}
-                                </Button>
-                              )}
-                              {record.approval_status === 'rejected' ? (
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  color="error"
-                                  onClick={() => {
-                                    // Toggle rejected back to pending (or approved if desired)
-                                    handleUpdateAttendanceApprovalStatus(record.id, 'pending', record.approval_status);
-                                  }}
-                                  sx={{
-                                    backgroundColor: '#ffe6e6',
-                                    color: '#d32f2f',
-                                    borderColor: '#d32f2f',
-                                    mr: 0.5,
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  Rejected
-                                </Button>
-                              ) : (
-                                record.approval_status !== 'approved' && (
-                                  <Button
-                                    variant="outlined"
-                                    size="small"
-                                    color="error"
-                                    onClick={() => handleUpdateAttendanceApprovalStatus(record.id, 'rejected', record.approval_status)}
-                                  >
-                                    Reject
-                                  </Button>
-                                )
-                              )}
-                            </>
+                            <HRApprovalButtons
+                              id={record.id}
+                              currentStatus={record.approval_status}
+                              requireReason={true}
+                              onStatusChange={(newStatus, reason) => {
+                                setRecords((prev: any[]) =>
+                                  prev.map((r: any) =>
+                                    r.id === record.id
+                                      ? {
+                                          ...r,
+                                          approval_status: newStatus,
+                                          ...(reason && { hr_notes: reason, hr_note_exists: true }),
+                                        }
+                                      : r
+                                  )
+                                );
+                              }}
+                              disabled={false}
+                            />
                           ) : (
                             <Typography variant="body2" sx={{ fontWeight: 'bold', textTransform: 'capitalize' }}>
                               {record.approval_status}
