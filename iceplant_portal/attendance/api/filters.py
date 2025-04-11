@@ -1,6 +1,7 @@
 from django_filters import rest_framework as filters
 from attendance.models import Attendance, EmployeeProfile, EmployeeShift, DepartmentShift
 from django.db.models import Q
+from django.db.models.functions import ExtractWeekDay
 
 class AttendanceFilter(filters.FilterSet):
     approval_status = filters.CharFilter(method='filter_approval_status', label='Approval Status')
@@ -11,9 +12,13 @@ class AttendanceFilter(filters.FilterSet):
         """
         If sunday_only is True, filter records where check_in is a Sunday.
         """
+        print(f"[DEBUG] sunday_only param value: {value}")
         if value:
-            # Django's week_day: Sunday=1, Monday=2, ..., Saturday=7
-            return queryset.extra(where=["EXTRACT(DOW FROM check_in) = 0"])
+            filtered = queryset.annotate(weekday=ExtractWeekDay('check_in')).filter(weekday=1)
+            print(f"[DEBUG] Sunday filter applied, queryset count: {filtered.count()}")
+            return filtered
+        print(f"[DEBUG] Sunday filter not applied, queryset count: {queryset.count()}")
+        return queryset
         return queryset
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

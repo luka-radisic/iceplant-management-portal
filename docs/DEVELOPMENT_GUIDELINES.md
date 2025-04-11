@@ -10,6 +10,10 @@ This document outlines specific development patterns, best practices, and soluti
 *   **Implementation:** Override the model's `save()` method. Inside the `save` method, perform the necessary checks (e.g., check if a specific field like `status` has changed to the trigger value like `'completed'`). If the condition is met, fetch the related object and update its fields accordingly before saving the related object.
 *   **Example:** See the `save()` method override in `maintenance/models.py > MaintenanceRecord`.
 *   **Alternative:** Django signals (like `post_save`) can also be used for more complex decoupling, but direct `save()` overrides are suitable for straightforward cases.
+### Date-based Filtering with ORM Functions
+
+*   **Pattern:** Always use Django ORM functions (e.g., `ExtractWeekDay`, `ExtractMonth`) for date-based filtering instead of `.extra()` or raw SQL, to ensure portability across databases (including SQLite and PostgreSQL).
+*   **Example:** The Attendance API's "Sunday Only" filter was refactored to use `ExtractWeekDay` for filtering records where `check_in` falls on a Sunday, replacing the previous `.extra()`/`strftime` approach. See `AttendanceFilter.filter_sunday_only` in `attendance/api/filters.py`.
 
 ## API Design (DRF)
 
