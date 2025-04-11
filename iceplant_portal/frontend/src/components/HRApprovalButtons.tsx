@@ -60,58 +60,100 @@ const HRApprovalButtons: React.FC<HRApprovalButtonsProps> = ({
     }
   };
 
-  return (
-    <>
-      {showApprove && (
-        <Button
-          size="small"
-          variant="outlined"
-          color="success"
-          sx={{
-            minWidth: '70px',
-            mr: 1,
-            textTransform: 'none',
-            borderColor: '#4caf50',
-            color: '#4caf50',
-            '&:hover': {
-              backgroundColor: 'rgba(76, 175, 80, 0.1)',
+  // No shared button state needed here; handled in each branch below
+
+  // Render logic based on status
+  if (currentStatus === 'pending') {
+    return (
+      <div style={{ display: 'flex', gap: 8 }}>
+        {showApprove && (
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{
+              minWidth: '100px',
+              textTransform: 'none',
+              backgroundColor: '#e8f5e9', // light green
               borderColor: '#4caf50',
-            },
-          }}
-          disabled={disabled || currentStatus === 'approved'}
-          onClick={e => {
-            e.stopPropagation();
-            handleUpdate('approved');
-          }}
-        >
-          Approve
-        </Button>
-      )}
-      {showReject && (
-        <Button
-          size="small"
-          variant="outlined"
-          color="error"
-          sx={{
-            minWidth: '70px',
-            textTransform: 'none',
-            borderColor: '#f44336',
-            color: '#f44336',
-            '&:hover': {
-              backgroundColor: 'rgba(244, 67, 54, 0.1)',
+              color: '#388e3c',
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: 'rgba(76, 175, 80, 0.15)',
+                borderColor: '#4caf50',
+              },
+            }}
+            disabled={disabled}
+            onClick={e => {
+              e.stopPropagation();
+              handleUpdate('approved');
+            }}
+          >
+            Approve
+          </Button>
+        )}
+        {showReject && (
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{
+              minWidth: '100px',
+              textTransform: 'none',
+              backgroundColor: '#ffebee', // light red
               borderColor: '#f44336',
-            },
-          }}
-          disabled={disabled || currentStatus === 'rejected'}
-          onClick={e => {
-            e.stopPropagation();
-            handleUpdate('rejected');
-          }}
-        >
-          Reject
-        </Button>
-      )}
-    </>
+              color: '#c62828',
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: 'rgba(244, 67, 54, 0.15)',
+                borderColor: '#f44336',
+              },
+            }}
+            disabled={disabled}
+            onClick={e => {
+              e.stopPropagation();
+              handleUpdate('rejected');
+            }}
+          >
+            Reject
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // For "approved" or "rejected", show a single toggle button
+  const isApproved = currentStatus === 'approved';
+  const buttonLabel = isApproved ? 'Approved' : 'Rejected';
+  const nextStatus = isApproved ? 'rejected' : 'approved';
+  const buttonColor = isApproved ? '#e8f5e9' : '#ffebee'; // light green or light red
+  const borderColor = isApproved ? '#4caf50' : '#f44336';
+  const textColor = isApproved ? '#388e3c' : '#c62828';
+
+  return (
+    <Button
+      size="small"
+      variant="outlined"
+      sx={{
+        minWidth: '100px',
+        textTransform: 'none',
+        backgroundColor: buttonColor,
+        borderColor: borderColor,
+        color: textColor,
+        fontWeight: 600,
+        '&:hover': {
+          backgroundColor: isApproved
+            ? 'rgba(76, 175, 80, 0.15)'
+            : 'rgba(244, 67, 54, 0.15)',
+          borderColor: borderColor,
+        },
+      }}
+      disabled={disabled}
+      onClick={e => {
+        e.stopPropagation();
+        handleUpdate(nextStatus);
+      }}
+    >
+      {buttonLabel}
+    </Button>
   );
 };
 
