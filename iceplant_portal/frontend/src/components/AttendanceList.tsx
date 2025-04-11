@@ -395,12 +395,6 @@ const fetchStats = useCallback(async () => {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                select
-                fullWidth
-                label="Status"
-                value={filters.status}
-              />
               {/* Sunday Work Only filter */}
               <Grid item xs={12} sm={6} md={3}>
                 <Box display="flex" alignItems="center">
