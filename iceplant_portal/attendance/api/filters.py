@@ -3,7 +3,7 @@ from attendance.models import Attendance, EmployeeProfile, EmployeeShift, Depart
 from django.db.models import Q
 
 class AttendanceFilter(filters.FilterSet):
-    approval_status = filters.CharFilter(field_name='approval_status', lookup_expr='iexact')
+    approval_status = filters.CharFilter(method='filter_approval_status', label='Approval Status')
     checked = filters.BooleanFilter(field_name='checked')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -49,6 +49,16 @@ class AttendanceFilter(filters.FilterSet):
         self.filters['department'].extra['choices'] = [(d, d) for d in final_departments]
 
     department = filters.ChoiceFilter(method='filter_department', label='Department')
+
+    def filter_approval_status(self, queryset, name, value):
+        """
+        Custom filter for approval_status:
+        - If value is 'all', empty, or None, do not filter (return all records).
+        - Otherwise, filter by case-insensitive exact match.
+        """
+        if value is None or value == "" or (isinstance(value, str) and value.lower() == "all"):
+            return queryset
+        return queryset.filter(**{f"{name}__iexact": value})
 
     class Meta:
         model = Attendance
