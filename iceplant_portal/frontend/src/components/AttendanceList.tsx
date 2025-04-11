@@ -453,6 +453,14 @@ const fetchStats = useCallback(async () => {
                   value={filters.approval_status}
                   onChange={e => handleFilterChange('approval_status', e.target.value)}
                   size="small"
+                  sx={{ minWidth: 220 }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        sx: { minWidth: 220 }
+                      }
+                    }
+                  }}
                 >
                   <MenuItem value="all">All Approval Statuses</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
