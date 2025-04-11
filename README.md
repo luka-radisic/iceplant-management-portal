@@ -99,63 +99,18 @@ Your terminal prompt should now indicate the active environment (e.g., `(venv) .
 
 Once the virtual environment is active, use `python3`:
 
-```bash
-# Example: Make migrations
-python3 manage.py makemigrations
+...
 
-# Example: Apply migrations
-python3 manage.py migrate
-
-# Example: Open Django shell
-python3 manage.py shell
-
-# Example: Create a superuser
-python3 manage.py createsuperuser
-```
-
-**Troubleshooting Activation:**
-
-If `source venv/bin/activate` doesn't seem to work correctly (e.g., you still get `ModuleNotFoundError: No module named 'django'`), you can bypass activation by running commands using the virtual environment's specific Python interpreter:
-
-```bash
-# From within the iceplant_portal directory
-venv/bin/python3 manage.py <your_command>
-
-# Example:
-venv/bin/python3 manage.py migrate
-```
-
-**4. Deactivate the Virtual Environment:**
-
-When you're finished, you can deactivate the environment:
-
-```bash
-deactivate
-```
-
-## License
-
-This project is licensed under the MIT License. 
-
-## Change Log
-
-### 2025-04-11
-
-**AttendanceList CSV Export Tool Enhancement**
-- The AttendanceList CSV export now includes the following columns for each record, with all fields correctly populated:
-  - Employee ID
-  - Name
-  - Department
-  - Date (YYYY-MM-DD)
-  - Day (Weekday, e.g., Monday)
-  - Check In
-  - Check Out
-  - Duration (min)
-  - Status
-  - Checked
-  - Approval Status
-  - HR Note
-- Exported CSV matches the displayed data and respects all current filters, with a maximum of 10,000 records per export.
-- All date and time fields use the same formatting as the table view for consistency.
-- This change addresses user feedback and requirements described in `docs/attendance_page_enhancement_context.md`.
 - Code is documented with references to the context doc and user feedback.
+
+---
+
+## Changelog
+
+**2025-04-11**
+- The "EXPORT CSV" button in AttendanceList is now right-aligned in the filter bar and no longer overlaps or covers the Approval Status dropdown or any other UI elements. The button is visually aligned and accessible on all screen sizes. See `docs/attendance_page_enhancement_context.md` for user feedback and context.
+- The change is documented in code comments and this changelog.
+
+**2025-04-11**
+- The "HR Note" column has been removed from the general AttendanceList CSV export. All other columns remain present and correctly populated.
+- This change was made in response to user feedback and is documented in `docs/attendance_page_enhancement_context.md`.

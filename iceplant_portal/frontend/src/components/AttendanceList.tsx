@@ -502,116 +502,127 @@ const fetchStats = useCallback(async () => {
         </Box>
 
         <Paper elevation={2} sx={{ p: 2, mb: 3, width: '100%' }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
-              <DatePicker
-                label="Start Date"
-                value={filters.start_date ? new Date(filters.start_date + 'T00:00:00') : null}
-                onChange={newValue => handleFilterChange('start_date', newValue)}
-                slotProps={{
-                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
-                }}
-                format="yyyy-MM-dd"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <DatePicker
-                label="End Date"
-                value={filters.end_date ? new Date(filters.end_date + 'T00:00:00') : null}
-                onChange={newValue => handleFilterChange('end_date', newValue)}
-                slotProps={{
-                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
-                }}
-                format="yyyy-MM-dd"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {/* Sunday Work Only filter */}
-              <TextField
-                select
-                fullWidth
-                label="Status"
-                value={filters.status}
-                onChange={e => handleFilterChange('status', e.target.value)}
-                size="small"
-              >
-                <MenuItem value="all">All Records</MenuItem>
-                <MenuItem value="present">Present</MenuItem>
-                <MenuItem value="no-show">No Show</MenuItem>
-                <MenuItem value="missing-checkout">Missing Check-Out</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                select
-                fullWidth
-                label="Department"
-                value={filters.department}
-                onChange={e => handleFilterChange('department', e.target.value)}
-                size="small"
-              >
-                <MenuItem value="">All Departments</MenuItem>
-                {departments.map(dept => (
-                  <MenuItem key={dept} value={dept}>
-                    {dept}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box display="flex" alignItems="center">
-                <Box display="flex" alignItems="center" mr={2}>
-                  <Switch
-                    checked={filters.sunday_only}
-                    onChange={e => {
-                      setFilters(prev => ({
-                        ...prev,
-                        sunday_only: e.target.checked,
-                      }));
-                      setPage(0);
+          {/* Filter bar and Export CSV button are now flex-aligned for better layout and accessibility.
+              The Export CSV button is always right-aligned and never overlaps the Approval Status dropdown or other filters.
+              See docs/attendance_page_enhancement_context.md and README.md changelog for details. */}
+          <Box display="flex" alignItems="flex-start" flexWrap="wrap" gap={2}>
+            <Box flex="1 1 0" minWidth={0}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} sm={6} md={3}>
+                  <DatePicker
+                    label="Start Date"
+                    value={filters.start_date ? new Date(filters.start_date + 'T00:00:00') : null}
+                    onChange={newValue => handleFilterChange('start_date', newValue)}
+                    slotProps={{
+                      textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
                     }}
-                    color="primary"
-                    inputProps={{ 'aria-label': 'Sunday Work Only' }}
+                    format="yyyy-MM-dd"
                   />
-                  <Typography variant="body2" sx={{ ml: 1 }}>
-                    Sunday Work Only
-                  </Typography>
-                </Box>
-                <TextField
-                  select
-                  fullWidth
-                  label="Approval Status"
-                  value={filters.approval_status}
-                  onChange={e => handleFilterChange('approval_status', e.target.value)}
-                  size="small"
-                  sx={{ minWidth: 220 }}
-                  SelectProps={{
-                    MenuProps: {
-                      PaperProps: {
-                        sx: { minWidth: 220 }
-                      }
-                    }
-                  }}
-                >
-                  <MenuItem value="all">All Approval Statuses</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="approved">Approved</MenuItem>
-                  <MenuItem value="rejected">Rejected</MenuItem>
-                </TextField>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <DatePicker
+                    label="End Date"
+                    value={filters.end_date ? new Date(filters.end_date + 'T00:00:00') : null}
+                    onChange={newValue => handleFilterChange('end_date', newValue)}
+                    slotProps={{
+                      textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
+                    }}
+                    format="yyyy-MM-dd"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Status"
+                    value={filters.status}
+                    onChange={e => handleFilterChange('status', e.target.value)}
+                    size="small"
+                  >
+                    <MenuItem value="all">All Records</MenuItem>
+                    <MenuItem value="present">Present</MenuItem>
+                    <MenuItem value="no-show">No Show</MenuItem>
+                    <MenuItem value="missing-checkout">Missing Check-Out</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Department"
+                    value={filters.department}
+                    onChange={e => handleFilterChange('department', e.target.value)}
+                    size="small"
+                  >
+                    <MenuItem value="">All Departments</MenuItem>
+                    {departments.map(dept => (
+                      <MenuItem key={dept} value={dept}>
+                        {dept}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Box display="flex" alignItems="center" flexWrap="wrap" gap={2}>
+                    <Box display="flex" alignItems="center">
+                      <Switch
+                        checked={filters.sunday_only}
+                        onChange={e => {
+                          setFilters(prev => ({
+                            ...prev,
+                            sunday_only: e.target.checked,
+                          }));
+                          setPage(0);
+                        }}
+                        color="primary"
+                        inputProps={{ 'aria-label': 'Sunday Work Only' }}
+                      />
+                      <Typography variant="body2" sx={{ ml: 1 }}>
+                        Sunday Work Only
+                      </Typography>
+                    </Box>
+                    <TextField
+                      select
+                      label="Approval Status"
+                      value={filters.approval_status}
+                      onChange={e => handleFilterChange('approval_status', e.target.value)}
+                      size="small"
+                      sx={{ minWidth: 220 }}
+                      SelectProps={{
+                        MenuProps: {
+                          PaperProps: {
+                            sx: { minWidth: 220 }
+                          }
+                        }
+                      }}
+                    >
+                      <MenuItem value="all">All Approval Statuses</MenuItem>
+                      <MenuItem value="pending">Pending</MenuItem>
+                      <MenuItem value="approved">Approved</MenuItem>
+                      <MenuItem value="rejected">Rejected</MenuItem>
+                    </TextField>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+            <Box flexShrink={0} minWidth={180} alignSelf="flex-start" ml="auto">
               <Button
                 variant="contained"
                 color="primary"
-                fullWidth
                 onClick={handleExport}
-                sx={{ height: '40px', mt: { xs: 2, sm: 0 } }}
+                sx={{
+                  height: '40px',
+                  minWidth: 160,
+                  whiteSpace: 'nowrap',
+                  boxShadow: 2,
+                  mt: { xs: 2, sm: 0 }
+                }}
+                aria-label="Export filtered attendance records as CSV"
               >
                 Export CSV
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Paper>
 
         {loadingStats ? (
