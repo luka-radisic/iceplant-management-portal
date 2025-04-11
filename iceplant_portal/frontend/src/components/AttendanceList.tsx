@@ -65,6 +65,93 @@ interface AttendanceStats {
 }
 
 export default function AttendanceList() {
+
+  // Export handler: fetch all filtered records, format as CSV, and trigger download
+  const handleExport = async () => {
+    try {
+      // Build params for all records (no pagination)
+      const params: any = {
+        start_date: debouncedFilters.start_date,
+        end_date: debouncedFilters.end_date,
+        status: debouncedFilters.status === 'all' ? '' : debouncedFilters.status,
+        department: debouncedFilters.department,
+        process_checkins: 'false',
+        sunday_only: debouncedFilters.sunday_only ? 'true' : undefined,
+      };
+      if (
+        debouncedFilters.approval_status &&
+        debouncedFilters.approval_status !== 'all'
+      ) {
+        params.approval_status = debouncedFilters.approval_status;
+      }
+      // Fetch all records (large page_size)
+      const response = await apiService.get('/api/attendance/attendance/', {
+        ...params,
+        page: 1,
+        page_size: 10000, // adjust as needed for max expected records
+      });
+      const allRecords = response.results || [];
+      if (allRecords.length === 0) {
+        alert('No records to export for the selected filters.');
+        return;
+      }
+      // Prepare CSV header
+      const header = [
+        'Employee ID',
+        'Name',
+        'Department',
+        'Date',
+        'Day',
+        'Check In',
+        'Check Out',
+        'Duration (min)',
+        'Status',
+        'Checked',
+        'Approval Status',
+        'HR Note'
+      ];
+      // Prepare CSV rows
+      const rows = allRecords.map((rec: any) => [
+        rec.employee_id || '',
+        rec.employee_name || '',
+        rec.department || '',
+        rec.date || '',
+        rec.day || '',
+        rec.check_in ? new Date(rec.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+        rec.check_out ? new Date(rec.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+        rec.check_in && rec.check_out
+          ? Math.max(0, Math.round((new Date(rec.check_out).getTime() - new Date(rec.check_in).getTime()) / 60000))
+          : '',
+        rec.status || '',
+        rec.checked ? 'Yes' : 'No',
+        rec.approval_status || '',
+        rec.hr_note || ''
+      ]);
+      // Convert to CSV string
+      const csvContent =
+        [header, ...rows]
+          .map(row => row.map(field =>
+            typeof field === 'string' && (field.includes(',') || field.includes('"') || field.includes('\n'))
+              ? `"${field.replace(/"/g, '""')}"`
+              : field
+          ).join(','))
+          .join('\r\n');
+      // Trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      link.download = `attendance_export_${dateStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting attendance records:', error);
+      alert('Failed to export attendance records.');
+    }
+  };
   const theme = useTheme();
   const { user, isAuthenticated } = useAuth() as { user: { group?: string } | null; isAuthenticated: boolean };
   const [loading, setLoading] = useState(true);
@@ -469,6 +556,17 @@ const fetchStats = useCallback(async () => {
                   <MenuItem value="rejected">Rejected</MenuItem>
                 </TextField>
               </Box>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                onClick={handleExport}
+                sx={{ height: '40px', mt: { xs: 2, sm: 0 } }}
+              >
+                Export CSV
+              </Button>
             </Grid>
           </Grid>
         </Paper>
