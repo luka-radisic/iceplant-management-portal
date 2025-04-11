@@ -67,6 +67,15 @@ interface AttendanceStats {
 export default function AttendanceList() {
 
   // Export handler: fetch all filtered records, format as CSV, and trigger download
+  /**
+   * CSV Export Tool
+   * Exports up to 10,000 filtered attendance records with the following columns:
+   * Employee ID, Name, Department, Date (YYYY-MM-DD), Day (Weekday), Check In, Check Out, Duration (min), Status, Checked, Approval Status, HR Note.
+   * - All columns are always present and populated using the same formatting as the table.
+   * - Export respects all current filters.
+   * - See docs/attendance_page_enhancement_context.md for requirements and user feedback.
+   * - Change documented in README.md (Change Log section).
+   */
   const handleExport = async () => {
     try {
       // Build params for all records (no pagination)
@@ -88,7 +97,7 @@ export default function AttendanceList() {
       const response = await apiService.get('/api/attendance/attendance/', {
         ...params,
         page: 1,
-        page_size: 10000, // adjust as needed for max expected records
+        page_size: 10000, // max 10,000 records
       });
       const allRecords = response.results || [];
       if (allRecords.length === 0) {
@@ -110,23 +119,57 @@ export default function AttendanceList() {
         'Approval Status',
         'HR Note'
       ];
-      // Prepare CSV rows
-      const rows = allRecords.map((rec: any) => [
-        rec.employee_id || '',
-        rec.employee_name || '',
-        rec.department || '',
-        rec.date || '',
-        rec.day || '',
-        rec.check_in ? new Date(rec.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-        rec.check_out ? new Date(rec.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-        rec.check_in && rec.check_out
-          ? Math.max(0, Math.round((new Date(rec.check_out).getTime() - new Date(rec.check_in).getTime()) / 60000))
-          : '',
-        rec.status || '',
-        rec.checked ? 'Yes' : 'No',
-        rec.approval_status || '',
-        rec.hr_note || ''
-      ]);
+      // Prepare CSV rows using the same formatting as the table
+      const rows = allRecords.map((rec: any) => {
+        // Date: YYYY-MM-DD
+        let dateStr = '';
+        if (rec.check_in) {
+          try {
+            dateStr = format(new Date(rec.check_in), 'yyyy-MM-dd');
+          } catch {
+            dateStr = rec.check_in ? String(rec.check_in).slice(0, 10) : '';
+          }
+        } else if (rec.date) {
+          dateStr = String(rec.date).slice(0, 10);
+        }
+        // Day of week
+        let dayStr = '';
+        if (rec.check_in) {
+          try {
+            dayStr = format(new Date(rec.check_in), 'EEEE');
+          } catch {
+            dayStr = '';
+          }
+        } else if (rec.date) {
+          try {
+            dayStr = format(new Date(rec.date), 'EEEE');
+          } catch {
+            dayStr = '';
+          }
+        }
+        // Check In/Out
+        const checkIn = rec.check_in ? format(new Date(rec.check_in), 'HH:mm') : '';
+        const checkOut = rec.check_out ? format(new Date(rec.check_out), 'HH:mm') : '';
+        // Duration (min)
+        const durationMin =
+          rec.check_in && rec.check_out
+            ? Math.max(0, Math.round((new Date(rec.check_out).getTime() - new Date(rec.check_in).getTime()) / 60000))
+            : '';
+        return [
+          rec.employee_id || '',
+          rec.employee_name || '',
+          rec.department || '',
+          dateStr,
+          dayStr,
+          checkIn,
+          checkOut,
+          durationMin,
+          rec.status || '',
+          rec.checked ? 'Yes' : 'No',
+          rec.approval_status || '',
+          rec.hr_note || ''
+        ];
+      });
       // Convert to CSV string
       const csvContent =
         [header, ...rows]

@@ -627,7 +627,6 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     'duration': duration or '',
                     'department': department_name,
                     'approval_status': getattr(record, 'approval_status', 'pending'),
-                    'has_hr_note': bool(getattr(record, 'hr_notes', '')),
                 })
             return data
 

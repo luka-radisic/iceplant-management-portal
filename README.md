@@ -136,3 +136,26 @@ deactivate
 ## License
 
 This project is licensed under the MIT License. 
+
+## Change Log
+
+### 2025-04-11
+
+**AttendanceList CSV Export Tool Enhancement**
+- The AttendanceList CSV export now includes the following columns for each record, with all fields correctly populated:
+  - Employee ID
+  - Name
+  - Department
+  - Date (YYYY-MM-DD)
+  - Day (Weekday, e.g., Monday)
+  - Check In
+  - Check Out
+  - Duration (min)
+  - Status
+  - Checked
+  - Approval Status
+  - HR Note
+- Exported CSV matches the displayed data and respects all current filters, with a maximum of 10,000 records per export.
+- All date and time fields use the same formatting as the table view for consistency.
+- This change addresses user feedback and requirements described in `docs/attendance_page_enhancement_context.md`.
+- Code is documented with references to the context doc and user feedback.
