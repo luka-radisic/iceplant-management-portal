@@ -606,7 +606,7 @@ const fetchStats = useCallback(async () => {
                 color="primary"
                 fullWidth
                 onClick={handleExport}
-                sx={{ height: '40px', mt: { xs: 2, sm: 0 } }}
+                sx={{ height: '40px', mt: { xs: 2, sm: 0 }, ml: '120px' }}
               >
                 Export CSV
               </Button>
