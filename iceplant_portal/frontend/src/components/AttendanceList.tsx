@@ -66,6 +66,59 @@ interface AttendanceStats {
 
 export default function AttendanceList() {
 
+  // Helper to calculate overtime (hours worked beyond 8 per day)
+  function calculateOvertimeMinutes(record: any): number {
+    let minutes = 0;
+    if (record.check_in && record.check_out) {
+      try {
+        minutes = Math.max(0, Math.round((new Date(record.check_out).getTime() - new Date(record.check_in).getTime()) / 60000));
+      } catch {
+        minutes = 0;
+      }
+    } else if (record.duration) {
+      // If duration is in "HH:mm:ss" or "HH:mm" format
+      const parts = record.duration.split(':').map(Number);
+      if (parts.length >= 2) {
+        minutes = parts[0] * 60 + parts[1];
+      }
+    }
+    return minutes > 480 ? minutes - 480 : 0; // Overtime is minutes beyond 8 hours (480 min)
+  }
+
+  // Helper to calculate undertime (hours worked less than 8 per day)
+  function calculateUndertimeMinutes(record: any): number {
+    let minutes = 0;
+    if (record.check_in && record.check_out) {
+      try {
+        minutes = Math.max(0, Math.round((new Date(record.check_out).getTime() - new Date(record.check_in).getTime()) / 60000));
+      } catch {
+        minutes = 0;
+      }
+    } else if (record.duration) {
+      // If duration is in "HH:mm:ss" or "HH:mm" format
+      const parts = record.duration.split(':').map(Number);
+      if (parts.length >= 2) {
+        minutes = parts[0] * 60 + parts[1];
+      }
+    }
+    return minutes > 0 && minutes < 480 ? 480 - minutes : 0; // Undertime is minutes less than 8 hours (480 min)
+  }
+// Helper to determine if a record is a late arrival (after 8:00 AM)
+function isLateArrival(record: any, scheduledHour = 8, scheduledMinute = 0): boolean {
+  if (!record.check_in) return false;
+  try {
+    const checkInDate = new Date(record.check_in);
+    const checkInHour = checkInDate.getHours();
+    const checkInMinute = checkInDate.getMinutes();
+    // Compare to scheduled start time (default 08:00)
+    if (checkInHour > scheduledHour) return true;
+    if (checkInHour === scheduledHour && checkInMinute > scheduledMinute) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
   // Export handler: fetch all filtered records, format as CSV, and trigger download
   /**
    * CSV Export Tool
@@ -173,7 +226,7 @@ export default function AttendanceList() {
       // Convert to CSV string
       const csvContent =
         [header, ...rows]
-          .map(row => row.map(field =>
+          .map(row => row.map((field: any) =>
             typeof field === 'string' && (field.includes(',') || field.includes('"') || field.includes('\n'))
               ? `"${field.replace(/"/g, '""')}"`
               : field
@@ -481,15 +534,90 @@ const fetchStats = useCallback(async () => {
   console.log('[STATS] Memoized Bar Data:', barChartData);
   console.log('[STATS] Memoized Line Data:', lineChartData);
 
+  // Aggregate overtime per employee for summary
+  const overtimeSummary = useMemo(() => {
+    const summary: { [employeeId: string]: { name: string; department: string; overtimeMinutes: number } } = {};
+    records.forEach((rec) => {
+      const overtime = calculateOvertimeMinutes(rec);
+      if (overtime > 0) {
+        if (!summary[rec.employee_id]) {
+          summary[rec.employee_id] = {
+            name: rec.employee_name,
+            department: rec.department,
+            overtimeMinutes: 0,
+          };
+        }
+        summary[rec.employee_id].overtimeMinutes += overtime;
+      }
+    });
+    // Convert to array and sort by most overtime
+    return Object.entries(summary)
+      .map(([id, data]) => ({ employee_id: id, ...data }))
+      .sort((a, b) => b.overtimeMinutes - a.overtimeMinutes);
+  }, [records]);
+  // Aggregate undertime per employee for summary
+  const undertimeSummary = useMemo(() => {
+    const summary: { [employeeId: string]: { name: string; department: string; undertimeMinutes: number } } = {};
+    records.forEach((rec) => {
+      const undertime = calculateUndertimeMinutes(rec);
+      if (undertime > 0) {
+        if (!summary[rec.employee_id]) {
+          summary[rec.employee_id] = {
+            name: rec.employee_name,
+            department: rec.department,
+            undertimeMinutes: 0,
+          };
+        }
+        summary[rec.employee_id].undertimeMinutes += undertime;
+      }
+    });
+    // Convert to array and sort by most undertime
+    return Object.entries(summary)
+      .map(([id, data]) => ({ employee_id: id, ...data }))
+      .sort((a, b) => b.undertimeMinutes - a.undertimeMinutes);
+  }, [records]);
+
+  // Aggregate late arrivals per employee for summary
+  const lateArrivalSummary = useMemo(() => {
+    const summary: { [employeeId: string]: { name: string; department: string; lateCount: number } } = {};
+    records.forEach((rec) => {
+      if (isLateArrival(rec)) {
+        if (!summary[rec.employee_id]) {
+          summary[rec.employee_id] = {
+            name: rec.employee_name,
+            department: rec.department,
+            lateCount: 0,
+          };
+        }
+        summary[rec.employee_id].lateCount += 1;
+      }
+    });
+    // Convert to array and sort by most late arrivals
+    return Object.entries(summary)
+      .map(([id, data]) => ({ employee_id: id, ...data }))
+      .sort((a, b) => b.lateCount - a.lateCount);
+  }, [records]);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{
-        p: 2,
-        fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
-        fontSize: '15px',
-        lineHeight: 1.5,
-        margin: '0 auto'
-      }}>
+      <Box
+        sx={{
+          px: { xs: 0, sm: 1, md: 2 },
+          py: { xs: 0, sm: 1 },
+          fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+          fontSize: '15px',
+          lineHeight: 1.5,
+          width: '100vw',
+          minHeight: '100vh',
+          maxWidth: '100vw',
+          margin: 0,
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          overflowX: 'hidden',
+        }}
+      >
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h5">
             Attendance Records & Statistics
@@ -501,117 +629,140 @@ const fetchStats = useCallback(async () => {
           )}
         </Box>
 
-        <Paper elevation={2} sx={{ p: 2, mb: 3, width: '100%' }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
-              <DatePicker
-                label="Start Date"
-                value={filters.start_date ? new Date(filters.start_date + 'T00:00:00') : null}
-                onChange={newValue => handleFilterChange('start_date', newValue)}
-                slotProps={{
-                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
-                }}
-                format="yyyy-MM-dd"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <DatePicker
-                label="End Date"
-                value={filters.end_date ? new Date(filters.end_date + 'T00:00:00') : null}
-                onChange={newValue => handleFilterChange('end_date', newValue)}
-                slotProps={{
-                  textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
-                }}
-                format="yyyy-MM-dd"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {/* Sunday Work Only filter */}
-              <TextField
-                select
-                fullWidth
-                label="Status"
-                value={filters.status}
-                onChange={e => handleFilterChange('status', e.target.value)}
-                size="small"
-              >
-                <MenuItem value="all">All Records</MenuItem>
-                <MenuItem value="present">Present</MenuItem>
-                <MenuItem value="no-show">No Show</MenuItem>
-                <MenuItem value="missing-checkout">Missing Check-Out</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                select
-                fullWidth
-                label="Department"
-                value={filters.department}
-                onChange={e => handleFilterChange('department', e.target.value)}
-                size="small"
-              >
-                <MenuItem value="">All Departments</MenuItem>
-                {departments.map(dept => (
-                  <MenuItem key={dept} value={dept}>
-                    {dept}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box display="flex" alignItems="center">
-                <Box display="flex" alignItems="center" mr={2}>
-                  <Switch
-                    checked={filters.sunday_only}
-                    onChange={e => {
-                      setFilters(prev => ({
-                        ...prev,
-                        sunday_only: e.target.checked,
-                      }));
-                      setPage(0);
+        <Paper
+          elevation={2}
+          sx={{
+            p: { xs: 1, sm: 2 },
+            mb: 3,
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* Filter bar and Export CSV button are now flex-aligned for better layout and accessibility.
+              The Export CSV button is always right-aligned and never overlaps the Approval Status dropdown or other filters.
+              See docs/attendance_page_enhancement_context.md and README.md changelog for details. */}
+          <Box display="flex" alignItems="flex-start" flexWrap="wrap" gap={2}>
+            <Box flex="1 1 0" minWidth={0}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} sm={6} md={3}>
+                  <DatePicker
+                    label="Start Date"
+                    value={filters.start_date ? new Date(filters.start_date + 'T00:00:00') : null}
+                    onChange={newValue => handleFilterChange('start_date', newValue)}
+                    slotProps={{
+                      textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
                     }}
-                    color="primary"
-                    inputProps={{ 'aria-label': 'Sunday Work Only' }}
+                    format="yyyy-MM-dd"
                   />
-                  <Typography variant="body2" sx={{ ml: 1 }}>
-                    Sunday Work Only
-                  </Typography>
-                </Box>
-                <TextField
-                  select
-                  fullWidth
-                  label="Approval Status"
-                  value={filters.approval_status}
-                  onChange={e => handleFilterChange('approval_status', e.target.value)}
-                  size="small"
-                  sx={{ minWidth: 220 }}
-                  SelectProps={{
-                    MenuProps: {
-                      PaperProps: {
-                        sx: { minWidth: 220 }
-                      }
-                    }
-                  }}
-                >
-                  <MenuItem value="all">All Approval Statuses</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="approved">Approved</MenuItem>
-                  <MenuItem value="rejected">Rejected</MenuItem>
-                </TextField>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <DatePicker
+                    label="End Date"
+                    value={filters.end_date ? new Date(filters.end_date + 'T00:00:00') : null}
+                    onChange={newValue => handleFilterChange('end_date', newValue)}
+                    slotProps={{
+                      textField: { fullWidth: true, size: 'small', InputLabelProps: { shrink: true } },
+                    }}
+                    format="yyyy-MM-dd"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Status"
+                    value={filters.status}
+                    onChange={e => handleFilterChange('status', e.target.value)}
+                    size="small"
+                  >
+                    <MenuItem value="all">All Records</MenuItem>
+                    <MenuItem value="present">Present</MenuItem>
+                    <MenuItem value="no-show">No Show</MenuItem>
+                    <MenuItem value="missing-checkout">Missing Check-Out</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Department"
+                    value={filters.department}
+                    onChange={e => handleFilterChange('department', e.target.value)}
+                    size="small"
+                  >
+                    <MenuItem value="">All Departments</MenuItem>
+                    {departments.map(dept => (
+                      <MenuItem key={dept} value={dept}>
+                        {dept}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Box display="flex" alignItems="center" flexWrap="wrap" gap={2}>
+                    <Box display="flex" alignItems="center">
+                      <Switch
+                        checked={filters.sunday_only}
+                        onChange={e => {
+                          setFilters(prev => ({
+                            ...prev,
+                            sunday_only: e.target.checked,
+                          }));
+                          setPage(0);
+                        }}
+                        color="primary"
+                        inputProps={{ 'aria-label': 'Sunday Work Only' }}
+                      />
+                      <Typography variant="body2" sx={{ ml: 1 }}>
+                        Sunday Work Only
+                      </Typography>
+                    </Box>
+                    <TextField
+                      select
+                      label="Approval Status"
+                      value={filters.approval_status}
+                      onChange={e => handleFilterChange('approval_status', e.target.value)}
+                      size="small"
+                      sx={{ minWidth: 220 }}
+                      SelectProps={{
+                        MenuProps: {
+                          PaperProps: {
+                            sx: { minWidth: 220 }
+                          }
+                        }
+                      }}
+                    >
+                      <MenuItem value="all">All Approval Statuses</MenuItem>
+                      <MenuItem value="pending">Pending</MenuItem>
+                      <MenuItem value="approved">Approved</MenuItem>
+                      <MenuItem value="rejected">Rejected</MenuItem>
+                    </TextField>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+            <Box flexShrink={0} minWidth={180} alignSelf="flex-start" ml="auto">
               <Button
                 variant="contained"
                 color="primary"
-                fullWidth
                 onClick={handleExport}
+<<<<<<< HEAD
                 sx={{ height: '40px', mt: { xs: 2, sm: 0 }, ml: '120px' }}
+=======
+                sx={{
+                  height: '40px',
+                  minWidth: 160,
+                  whiteSpace: 'nowrap',
+                  boxShadow: 2,
+                  mt: { xs: 2, sm: 0 }
+                }}
+                aria-label="Export filtered attendance records as CSV"
+>>>>>>> 2eb900481763b8514278252dbb3021116e3b9890
               >
                 Export CSV
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Paper>
 
         {loadingStats ? (
@@ -620,89 +771,140 @@ const fetchStats = useCallback(async () => {
             <Typography sx={{ ml: 2 }}>Loading statistics...</Typography>
           </Box>
         ) : statsData ? (
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={4}>
-              <Paper elevation={2} sx={{ p: 2, height: 350, width: '100%' }}>
+          <Grid container spacing={3} sx={{ mb: 3, width: '100%', flexWrap: 'wrap' }}>
+            <Grid item xs={12} md={4} sx={{ width: '100%', minWidth: 0, flexGrow: 1, display: 'flex' }}>
+              <Paper
+                elevation={2}
+                sx={{
+                  p: 2,
+                  height: { xs: '50vw', sm: '40vw', md: '32vw', lg: 350 },
+                  minHeight: 180,
+                  maxHeight: 400,
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: 1,
+                }}
+              >
                 <Typography variant="h6" gutterBottom align="center">
                   Status Distribution
                 </Typography>
-                {pieChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart margin={{ top: 0, right: 0, bottom: 40, left: 0 }}>
-                      <Pie
-                        data={pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      >
-                        {statsData?.status_distribution?.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip />
-                      <Legend verticalAlign="bottom" height={36} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                    <Typography>No attendance statistics available for this period.</Typography>
-                  </Box>
-                )}
+                <Box sx={{ flex: 1, minHeight: 0 }}>
+                  {pieChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart margin={{ top: 0, right: 0, bottom: 40, left: 0 }}>
+                        <Pie
+                          data={pieChartData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        >
+                          {statsData?.status_distribution?.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                        <Legend verticalAlign="bottom" height={36} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <Typography>No attendance statistics available for this period.</Typography>
+                    </Box>
+                  )}
+                </Box>
               </Paper>
             </Grid>
-            <Grid item xs={12} md={8}>
-              <Paper elevation={2} sx={{ p: 2, height: 350, width: '100%' }}>
+            <Grid item xs={12} md={8} sx={{ width: '100%', minWidth: 0, flexGrow: 1, display: 'flex' }}>
+              <Paper
+                elevation={2}
+                sx={{
+                  p: 2,
+                  height: { xs: '50vw', sm: '40vw', md: '32vw', lg: 350 },
+                  minHeight: 180,
+                  maxHeight: 400,
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: 1,
+                }}
+              >
                 <Typography variant="h6" gutterBottom align="center">
                   Present Records by Department
                 </Typography>
-                {barChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={barChartData} margin={{ top: 5, right: 20, bottom: 60, left: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="department" angle={-45} textAnchor="end" interval={0} height={70} />
-                      <YAxis allowDecimals={false} />
-                      <RechartsTooltip />
-                      <Bar dataKey="count" fill={theme.palette.primary.main} name="Present Records" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                    <Typography>No department data available.</Typography>
-                  </Box>
-                )}
+                <Box sx={{ flex: 1, minHeight: 0 }}>
+                  {barChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={barChartData} margin={{ top: 5, right: 20, bottom: 60, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="department" angle={-45} textAnchor="end" interval={0} height={70} />
+                        <YAxis allowDecimals={false} />
+                        <RechartsTooltip />
+                        <Bar dataKey="count" fill={theme.palette.primary.main} name="Present Records" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <Typography>No department data available.</Typography>
+                    </Box>
+                  )}
+                </Box>
               </Paper>
             </Grid>
-            <Grid item xs={12}>
-              <Paper elevation={2} sx={{ p: 2, height: 300, width: '100%' }}>
+            <Grid item xs={12} sx={{ width: '100%', minWidth: 0, flexGrow: 1, display: 'flex' }}>
+              <Paper
+                elevation={2}
+                sx={{
+                  p: 2,
+                  height: { xs: '40vw', sm: '32vw', md: '24vw', lg: 300 },
+                  minHeight: 120,
+                  maxHeight: 350,
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: 1,
+                }}
+              >
                 <Typography variant="h6" gutterBottom align="center">
                   Daily Present Trend
                 </Typography>
-                {lineChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={lineChartData} margin={{ top: 5, right: 20, bottom: 20, left: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis allowDecimals={false} />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="count"
-                        stroke={theme.palette.success.dark}
-                        name="Present Records"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                    <Typography>No daily trend data available.</Typography>
-                  </Box>
-                )}
+                <Box sx={{ flex: 1, minHeight: 0 }}>
+                  {lineChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={lineChartData} margin={{ top: 5, right: 20, bottom: 20, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis allowDecimals={false} />
+                        <RechartsTooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke={theme.palette.success.dark}
+                          name="Present Records"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                      <Typography>No daily trend data available.</Typography>
+                    </Box>
+                  )}
+                </Box>
               </Paper>
             </Grid>
           </Grid>
@@ -710,6 +912,144 @@ const fetchStats = useCallback(async () => {
           <Box display="flex" justifyContent="center" py={5}>
             <Typography>Could not load statistics.</Typography>
           </Box>
+        )}
+
+        {/* Overtime Summary Widget */}
+        {!loading && overtimeSummary.length > 0 && (
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2,
+              mb: 3,
+              width: '100%',
+              minWidth: 0,
+              maxWidth: '100%',
+              overflowX: 'auto',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography variant="h6" gutterBottom align="center">
+              Overtime Summary by Employee (Filtered)
+            </Typography>
+            <Table size="small" sx={{ minWidth: 400, width: '100%' }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Total Overtime (h:mm)</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {overtimeSummary.map((row) => (
+                  <TableRow key={row.employee_id}>
+                    <TableCell>{row.employee_id}</TableCell>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.department}</TableCell>
+                    <TableCell>
+                      {`${Math.floor(row.overtimeMinutes / 60)}:${(row.overtimeMinutes % 60).toString().padStart(2, '0')}`}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', flexShrink: 0 }}>
+              Overtime is calculated as hours worked beyond 8 per day, per filtered record.
+            </Typography>
+          </Paper>
+        )}
+        {/* Undertime Summary Widget */}
+        {!loading && undertimeSummary.length > 0 && (
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2,
+              mb: 3,
+              width: '100%',
+              minWidth: 0,
+              maxWidth: '100%',
+              overflowX: 'auto',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography variant="h6" gutterBottom align="center">
+              Undertime Summary by Employee (Filtered)
+            </Typography>
+            <Table size="small" sx={{ minWidth: 400, width: '100%' }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Total Undertime (h:mm)</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {undertimeSummary.map((row) => (
+                  <TableRow key={row.employee_id}>
+                    <TableCell>{row.employee_id}</TableCell>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.department}</TableCell>
+                    <TableCell>
+                      {`${Math.floor(row.undertimeMinutes / 60)}:${(row.undertimeMinutes % 60).toString().padStart(2, '0')}`}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', flexShrink: 0 }}>
+              Undertime is calculated as hours worked less than 8 per day, per filtered record.
+            </Typography>
+          </Paper>
+        )}
+
+        {/* Late Arrivals Summary Widget */}
+        {!loading && lateArrivalSummary.length > 0 && (
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2,
+              mb: 3,
+              width: '100%',
+              minWidth: 0,
+              maxWidth: '100%',
+              overflowX: 'auto',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography variant="h6" gutterBottom align="center">
+              Late Arrivals Summary by Employee (Filtered)
+            </Typography>
+            <Table size="small" sx={{ minWidth: 400, width: '100%' }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Employee ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Total Late Arrivals</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {lateArrivalSummary.map((row) => (
+                  <TableRow key={row.employee_id}>
+                    <TableCell>{row.employee_id}</TableCell>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.department}</TableCell>
+                    <TableCell>{row.lateCount}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', flexShrink: 0 }}>
+              Late arrival is defined as checking in after 08:00 AM, per filtered record.
+            </Typography>
+          </Paper>
         )}
 
         {!loading && records.length === 0 && (
@@ -723,251 +1063,280 @@ const fetchStats = useCallback(async () => {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer
-            component={Paper}
-            elevation={6}
-            sx={{
-              borderRadius: 2,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-              width: '100%',
-              overflowX: 'auto'
-            }}
-          >
-            <Table size="small" stickyHeader sx={{
-              fontSize: '12px',
-              minWidth: 'max-content',
-              '& th, & td': {
-                padding: '4px 8px',
-                whiteSpace: 'nowrap',
-              },
-              '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
-              '& tbody tr:hover': { backgroundColor: '#fafafa' },
-              '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
-            }}>
-              <TableHead sx={{ bgcolor: 'grey.300' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Dep</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Day</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>In</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Out</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Checked</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Approval</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>HR Note</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {records.length === 0 ? (
+          // Responsive wrapper for attendance table
+          <Box sx={{ width: '100%', minWidth: 0, flex: 1, overflowX: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <TableContainer
+              component={Paper}
+              elevation={6}
+              sx={{
+                borderRadius: 2,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                width: '100%',
+                maxWidth: '100vw',
+                overflowX: 'auto'
+              }}
+            >
+              <Table
+                size="small"
+                stickyHeader
+                sx={{
+                  fontSize: '12px',
+                  minWidth: 800,
+                  width: '100%',
+                  '& th, & td': {
+                    padding: '4px 8px',
+                    whiteSpace: 'nowrap',
+                  },
+                  '& thead th': { backgroundColor: '#f0f0f0', fontWeight: 'bold' },
+                  '& tbody tr:hover': { backgroundColor: '#fafafa' },
+                  '& tbody tr:nth-of-type(odd)': { backgroundColor: '#fcfcfc' },
+                }}
+              >
+                <TableHead sx={{ bgcolor: 'grey.300' }}>
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
-                      No records found for the selected criteria.
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Dep</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Day</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>In</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Out</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', color: '#1976d2' }}>Overtime</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', color: '#d23f31' }}>Undertime</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Checked</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Approval</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>HR Note</TableCell>
                   </TableRow>
-                ) : (
-                  records.map((record, index) => {
-                    const isNoShow = record.department === 'NO SHOW';
-                    const isMissingCheckout = !isNoShow && !record.check_out;
-                    const isOffDay = isSunday(record.check_in);
-                    return (
-                      <TableRow
-                        key={record.id}
-                        hover
-                        sx={{
-                          bgcolor: isOffDay
-                            ? 'info.lighter'
-                            : isNoShow
-                            ? 'error.lighter'
-                            : isMissingCheckout
-                            ? 'warning.lighter'
-                            : (index % 2 === 0 ? 'grey.50' : 'white'),
-                          '&:hover': { bgcolor: 'grey.100' },
-                          cursor: 'pointer',
-                          transition: 'background-color 0.3s ease',
-                        }}
-                      >
-                        <TableCell>{record.employee_id}</TableCell>
-                        <TableCell
+                </TableHead>
+                <TableBody>
+                  {records.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                        No records found for the selected criteria.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    records.map((record, index) => {
+                      const isNoShow = record.department === 'NO SHOW';
+                      const isMissingCheckout = !isNoShow && !record.check_out;
+                      const isOffDay = isSunday(record.check_in);
+                      return (
+                        <TableRow
+                          key={record.id}
+                          hover
                           sx={{
-                            maxWidth: 180,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            p: 0
+                            bgcolor: isOffDay
+                              ? 'info.lighter'
+                              : isNoShow
+                              ? 'error.lighter'
+                              : isMissingCheckout
+                              ? 'warning.lighter'
+                              : (index % 2 === 0 ? 'grey.50' : 'white'),
+                            '&:hover': { bgcolor: 'grey.100' },
+                            cursor: 'pointer',
+                            transition: 'background-color 0.3s ease',
                           }}
-                          title={record.employee_name}
                         >
-                          <Button
-                            variant="text"
-                            size="small"
+                          <TableCell>{record.employee_id}</TableCell>
+                          <TableCell
                             sx={{
-                              textTransform: 'none',
-                              padding: 0,
-                              minWidth: 'auto',
-                              textAlign: 'left',
-                              fontWeight: 500,
-                              color: 'text.primary',
-                              maxWidth: '100%',
+                              maxWidth: 180,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              p: 0
+                            }}
+                            title={record.employee_name}
+                          >
+                            <Button
+                              variant="text"
+                              size="small"
+                              sx={{
+                                textTransform: 'none',
+                                padding: 0,
+                                minWidth: 'auto',
+                                textAlign: 'left',
+                                fontWeight: 500,
+                                color: 'text.primary',
+                                maxWidth: '100%',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                              onClick={() =>
+                                setSelectedEmployee({
+                                  id: record.employee_id,
+                                  name: record.employee_name,
+                                })
+                              }
+                            >
+                              {record.employee_name}
+                            </Button>
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              maxWidth: 120,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap'
                             }}
-                            onClick={() =>
-                              setSelectedEmployee({
-                                id: record.employee_id,
-                                name: record.employee_name,
-                              })
-                            }
+                            title={record.department}
                           >
-                            {record.employee_name}
-                          </Button>
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            maxWidth: 120,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                          title={record.department}
-                        >
-                          {record.department}
-                        </TableCell>
-                        <TableCell>{formatDate(record.check_in)}</TableCell>
-                        <TableCell>
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            sx={{
-                              fontWeight: isOffDay ? 'bold' : 'normal',
-                              color: isOffDay ? 'info.dark' : 'text.primary',
-                            }}
-                          >
-                            {formatDayOfWeek(record.check_in)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            sx={{
-                              fontWeight: 'bold',
-                              color: isNoShow ? 'text.disabled' : 'success.dark',
-                            }}
-                          >
-                            {isNoShow ? '-' : formatTime(record.check_in)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            sx={{
-                              fontWeight: 'bold',
-                              color:
-                                isNoShow || isMissingCheckout
-                                  ? 'text.disabled'
-                                  : 'primary.dark',
-                            }}
-                          >
-                            {record.check_out ? formatTime(record.check_out) : '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          {record.duration
-                            ? record.duration.split(':').slice(0, 2).join(':')
-                            : '-'}
-                        </TableCell>
-                        <TableCell
-                          // Override global nowrap for Status column to allow badge wrapping
-                          sx={{
-                            whiteSpace: 'normal !important',
-                            wordBreak: 'break-word',
-                            maxWidth: 220,
-                            minWidth: 120,
-                            p: '4px 8px'
-                          }}
-                        >
-                          {getStatusChip(record)}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            onClick={() => handleToggleChecked(record)}
-                            sx={{ minWidth: 'auto', padding: 0 }}
-                          >
-                            {record.checked ? (
-                              <span style={{ color: '#4caf50', fontSize: '20px' }}>✔️</span>
-                            ) : (
-                              <span style={{ color: '#ccc', fontSize: '20px' }}>⭕</span>
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          {isHrUser ? (
-                            <HRApprovalButtons
-                              id={record.id}
-                              currentStatus={record.approval_status}
-                              requireReason={true}
-                              onStatusChange={(newStatus, reason) => {
-                                setRecords((prev: any[]) =>
-                                  prev.map((r: any) =>
-                                    r.id === record.id
-                                      ? {
-                                          ...r,
-                                          approval_status: newStatus,
-                                          ...(reason && { hr_notes: reason, hr_note_exists: true }),
-                                        }
-                                      : r
-                                  )
-                                );
-                              }}
-                              disabled={false}
-                            />
-                          ) : (
-                            <Typography variant="body2" sx={{ fontWeight: 'bold', textTransform: 'capitalize' }}>
-                              {record.approval_status}
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {record.hr_note_exists ? (
-                            // light red color for notice mark
+                            {record.department}
+                          </TableCell>
+                          <TableCell>{formatDate(record.check_in)}</TableCell>
+                          <TableCell>
                             <Typography
+                              component="span"
                               variant="body2"
-                              title="HR note present"
-                              sx={{ fontWeight: 'bold', color: '#f28b82' }}
+                              sx={{
+                                fontWeight: isOffDay ? 'bold' : 'normal',
+                                color: isOffDay ? 'info.dark' : 'text.primary',
+                              }}
                             >
-                              ⚠️
+                              {formatDayOfWeek(record.check_in)}
                             </Typography>
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                    </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-            <TablePagination
-              component="div"
-              count={totalCount}
-              page={page}
-              onPageChange={(_, newPage) => setPage(newPage)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={event => {
-                setRowsPerPage(parseInt(event.target.value, 10));
-                setPage(0);
-              }}
-              rowsPerPageOptions={[10, 25, 50, 100, 200]}
-              sx={{ borderTop: '1px solid', borderColor: 'divider' }}
-            />
-
-
-          </TableContainer>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              sx={{
+                                fontWeight: 'bold',
+                                color: isNoShow ? 'text.disabled' : 'success.dark',
+                              }}
+                            >
+                              {isNoShow ? '-' : formatTime(record.check_in)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              sx={{
+                                fontWeight: 'bold',
+                                color:
+                                  isNoShow || isMissingCheckout
+                                    ? 'text.disabled'
+                                    : 'primary.dark',
+                              }}
+                            >
+                              {record.check_out ? formatTime(record.check_out) : '-'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {record.duration
+                              ? record.duration.split(':').slice(0, 2).join(':')
+                              : '-'}
+                          </TableCell>
+                          {/* Overtime column */}
+                          <TableCell sx={{ color: '#1976d2', fontWeight: 500 }}>
+                            {(() => {
+                              const overtime = calculateOvertimeMinutes(record);
+                              if (overtime > 0) {
+                                return `${Math.floor(overtime / 60)}:${(overtime % 60).toString().padStart(2, '0')}`;
+                              }
+                              return '-';
+                            })()}
+                          </TableCell>
+                          {/* Undertime column */}
+                          <TableCell sx={{ color: '#d23f31', fontWeight: 500 }}>
+                            {(() => {
+                              const undertime = calculateUndertimeMinutes(record);
+                              if (undertime > 0) {
+                                return `${Math.floor(undertime / 60)}:${(undertime % 60).toString().padStart(2, '0')}`;
+                              }
+                              return '-';
+                            })()}
+                          </TableCell>
+                          <TableCell
+                            // Override global nowrap for Status column to allow badge wrapping
+                            sx={{
+                              whiteSpace: 'normal !important',
+                              wordBreak: 'break-word',
+                              maxWidth: 220,
+                              minWidth: 120,
+                              p: '4px 8px'
+                            }}
+                          >
+                            {getStatusChip(record)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              onClick={() => handleToggleChecked(record)}
+                              sx={{ minWidth: 'auto', padding: 0 }}
+                            >
+                              {record.checked ? (
+                                <span style={{ color: '#4caf50', fontSize: '20px' }}>✔️</span>
+                              ) : (
+                                <span style={{ color: '#ccc', fontSize: '20px' }}>⭕</span>
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            {isHrUser ? (
+                              <HRApprovalButtons
+                                id={record.id}
+                                currentStatus={record.approval_status}
+                                requireReason={true}
+                                onStatusChange={(newStatus, reason) => {
+                                  setRecords((prev: any[]) =>
+                                    prev.map((r: any) =>
+                                      r.id === record.id
+                                        ? {
+                                            ...r,
+                                            approval_status: newStatus,
+                                            ...(reason && { hr_notes: reason, hr_note_exists: true }),
+                                          }
+                                        : r
+                                    )
+                                  );
+                                }}
+                                disabled={false}
+                              />
+                            ) : (
+                              <Typography variant="body2" sx={{ fontWeight: 'bold', textTransform: 'capitalize' }}>
+                                {record.approval_status}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {record.hr_note_exists ? (
+                              // light red color for notice mark
+                              <Typography
+                                variant="body2"
+                                title="HR note present"
+                                sx={{ fontWeight: 'bold', color: '#f28b82' }}
+                              >
+                                ⚠️
+                              </Typography>
+                            ) : (
+                              '-'
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+              <TablePagination
+                component="div"
+                count={totalCount}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={event => {
+                  setRowsPerPage(parseInt(event.target.value, 10));
+                  setPage(0);
+                }}
+                rowsPerPageOptions={[10, 25, 50, 100, 200]}
+                sx={{ borderTop: '1px solid', borderColor: 'divider' }}
+              />
+            </TableContainer>
+          </Box>
         )}
 
         {selectedEmployee && (
