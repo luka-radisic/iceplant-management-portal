@@ -732,10 +732,10 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                 <Avatar
                   src={profilePicture || undefined}
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: 150,
+                    height: 150,
                     bgcolor: 'primary.main',
-                    fontSize: '2rem',
+                    fontSize: '2.5rem',
                   }}
                   imgProps={{
                     onError: (e) => {
