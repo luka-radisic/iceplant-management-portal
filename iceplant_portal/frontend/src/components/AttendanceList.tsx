@@ -783,10 +783,14 @@ const fetchStats = useCallback(async () => {
                             ? 'error.lighter'
                             : isMissingCheckout
                             ? 'warning.lighter'
-                            : (index % 2 === 0 ? 'grey.50' : 'white'),
-                          '&:hover': { bgcolor: 'grey.100' },
+                            : (index % 2 === 0 ? '#ffffff' : '#f9f9f9'),
+                          transition: 'all 0.2s ease-in-out',
                           cursor: 'pointer',
-                          transition: 'background-color 0.3s ease',
+                          '&:hover': {
+                            backgroundColor: '#d9f7be !important',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            zIndex: 1,
+                          },
                         }}
                       >
                         <TableCell>{record.employee_id}</TableCell>
