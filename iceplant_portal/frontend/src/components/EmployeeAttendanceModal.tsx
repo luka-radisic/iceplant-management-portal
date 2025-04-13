@@ -298,7 +298,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       // Calculate average check-in time by converting each time to minutes since midnight
       const avgCheckIn = checkInTimes.length
         ? (() => {
-            const totalMinutes = checkInTimes.reduce((acc, time) => {
+            const totalMinutes = checkInTimes.reduce((acc: number, time: Date) => {
               const hours = time.getHours();
               const minutes = time.getMinutes();
               return acc + (hours * 60 + minutes);
@@ -313,7 +313,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       // Calculate average check-out time similarly
       const avgCheckOut = checkOutTimes.length
         ? (() => {
-            const totalMinutes = checkOutTimes.reduce((acc, time) => {
+            const totalMinutes = checkOutTimes.reduce((acc: number, time: Date) => {
               const hours = time.getHours();
               const minutes = time.getMinutes();
               return acc + (hours * 60 + minutes);
