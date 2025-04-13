@@ -155,10 +155,14 @@ export default function AttendanceList() {
         // Check In/Out
         const checkIn = rec.check_in ? format(new Date(rec.check_in), 'HH:mm') : '';
         const checkOut = rec.check_out ? format(new Date(rec.check_out), 'HH:mm') : '';
-        // Duration (min)
+        // Duration (min) - subtract 1 hour (60 min) for lunch break if duration >= 5 hours
         const durationMin =
           rec.check_in && rec.check_out
-            ? Math.max(0, Math.round((new Date(rec.check_out).getTime() - new Date(rec.check_in).getTime()) / 60000))
+            ? (() => {
+                const totalMinutes = Math.max(0, Math.round((new Date(rec.check_out).getTime() - new Date(rec.check_in).getTime()) / 60000));
+                // If duration is 5+ hours, subtract 1 hour (60 min) lunch break
+                return totalMinutes >= 300 ? totalMinutes - 60 : totalMinutes;
+              })()
             : '';
         return [
           rec.employee_id || '',
@@ -935,7 +939,22 @@ const fetchStats = useCallback(async () => {
                         </TableCell>
                         <TableCell>
                           {record.duration
-                            ? record.duration.split(':').slice(0, 2).join(':')
+                            ? (() => {
+                                // Parse the duration string to get hours and minutes
+                                const [hours, minutes] = record.duration.split(':').slice(0, 2).map(Number);
+                                
+                                // Calculate total minutes
+                                const totalMinutes = hours * 60 + parseInt(minutes || '0');
+                                
+                                // If duration is 5+ hours, subtract 1 hour lunch break
+                                const adjustedMinutes = totalMinutes >= 300 ? totalMinutes - 60 : totalMinutes;
+                                
+                                // Convert back to hours:minutes format
+                                const adjustedHours = Math.floor(adjustedMinutes / 60);
+                                const adjustedMins = adjustedMinutes % 60;
+                                
+                                return `${adjustedHours.toString().padStart(2, '0')}:${adjustedMins.toString().padStart(2, '0')}`;
+                              })()
                             : '-'}
                         </TableCell>
                         <TableCell
@@ -1068,9 +1087,10 @@ const fetchStats = useCallback(async () => {
                         checkOutTime.setHours(parseInt(e.target.value, 10));
                         checkOutTime.setMinutes(parseInt(selectedMinute, 10));
                         
-                        // Calculate duration in hours
-                        const durationHours = differenceInHours(checkOutTime, checkInTime);
-                        if (durationHours > 8) {
+                        // Calculate duration in hours, accounting for 1-hour lunch break
+                        const totalHours = differenceInHours(checkOutTime, checkInTime);
+                        const workHours = totalHours >= 5 ? totalHours - 1 : totalHours; // Subtract 1 hour for lunch if 5+ hours
+                        if (workHours > 8) {
                           setCheckoutWarning(true);
                         }
                       }
