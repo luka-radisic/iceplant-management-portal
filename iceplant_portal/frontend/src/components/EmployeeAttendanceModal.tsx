@@ -735,7 +735,7 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                     width: 150,
                     height: 150,
                     bgcolor: 'primary.main',
-                    fontSize: '2.5rem',
+                    fontSize: '3.2rem',
                   }}
                   imgProps={{
                     onError: (e) => {
