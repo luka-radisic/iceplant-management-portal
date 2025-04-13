@@ -295,12 +295,34 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
       const checkInTimes = presentRecords.map((r: any) => new Date(r.check_in)).filter(Boolean);
       const checkOutTimes = presentRecords.map((r: any) => r.check_out && new Date(r.check_out)).filter(Boolean);
 
+      // Calculate average check-in time by converting each time to minutes since midnight
       const avgCheckIn = checkInTimes.length
-        ? format(new Date(checkInTimes.reduce((acc: any, time: any) => acc + time.getTime(), 0) / checkInTimes.length), 'HH:mm')
+        ? (() => {
+            const totalMinutes = checkInTimes.reduce((acc, time) => {
+              const hours = time.getHours();
+              const minutes = time.getMinutes();
+              return acc + (hours * 60 + minutes);
+            }, 0);
+            const avgMinutes = Math.round(totalMinutes / checkInTimes.length);
+            const avgHours = Math.floor(avgMinutes / 60);
+            const avgMins = avgMinutes % 60;
+            return `${avgHours.toString().padStart(2, '0')}:${avgMins.toString().padStart(2, '0')}`;
+          })()
         : '-';
 
+      // Calculate average check-out time similarly
       const avgCheckOut = checkOutTimes.length
-        ? format(new Date(checkOutTimes.reduce((acc: any, time: any) => acc + time.getTime(), 0) / checkOutTimes.length), 'HH:mm')
+        ? (() => {
+            const totalMinutes = checkOutTimes.reduce((acc, time) => {
+              const hours = time.getHours();
+              const minutes = time.getMinutes();
+              return acc + (hours * 60 + minutes);
+            }, 0);
+            const avgMinutes = Math.round(totalMinutes / checkOutTimes.length);
+            const avgHours = Math.floor(avgMinutes / 60);
+            const avgMins = avgMinutes % 60;
+            return `${avgHours.toString().padStart(2, '0')}:${avgMins.toString().padStart(2, '0')}`;
+          })()
         : '-';
 
       setStats({
