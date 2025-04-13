@@ -21,8 +21,13 @@ import {
   DialogContent,
   DialogActions,
   Switch,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  Alert,
 } from '@mui/material';
-import { format, differenceInMinutes } from 'date-fns';
+import { format, differenceInMinutes, differenceInHours, parseISO, addHours } from 'date-fns';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   ResponsiveContainer,
@@ -205,6 +210,11 @@ export default function AttendanceList() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const [currentRecord, setCurrentRecord] = useState<any>(null);
+  const [selectedHour, setSelectedHour] = useState('');
+  const [selectedMinute, setSelectedMinute] = useState('');
+  const [checkoutWarning, setCheckoutWarning] = useState(false);
   const [filters, setFilters] = useState({
     start_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
     end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
@@ -281,19 +291,62 @@ export default function AttendanceList() {
       setLoading(false);
     }
   }, [page, rowsPerPage, debouncedFilters]);
+  // Simplified function to fix the dialog issue
   const handleToggleChecked = async (record: any) => {
     try {
+      // If already checked and trying to uncheck
       if (record.checked) {
         const confirmUncheck = window.confirm('Are you sure you want to uncheck this record?');
         if (!confirmUncheck) {
           return;
         }
+        const updated = { checked: false };
+        await apiService.patch(`/api/attendance/attendance/${record.id}/`, updated);
+        setRecords((prev: any[]) =>
+          prev.map((r: any) => (r.id === record.id ? { ...r, checked: false } : r))
+        );
+        return;
       }
-      const updated = { checked: !record.checked };
-      await apiService.patch(`/api/attendance/attendance/${record.id}/`, updated);
-      setRecords((prev: any[]) =>
-        prev.map((r: any) => (r.id === record.id ? { ...r, checked: updated.checked } : r))
-      );
+      
+      // If not checked and trying to check
+      // Check if record has no check-out time and is not a NO SHOW
+      if (!record.check_out && record.department !== 'NO SHOW') {
+        // For records with missing check-out, show the dialog
+        console.log("Record has no check-out time, opening dialog...");
+        
+        // Set current record
+        setCurrentRecord(record);
+        
+        // Set default time to 8 hours after check-in
+        try {
+          const checkInTime = new Date(record.check_in);
+          let suggestedCheckOut = new Date(checkInTime);
+          suggestedCheckOut.setHours(suggestedCheckOut.getHours() + 8);
+          
+          const hours = suggestedCheckOut.getHours().toString().padStart(2, '0');
+          const minutes = suggestedCheckOut.getMinutes().toString().padStart(2, '0');
+          
+          console.log(`Setting suggested time: ${hours}:${minutes}`);
+          setSelectedHour(hours);
+          setSelectedMinute(minutes);
+        } catch (e) {
+          console.error("Error setting default time:", e);
+          setSelectedHour('17'); // Default to 5 PM
+          setSelectedMinute('00');
+        }
+        
+        console.log("About to open checkout dialog");
+        setCheckoutDialogOpen(true);
+        console.log("Set dialog open to true");
+      } else {
+        // If record has check-out time, mark as checked immediately
+        console.log("Record already has check-out time, marking as checked");
+        const updated = { checked: true };
+        await apiService.patch(`/api/attendance/attendance/${record.id}/`, updated);
+        setRecords((prev: any[]) =>
+          prev.map((r: any) => (r.id === record.id ? { ...r, checked: true } : r))
+        );
+      }
     } catch (error) {
       console.error('Failed to update checked status:', error);
       alert('Failed to update checked status');
@@ -983,6 +1036,146 @@ const fetchStats = useCallback(async () => {
             isHrUser={isHrUser}
           />
         )}
+
+        {/* Checkout Time Dialog - with fixed implementation */}
+        <Dialog 
+          open={checkoutDialogOpen} 
+          onClose={() => setCheckoutDialogOpen(false)}
+          disableEscapeKeyDown
+          keepMounted
+          sx={{ zIndex: 1500 }}
+        >
+          <DialogTitle>Add Check-Out Time</DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 1 }}>
+              <Typography variant="body1" gutterBottom>
+                This record has no check-out time. Please add a check-out time to mark it as checked.
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'flex-end', mt: 2 }}>
+                <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
+                  <InputLabel id="hour-select-label">Hour</InputLabel>
+                  <Select
+                    labelId="hour-select-label"
+                    value={selectedHour}
+                    label="Hour"
+                    onChange={(e) => {
+                      console.log("Hour selected:", e.target.value);
+                      setSelectedHour(e.target.value);
+                      setCheckoutWarning(false);
+                      if (currentRecord && e.target.value && selectedMinute) {
+                        const checkInTime = new Date(currentRecord.check_in);
+                        const checkOutTime = new Date(currentRecord.check_in);
+                        checkOutTime.setHours(parseInt(e.target.value, 10));
+                        checkOutTime.setMinutes(parseInt(selectedMinute, 10));
+                        
+                        // Calculate duration in hours
+                        const durationHours = differenceInHours(checkOutTime, checkInTime);
+                        if (durationHours > 8) {
+                          setCheckoutWarning(true);
+                        }
+                      }
+                    }}
+                  >
+                    {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                      <MenuItem key={hour} value={hour.toString().padStart(2, '0')}>
+                        {hour.toString().padStart(2, '0')}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl sx={{ minWidth: 80 }} fullWidth>
+                  <InputLabel id="minute-select-label">Minute</InputLabel>
+                  <Select
+                    labelId="minute-select-label"
+                    value={selectedMinute}
+                    label="Minute"
+                    onChange={(e) => {
+                      console.log("Minute selected:", e.target.value);
+                      setSelectedMinute(e.target.value);
+                      setCheckoutWarning(false);
+                      if (currentRecord && selectedHour && e.target.value) {
+                        const checkInTime = new Date(currentRecord.check_in);
+                        const checkOutTime = new Date(currentRecord.check_in);
+                        checkOutTime.setHours(parseInt(selectedHour, 10));
+                        checkOutTime.setMinutes(parseInt(e.target.value, 10));
+                        
+                        // Calculate duration in hours
+                        const durationHours = differenceInHours(checkOutTime, checkInTime);
+                        if (durationHours > 8) {
+                          setCheckoutWarning(true);
+                        }
+                      }
+                    }}
+                  >
+                    {Array.from({ length: 60 }, (_, i) => i).map(minute => (
+                      <MenuItem key={minute} value={minute.toString().padStart(2, '0')}>
+                        {minute.toString().padStart(2, '0')}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              {checkoutWarning && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  Warning: This check-out time will make the work duration longer than 8 hours. Please verify this is correct.
+                </Alert>
+              )}
+              <FormHelperText>
+                Select the check-out time for this attendance record
+              </FormHelperText>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCheckoutDialogOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={async () => {
+                if (!currentRecord || !selectedHour || !selectedMinute) return;
+                
+                try {
+                  // Create a date object for check-out based on check-in date
+                  const checkInDate = new Date(currentRecord.check_in);
+                  const checkOutDate = new Date(checkInDate);
+                  
+                  // Set the selected hours and minutes
+                  checkOutDate.setHours(parseInt(selectedHour, 10));
+                  checkOutDate.setMinutes(parseInt(selectedMinute, 10));
+                  
+                  // If check-out time is earlier than check-in time, assume it's the next day
+                  if (checkOutDate < checkInDate) {
+                    checkOutDate.setDate(checkOutDate.getDate() + 1);
+                  }
+                  
+                  // Update the record with check-out time and checked=true
+                  const updated = { 
+                    check_out: checkOutDate.toISOString(),
+                    checked: true 
+                  };
+                  
+                  await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
+                  
+                  // Update local records state
+                  setRecords((prev: any[]) =>
+                    prev.map((r: any) => (r.id === currentRecord.id ? { ...r, check_out: checkOutDate.toISOString(), checked: true } : r))
+                  );
+                  
+                  setCheckoutDialogOpen(false);
+                  setCurrentRecord(null);
+                  setSelectedHour('');
+                  setSelectedMinute('');
+                  setCheckoutWarning(false);
+                } catch (error) {
+                  console.error('Failed to update check-out time:', error);
+                  alert('Failed to update check-out time');
+                }
+              }}
+              color="primary"
+              variant="contained"
+              disabled={!selectedHour || !selectedMinute}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <Dialog open={cleanupOpen} onClose={() => setCleanupOpen(false)} maxWidth="md" fullWidth>
           <DialogTitle>Attendance Database Cleanup</DialogTitle>
