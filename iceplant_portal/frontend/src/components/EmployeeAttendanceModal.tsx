@@ -1118,7 +1118,25 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                             {weekday}
                           </TableCell>
                           <TableCell>{formatTime(record.check_in)}</TableCell>
-                          <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
+                          <TableCell>
+                            {record.check_out ? (
+                              <Box
+                                component="span"
+                                sx={{
+                                  fontWeight: record.manual_entry ? 'bold' : 'normal',
+                                  color: record.manual_entry ? 'warning.dark' : 'inherit',
+                                  bgcolor: record.manual_entry ? 'warning.lighter' : 'transparent',
+                                  px: record.manual_entry ? 1 : 0,
+                                  py: record.manual_entry ? 0.5 : 0,
+                                  borderRadius: record.manual_entry ? 1 : 0,
+                                  display: 'inline-block'
+                                }}
+                              >
+                                {formatTime(record.check_out)}
+                                {record.manual_entry && ' (Manual)'}
+                              </Box>
+                            ) : '-'}
+                          </TableCell>
                           <TableCell>
                             {record.duration 
                               ? (() => {

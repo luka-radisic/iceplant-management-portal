@@ -931,10 +931,17 @@ const fetchStats = useCallback(async () => {
                               color:
                                 isNoShow || isMissingCheckout
                                   ? 'text.disabled'
-                                  : 'primary.dark',
+                                  : record.manual_entry
+                                    ? 'warning.dark'  // Orange color for manually entered times
+                                    : 'primary.dark',
+                              bgcolor: record.manual_entry ? 'warning.lighter' : 'transparent',
+                              px: record.manual_entry ? 1 : 0,
+                              py: record.manual_entry ? 0.5 : 0,
+                              borderRadius: record.manual_entry ? 1 : 0,
                             }}
                           >
                             {record.check_out ? formatTime(record.check_out) : '-'}
+                            {record.manual_entry && ' (Manual)'}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -1165,10 +1172,11 @@ const fetchStats = useCallback(async () => {
                     checkOutDate.setDate(checkOutDate.getDate() + 1);
                   }
                   
-                  // Update the record with check-out time and checked=true
+                  // Update the record with check-out time, checked=true, and manual_entry flag
                   const updated = { 
                     check_out: checkOutDate.toISOString(),
-                    checked: true 
+                    checked: true,
+                    manual_entry: true
                   };
                   
                   await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);

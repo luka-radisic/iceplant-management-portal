@@ -85,6 +85,7 @@ class Attendance(models.Model):
         default='pending'
     )
     checked = models.BooleanField(default=False, help_text='Indicates initial processing before HR approval')
+    manual_entry = models.BooleanField(default=False, help_text='Indicates if check-in or check-out time was manually entered')
     
     def save(self, *args, **kwargs):
         # Ensure times are stored in UTC
