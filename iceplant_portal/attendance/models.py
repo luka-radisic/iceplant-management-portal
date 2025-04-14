@@ -86,6 +86,7 @@ class Attendance(models.Model):
     )
     checked = models.BooleanField(default=False, help_text='Indicates initial processing before HR approval')
     manual_entry = models.BooleanField(default=False, help_text='Indicates if check-in or check-out time was manually entered')
+    no_show = models.BooleanField(default=False, help_text='Indicates employee did not show up for work')
     
     def save(self, *args, **kwargs):
         # Ensure times are stored in UTC
