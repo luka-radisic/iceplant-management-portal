@@ -1119,7 +1119,35 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                           </TableCell>
                           <TableCell>{formatTime(record.check_in)}</TableCell>
                           <TableCell>{record.check_out ? formatTime(record.check_out) : '-'}</TableCell>
-                          <TableCell>{record.duration || '-'}</TableCell>
+                          <TableCell>
+                            {record.duration 
+                              ? (() => {
+                                  // Parse the duration string to calculate total minutes
+                                  const durationParts = record.duration.split(':');
+                                  const hours = parseInt(durationParts[0], 10);
+                                  const minutes = parseInt(durationParts[1], 10);
+                                  const seconds = durationParts.length > 2 ? parseInt(durationParts[2], 10) : 0;
+                                  
+                                  // Calculate total minutes including fractional part from seconds
+                                  const totalMinutes = (hours * 60) + minutes + (seconds / 60);
+                                  
+                                  // If duration is 5+ hours (300 minutes), subtract 1 hour lunch break
+                                  const adjustedTotalMinutes = totalMinutes >= 300 ? totalMinutes - 60 : totalMinutes;
+                                  
+                                  // Calculate adjusted hours and minutes
+                                  const adjustedHours = Math.floor(adjustedTotalMinutes / 60);
+                                  const adjustedMinutes = Math.floor(adjustedTotalMinutes % 60);
+                                  const adjustedSeconds = Math.round(((adjustedTotalMinutes % 60) - adjustedMinutes) * 60);
+                                  
+                                  // Format the result similar to the original format (HH:MM:SS or HH:MM)
+                                  if (durationParts.length > 2) {
+                                    return `${adjustedHours.toString().padStart(2, '0')}:${adjustedMinutes.toString().padStart(2, '0')}:${adjustedSeconds.toString().padStart(2, '0')}`;
+                                  } else {
+                                    return `${adjustedHours.toString().padStart(2, '0')}:${adjustedMinutes.toString().padStart(2, '0')}`;
+                                  }
+                                })() 
+                              : '-'}
+                          </TableCell>
                           <TableCell>{record.shiftType}</TableCell>
                           <TableCell>{getStatusChip(record)}</TableCell>
                           {isHrUser && (
