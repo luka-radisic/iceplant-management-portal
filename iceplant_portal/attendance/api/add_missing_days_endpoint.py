@@ -4,6 +4,11 @@ for the AttendanceViewSet. This is a reference implementation that should
 be added to the AttendanceViewSet class in views.py.
 """
 
+from rest_framework.decorators import action
+from rest_framework.parsers import JSONParser
+from rest_framework.response import Response
+from iceplant_portal.attendance.models import Attendance, EmployeeProfile
+
 @action(detail=False, methods=['post'], url_path='add-missing-days', parser_classes=[JSONParser])
 def add_missing_days(self, request):
     """
