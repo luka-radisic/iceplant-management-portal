@@ -345,6 +345,16 @@ export const apiService = {
     return this.get('/api/attendance/attendance/stats', filteredParams);
   },
 
+  async addMissingDays(params: {
+    start_date: string;
+    end_date: string;
+    employee_id?: string;
+    department?: string;
+    dry_run?: boolean;
+  }) {
+    return this.post('/api/attendance/attendance/add-missing-days/', params);
+  },
+
   // Tools Endpoints
   async backupFullDatabase() {
     return this.getFile('/api/tools/tools/backup/full/');

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Button, CircularProgress, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Typography, Divider } from '@mui/material';
 import apiService from '../services/api';
 import { useSnackbar } from 'notistack';
+import AddMissingDaysTool from './AddMissingDaysTool';
 
 export default function AttendanceTools() {
   const [processingCheckIns, setProcessingCheckIns] = useState(false);
@@ -39,6 +40,13 @@ export default function AttendanceTools() {
       >
         {processingCheckIns ? <CircularProgress size={24} /> : 'Process Same-Day Check-Ins'}
       </Button>
+
+      <Divider sx={{ my: 3 }} />
+      
+      <Typography variant="h6" gutterBottom>
+        Add Missing Days Tool
+      </Typography>
+      <AddMissingDaysTool />
     </Box>
   );
 } 

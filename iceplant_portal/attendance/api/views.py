@@ -543,6 +543,111 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             message = "No records found with duration less than 5 minutes."
             
         return Response({'message': message, 'deleted_count': count, 'deleted_ids': deleted_ids}, status=status.HTTP_200_OK)
+    @action(detail=False, methods=['post'], url_path='add-missing-days', parser_classes=[JSONParser])
+    def add_missing_days(self, request):
+        """
+        Add missing 'No Show' attendance records for employees with no punch records in the given date range.
+        
+        Parameters:
+        - start_date: YYYY-MM-DD (required)
+        - end_date: YYYY-MM-DD (required)
+        - employee_id: Filter by specific employee ID (optional)
+        - department: Filter by specific department (optional)
+        - dry_run: If true, only preview changes without creating records (optional)
+        """
+        from datetime import timedelta, datetime, time
+        from django.utils import timezone
+        import pytz
+
+        # Parse date range from request
+        start_date_str = request.data.get('start_date')
+        end_date_str = request.data.get('end_date')
+        employee_id = request.data.get('employee_id')
+        department = request.data.get('department')
+        dry_run = request.data.get('dry_run', False)
+        
+        # Convert dry_run to boolean if it's a string
+        if isinstance(dry_run, str):
+            dry_run = dry_run.lower() == 'true'
+        
+        print(f"Add Missing Days - Parameters: start_date={start_date_str}, end_date={end_date_str}, "
+              f"employee_id={employee_id}, department={department}, dry_run={dry_run}")
+        
+        manila_tz = pytz.timezone('Asia/Manila')
+        today = timezone.now().astimezone(manila_tz).date()
+        
+        if not start_date_str or not end_date_str:
+            # Default: last 30 days
+            end_date = today
+            start_date = today - timedelta(days=29)
+        else:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            except Exception:
+                return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+        
+        if start_date > end_date:
+            return Response({'error': 'start_date must be before or equal to end_date.'}, status=400)
+
+        # Get active employees with filters
+        employees_query = EmployeeProfile.objects.filter(is_active=True)
+        
+        # Apply employee_id filter if provided
+        if employee_id:
+            print(f"Filtering by employee_id: {employee_id}")
+            employees_query = employees_query.filter(employee_id=employee_id)
+        
+        # Apply department filter if provided
+        if department:
+            print(f"Filtering by department: {department}")
+            employees_query = employees_query.filter(department=department)
+        
+        employees = employees_query.all()
+        print(f"Found {len(employees)} employees matching filters")
+        
+        employee_map = {e.employee_id: e.full_name for e in employees}
+        
+        added_records = []
+        checked_dates = []
+        
+        for single_date in (start_date + timedelta(n) for n in range((end_date - start_date).days + 1)):
+            checked_dates.append(str(single_date))
+            for emp_id, emp_name in employee_map.items():
+                # Check if any attendance exists for this employee on this date
+                exists = Attendance.objects.filter(
+                    employee_id=emp_id,
+                    check_in__date=single_date
+                ).exists()
+                
+                if not exists:
+                    # Add record to the preview list
+                    record_data = {
+                        'employee_id': emp_id,
+                        'employee_name': emp_name,
+                        'date': str(single_date)
+                    }
+                    added_records.append(record_data)
+                    
+                    # Only create records if not in dry_run mode
+                    if not dry_run:
+                        print(f"Creating NO SHOW record for {emp_name} ({emp_id}) on {single_date}")
+                        Attendance.objects.create(
+                            employee_id=emp_id,
+                            employee_name=emp_name,
+                            check_in=manila_tz.localize(datetime.combine(single_date, time(hour=8, minute=0))),
+                            check_out=None,
+                            department='NO SHOW',
+                            import_date=single_date,
+                            no_show=True
+                        )
+        
+        return Response({
+            'added_count': len(added_records),
+            'added_records': added_records,
+            'checked_dates': checked_dates,
+            'dry_run': dry_run
+        })
 
     from rest_framework.permissions import IsAuthenticated
     from rest_framework.permissions import AllowAny
