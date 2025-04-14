@@ -52,6 +52,7 @@ import EmployeeAttendanceModal from './EmployeeAttendanceModal';
 import { useAuth } from '../contexts/AuthContext';
 import { debounce } from 'lodash';
 import AttendanceCleanupTool from './AttendanceCleanupTool';
+import AddMissingDaysTool from './AddMissingDaysTool';
 import HRApprovalButtons from './HRApprovalButtons';
 
 interface AttendanceStats {
@@ -182,7 +183,7 @@ export default function AttendanceList() {
       // Convert to CSV string
       const csvContent =
         [header, ...rows]
-          .map(row => row.map(field =>
+          .map(row => row.map((field: any) =>
             typeof field === 'string' && (field.includes(',') || field.includes('"') || field.includes('\n'))
               ? `"${field.replace(/"/g, '""')}"`
               : field
@@ -230,6 +231,7 @@ export default function AttendanceList() {
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [departments, setDepartments] = useState<string[]>([]);
   const [cleanupOpen, setCleanupOpen] = useState(false);
+  const [addMissingDaysOpen, setAddMissingDaysOpen] = useState(false);
 
   const isHrUser = useMemo(() => user?.group === 'HR', [user]);
 
@@ -552,9 +554,14 @@ const fetchStats = useCallback(async () => {
             Attendance Records & Statistics
           </Typography>
           {isHrUser && (
-            <Button variant="outlined" color="error" onClick={() => setCleanupOpen(true)}>
-              Cleanup Attendance Records
-            </Button>
+            <Box display="flex" gap={2}>
+              <Button variant="outlined" color="error" onClick={() => setCleanupOpen(true)}>
+                Cleanup Attendance Records
+              </Button>
+              <Button variant="outlined" color="primary" onClick={() => setAddMissingDaysOpen(true)}>
+                Add Missing Days
+              </Button>
+            </Box>
           )}
         </Box>
 
@@ -1212,6 +1219,16 @@ const fetchStats = useCallback(async () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setCleanupOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={addMissingDaysOpen} onClose={() => setAddMissingDaysOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>Add Missing Days Tool</DialogTitle>
+          <DialogContent dividers>
+            <AddMissingDaysTool />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAddMissingDaysOpen(false)}>Close</Button>
           </DialogActions>
         </Dialog>
       </Box>

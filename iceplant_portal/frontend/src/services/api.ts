@@ -535,6 +535,25 @@ export const apiService = {
   async searchEmployees(query: string) {
     return this.get('/api/attendance/employee-profile/', { search: query });
   },
+
+  async addMissingDays(params: {
+    employee_id?: string;
+    department?: string;
+    start_date?: string;
+    end_date?: string;
+    dry_run?: boolean;
+  }): Promise<{
+    added_count: number;
+    added_records: Array<{
+      employee_id: string;
+      employee_name: string;
+      date: string;
+    }>;
+    checked_dates: string[];
+  }> {
+    const response = await api.post('/api/attendance/attendance/add-missing-days/', params);
+    return response.data;
+  },
 };
 
 export default apiService; 
