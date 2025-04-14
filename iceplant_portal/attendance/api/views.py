@@ -388,7 +388,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     'check_in': self.make_aware(datetime.combine(start_date, datetime.min.time().replace(hour=8))),
                     'check_out': None,
                     'department': 'NO SHOW',
-                    'import_date': start_date
+                    'import_date': start_date,
+                    'no_show': True
                 })
         
         return no_shows
@@ -598,7 +599,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                         check_in=manila_tz.localize(datetime.combine(single_date, time(hour=8, minute=0))),
                         check_out=None,
                         department='NO SHOW',
-                        import_date=single_date
+                        import_date=single_date,
+                        no_show=True
                     )
                     added_records.append({
                         'employee_id': emp_id,
