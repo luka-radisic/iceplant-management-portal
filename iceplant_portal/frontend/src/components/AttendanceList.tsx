@@ -153,7 +153,14 @@ export default function AttendanceList() {
           }
         }
         // Check In/Out
-        const checkIn = rec.check_in ? format(new Date(rec.check_in), 'HH:mm') : '';
+        let checkIn = '';
+        if (rec.check_in) {
+          const d = new Date(rec.check_in);
+          // Hide 23:56 placeholder for missing days
+          if (!(d.getHours() === 23 && d.getMinutes() === 56)) {
+            checkIn = format(d, 'HH:mm');
+          }
+        }
         const checkOut = rec.check_out ? format(new Date(rec.check_out), 'HH:mm') : '';
         // Duration (min) - subtract 1 hour (60 min) for lunch break if duration >= 5 hours
         const durationMin =
@@ -481,19 +488,34 @@ const fetchStats = useCallback(async () => {
     if (record.no_show === true) {
       return <Chip label="No Show" color="error" size="small" variant="outlined" />;
     }
-
+  
+    // Special case: Sunday with check-in 23:56 (placeholder for missing day) - show only Off Day, no Missing Check-Out
     if (isSunday(record.check_in)) {
+      let isMissingDayPlaceholder = false;
+      if (record.check_in) {
+        const d = new Date(record.check_in);
+        isMissingDayPlaceholder = d.getHours() === 23 && d.getMinutes() === 56;
+      }
       return (
         <Box display="flex" gap={1} flexWrap="wrap">
           <Chip label="Off Day" color="info" size="small" variant="outlined" />
-          {!record.check_out ? (
+          {!record.check_out && !isMissingDayPlaceholder ? (
             <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />
           ) : null}
         </Box>
       );
     }
-
+  
     if (!record.check_out) {
+      // Also hide "Missing Check-Out" if check-in is 23:56 (missing day placeholder)
+      let isMissingDayPlaceholder = false;
+      if (record.check_in) {
+        const d = new Date(record.check_in);
+        isMissingDayPlaceholder = d.getHours() === 23 && d.getMinutes() === 56;
+      }
+      if (isMissingDayPlaceholder) {
+        return null;
+      }
       return <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />;
     }
     if (record.check_in && record.check_out) {

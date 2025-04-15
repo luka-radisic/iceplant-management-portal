@@ -506,7 +506,26 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
   const getStatusChip = (record: any) => {
     const { isSunday } = getWeekday(record.check_in);
-
+  
+    // Hide "Missing Check-Out" if check-in is 23:56 (missing day placeholder)
+    let isMissingDayPlaceholder = false;
+    if (record.check_in) {
+      const d = new Date(record.check_in);
+      isMissingDayPlaceholder = d.getHours() === 23 && d.getMinutes() === 56;
+    }
+  
+    // If check-in is 23:56, always show No Show chip and suppress Missing Check-Out
+    if (isMissingDayPlaceholder) {
+      return (
+        <Box display="flex" gap={1}>
+          {isSunday && (
+            <Chip label="Off Day" color="info" size="small" variant="outlined" />
+          )}
+          <Chip label="No Show" color="error" size="small" variant="outlined" />
+        </Box>
+      );
+    }
+  
     return (
       <Box display="flex" gap={1}>
         {isSunday && (
@@ -1117,7 +1136,18 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
                           }}>
                             {weekday}
                           </TableCell>
-                          <TableCell>{formatTime(record.check_in)}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              if (record.check_in) {
+                                const d = new Date(record.check_in);
+                                if (d.getHours() === 23 && d.getMinutes() === 56) {
+                                  return '-';
+                                }
+                                return formatTime(record.check_in);
+                              }
+                              return '-';
+                            })()}
+                          </TableCell>
                           <TableCell>
                             {record.check_out ? (
                               <Box
