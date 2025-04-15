@@ -931,7 +931,18 @@ const fetchStats = useCallback(async () => {
                               color: isNoShow ? 'text.disabled' : 'success.dark',
                             }}
                           >
-                            {isNoShow ? '-' : formatTime(record.check_in)}
+                            {isNoShow
+                              ? '-'
+                              : (() => {
+                                  if (record.check_in) {
+                                    const d = new Date(record.check_in);
+                                    if (d.getHours() === 23 && d.getMinutes() === 56) {
+                                      return '-';
+                                    }
+                                    return formatTime(record.check_in);
+                                  }
+                                  return '';
+                                })()}
                           </Typography>
                         </TableCell>
                         <TableCell>
