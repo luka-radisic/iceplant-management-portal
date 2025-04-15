@@ -216,8 +216,10 @@ export default function AttendanceList() {
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<any>(null);
-  const [selectedHour, setSelectedHour] = useState('');
-  const [selectedMinute, setSelectedMinute] = useState('');
+  const [checkInHour, setCheckInHour] = useState('');
+  const [checkInMinute, setCheckInMinute] = useState('');
+  const [checkOutHour, setCheckOutHour] = useState('');
+  const [checkOutMinute, setCheckOutMinute] = useState('');
   const [checkoutWarning, setCheckoutWarning] = useState(false);
   const [filters, setFilters] = useState({
     start_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
@@ -315,8 +317,10 @@ export default function AttendanceList() {
       // If No Show with no check_in, allow staff to set both check-in and check-out manually
       if (record.no_show === true && !record.check_in) {
         setCurrentRecord({ ...record, _editMode: 'no_show' });
-        setSelectedHour('08'); // Default check-in hour
-        setSelectedMinute('00');
+        setCheckInHour('08'); // Default check-in hour
+        setCheckInMinute('00');
+        setCheckOutHour('17'); // Default check-out hour (8 hours after 08:00)
+        setCheckOutMinute('00');
         setCheckoutDialogOpen(true);
         return;
       }
@@ -326,8 +330,10 @@ export default function AttendanceList() {
         const d = new Date(record.check_in);
         if (d.getHours() === 23 && d.getMinutes() === 56) {
           setCurrentRecord({ ...record, _editMode: 'missing_day' });
-          setSelectedHour('08'); // Default check-in hour
-          setSelectedMinute('00');
+          setCheckInHour('08'); // Default check-in hour
+          setCheckInMinute('00');
+          setCheckOutHour('17'); // Default check-out hour (8 hours after 08:00)
+          setCheckOutMinute('00');
           setCheckoutDialogOpen(true);
           return;
         }
@@ -350,14 +356,14 @@ export default function AttendanceList() {
 
           const hours = suggestedCheckOut.getHours().toString().padStart(2, '0');
           const minutes = suggestedCheckOut.getMinutes().toString().padStart(2, '0');
-
+          
           console.log(`Setting suggested time: ${hours}:${minutes}`);
-          setSelectedHour(hours);
-          setSelectedMinute(minutes);
+          setCheckOutHour(hours);
+          setCheckOutMinute(minutes);
         } catch (e) {
           console.error("Error setting default time:", e);
-          setSelectedHour('17'); // Default to 5 PM
-          setSelectedMinute('00');
+          setCheckOutHour('17'); // Default to 5 PM
+          setCheckOutMinute('00');
         }
 
         console.log("About to open checkout dialog");
@@ -1145,10 +1151,10 @@ const fetchStats = useCallback(async () => {
                       <Select
                         labelId="checkin-hour-label"
                         MenuProps={{ disablePortal: true }}
-                        value={selectedHour}
+                        value={checkInHour}
                         label="Check-In Hour"
                         onChange={(e) => {
-                          setSelectedHour(e.target.value);
+                          setCheckInHour(e.target.value);
                           setCheckoutWarning(false);
                         }}
                       >
@@ -1164,10 +1170,10 @@ const fetchStats = useCallback(async () => {
                       <Select
                         labelId="checkin-minute-label"
                         MenuProps={{ disablePortal: true }}
-                        value={selectedMinute}
+                        value={checkInMinute}
                         label="Check-In Minute"
                         onChange={(e) => {
-                          setSelectedMinute(e.target.value);
+                          setCheckInMinute(e.target.value);
                           setCheckoutWarning(false);
                         }}
                       >
@@ -1184,10 +1190,11 @@ const fetchStats = useCallback(async () => {
                       <InputLabel id="checkout-hour-label">Check-Out Hour</InputLabel>
                       <Select
                         labelId="checkout-hour-label"
-                        value={selectedHour}
+                        MenuProps={{ disablePortal: true }}
+                        value={checkOutHour}
                         label="Check-Out Hour"
                         onChange={(e) => {
-                          setSelectedHour(e.target.value);
+                          setCheckOutHour(e.target.value);
                           setCheckoutWarning(false);
                         }}
                       >
@@ -1202,10 +1209,11 @@ const fetchStats = useCallback(async () => {
                       <InputLabel id="checkout-minute-label">Check-Out Minute</InputLabel>
                       <Select
                         labelId="checkout-minute-label"
-                        value={selectedMinute}
+                        MenuProps={{ disablePortal: true }}
+                        value={checkOutMinute}
                         label="Check-Out Minute"
                         onChange={(e) => {
-                          setSelectedMinute(e.target.value);
+                          setCheckOutMinute(e.target.value);
                           setCheckoutWarning(false);
                         }}
                       >
@@ -1236,16 +1244,16 @@ const fetchStats = useCallback(async () => {
                       <InputLabel id="hour-select-label">Hour</InputLabel>
                       <Select
                         labelId="hour-select-label"
-                        value={selectedHour}
+                        value={checkOutHour}
                         label="Hour"
                         onChange={(e) => {
-                          setSelectedHour(e.target.value);
+                          setCheckOutHour(e.target.value);
                           setCheckoutWarning(false);
-                          if (currentRecord && e.target.value && selectedMinute) {
+                          if (currentRecord && e.target.value && checkOutMinute) {
                             const checkInTime = new Date(currentRecord.check_in);
                             const checkOutTime = new Date(currentRecord.check_in);
                             checkOutTime.setHours(parseInt(e.target.value, 10));
-                            checkOutTime.setMinutes(parseInt(selectedMinute, 10));
+                            checkOutTime.setMinutes(parseInt(checkOutMinute, 10));
                             const totalHours = differenceInHours(checkOutTime, checkInTime);
                             const workHours = totalHours >= 5 ? totalHours - 1 : totalHours;
                             if (workHours > 8) {
@@ -1265,15 +1273,15 @@ const fetchStats = useCallback(async () => {
                       <InputLabel id="minute-select-label">Minute</InputLabel>
                       <Select
                         labelId="minute-select-label"
-                        value={selectedMinute}
+                        value={checkOutMinute}
                         label="Minute"
                         onChange={(e) => {
-                          setSelectedMinute(e.target.value);
+                          setCheckOutMinute(e.target.value);
                           setCheckoutWarning(false);
-                          if (currentRecord && selectedHour && e.target.value) {
+                          if (currentRecord && checkOutHour && e.target.value) {
                             const checkInTime = new Date(currentRecord.check_in);
                             const checkOutTime = new Date(currentRecord.check_in);
-                            checkOutTime.setHours(parseInt(selectedHour, 10));
+                            checkOutTime.setHours(parseInt(checkOutHour, 10));
                             checkOutTime.setMinutes(parseInt(e.target.value, 10));
                             const durationHours = differenceInHours(checkOutTime, checkInTime);
                             if (durationHours > 8) {
@@ -1306,71 +1314,45 @@ const fetchStats = useCallback(async () => {
             <Button onClick={() => setCheckoutDialogOpen(false)}>Cancel</Button>
             <Button
               onClick={async () => {
-                if (!currentRecord || !selectedHour || !selectedMinute) return;
-
+                if (!currentRecord) return;
+              
                 try {
-                  if (currentRecord._editMode === 'no_show') {
+                  if (currentRecord._editMode === 'no_show' || currentRecord._editMode === 'missing_day') {
                     // Use the record's date (from created_at or another field) for check-in/check-out
-                    const baseDate = currentRecord.created_at
-                      ? new Date(currentRecord.created_at)
-                      : new Date();
-
+                    const baseDate = currentRecord._editMode === 'no_show'
+                      ? (currentRecord.created_at ? new Date(currentRecord.created_at) : new Date())
+                      : (currentRecord.check_in ? new Date(currentRecord.check_in) : new Date());
+              
                     // Set check-in and check-out times on the same date
                     const checkInDate = new Date(baseDate);
-                    checkInDate.setHours(parseInt(selectedHour, 10));
-                    checkInDate.setMinutes(parseInt(selectedMinute, 10));
+                    checkInDate.setHours(parseInt(checkInHour, 10));
+                    checkInDate.setMinutes(parseInt(checkInMinute, 10));
                     checkInDate.setSeconds(0, 0);
-
-                    // For demo, set check-out 8 hours after check-in
-                    const checkOutDate = new Date(checkInDate);
-                    checkOutDate.setHours(checkOutDate.getHours() + 8);
-
+              
+                    const checkOutDate = new Date(baseDate);
+                    checkOutDate.setHours(parseInt(checkOutHour, 10));
+                    checkOutDate.setMinutes(parseInt(checkOutMinute, 10));
+                    checkOutDate.setSeconds(0, 0);
+              
+                    // If check-out is before check-in, assume next day
+                    if (checkOutDate <= checkInDate) {
+                      checkOutDate.setDate(checkOutDate.getDate() + 1);
+                    }
+              
                     const updated = {
                       check_in: checkInDate.toISOString(),
                       check_out: checkOutDate.toISOString(),
                       checked: true,
                       manual_entry: true,
-                      no_show: false // Mark as present after manual entry
+                      ...(currentRecord._editMode === 'no_show' ? { no_show: false } : {})
                     };
-
+              
                     await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
-
+              
                     setRecords((prev: any[]) =>
                       prev.map((r: any) =>
                         r.id === currentRecord.id
-                          ? { ...r, check_in: checkInDate.toISOString(), check_out: checkOutDate.toISOString(), checked: true, no_show: false }
-                          : r
-                      )
-                    );
-                  } else if (currentRecord._editMode === 'missing_day') {
-                    // Use the record's date for check-in/check-out
-                    const baseDate = currentRecord.check_in
-                      ? new Date(currentRecord.check_in)
-                      : new Date();
-
-                    // Set check-in and check-out times on the same date
-                    const checkInDate = new Date(baseDate);
-                    checkInDate.setHours(parseInt(selectedHour, 10));
-                    checkInDate.setMinutes(parseInt(selectedMinute, 10));
-                    checkInDate.setSeconds(0, 0);
-
-                    // For demo, set check-out 8 hours after check-in
-                    const checkOutDate = new Date(checkInDate);
-                    checkOutDate.setHours(checkOutDate.getHours() + 8);
-
-                    const updated = {
-                      check_in: checkInDate.toISOString(),
-                      check_out: checkOutDate.toISOString(),
-                      checked: true,
-                      manual_entry: true
-                    };
-
-                    await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
-
-                    setRecords((prev: any[]) =>
-                      prev.map((r: any) =>
-                        r.id === currentRecord.id
-                          ? { ...r, check_in: checkInDate.toISOString(), check_out: checkOutDate.toISOString(), checked: true, manual_entry: true }
+                          ? { ...r, check_in: checkInDate.toISOString(), check_out: checkOutDate.toISOString(), checked: true, manual_entry: true, ...(currentRecord._editMode === 'no_show' ? { no_show: false } : {}) }
                           : r
                       )
                     );
@@ -1378,31 +1360,33 @@ const fetchStats = useCallback(async () => {
                     // Existing logic for missing check-out
                     const checkInDate = new Date(currentRecord.check_in);
                     const checkOutDate = new Date(checkInDate);
-
-                    checkOutDate.setHours(parseInt(selectedHour, 10));
-                    checkOutDate.setMinutes(parseInt(selectedMinute, 10));
-
+              
+                    checkOutDate.setHours(parseInt(checkOutHour, 10));
+                    checkOutDate.setMinutes(parseInt(checkOutMinute, 10));
+              
                     if (checkOutDate < checkInDate) {
                       checkOutDate.setDate(checkOutDate.getDate() + 1);
                     }
-
+              
                     const updated = {
                       check_out: checkOutDate.toISOString(),
                       checked: true,
                       manual_entry: true
                     };
-
+              
                     await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
-
+              
                     setRecords((prev: any[]) =>
                       prev.map((r: any) => (r.id === currentRecord.id ? { ...r, check_out: checkOutDate.toISOString(), checked: true } : r))
                     );
                   }
-
+              
                   setCheckoutDialogOpen(false);
                   setCurrentRecord(null);
-                  setSelectedHour('');
-                  setSelectedMinute('');
+                  setCheckInHour('');
+                  setCheckInMinute('');
+                  setCheckOutHour('');
+                  setCheckOutMinute('');
                   setCheckoutWarning(false);
                 } catch (error) {
                   console.error('Failed to update check-out time:', error);
@@ -1411,7 +1395,11 @@ const fetchStats = useCallback(async () => {
               }}
               color="primary"
               variant="contained"
-              disabled={!selectedHour || !selectedMinute}
+              disabled={
+                (currentRecord && (currentRecord._editMode === 'no_show' || currentRecord._editMode === 'missing_day'))
+                  ? (!checkInHour || !checkInMinute || !checkOutHour || !checkOutMinute)
+                  : (!checkOutHour || !checkOutMinute)
+              }
             >
               Save
             </Button>
