@@ -674,15 +674,31 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     
                     # Only create records if not in dry_run mode
                     if not dry_run:
-                        print(f"Creating NO SHOW record for {emp_name} ({emp_id}) on {single_date}")
+                        # Retrieve employee's actual department if possible
+                        employee_dept = None
+                        try:
+                            # First try to get from EmployeeProfile
+                            profile = EmployeeProfile.objects.get(employee_id=emp_id)
+                            employee_dept = profile.department
+                        except EmployeeProfile.DoesNotExist:
+                            # If not found, try to get from existing attendance records
+                            latest_record = Attendance.objects.filter(
+                                employee_id=emp_id,
+                                department__isnull=False
+                            ).exclude(department='NO SHOW').order_by('-check_in').first()
+                            
+                            if latest_record:
+                                employee_dept = latest_record.department
+                        
+                        print(f"Creating NO SHOW record for {emp_name} ({emp_id}) on {single_date}, department: {employee_dept or 'Unknown'}")
                         Attendance.objects.create(
                             employee_id=emp_id,
                             employee_name=emp_name,
                             check_in=manila_tz.localize(datetime.combine(single_date, time(hour=8, minute=0))),
                             check_out=None,
-                            department='NO SHOW',
+                            department=employee_dept,  # Use the actual department, not 'NO SHOW'
                             import_date=single_date,
-                            no_show=True
+                            no_show=True  # We use the no_show flag instead of department='NO SHOW'
                         )
         
         return Response({
@@ -1602,4 +1618,4 @@ def debug_departments(request):
             'shift_departments': shift_departments,
             'employee_shift_departments': employee_shift_departments
         }
-    }) 
+    })
