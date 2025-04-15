@@ -311,25 +311,34 @@ export default function AttendanceList() {
         );
         return;
       }
-      
+
+      // If No Show with no check_in, allow staff to set both check-in and check-out manually
+      if (record.no_show === true && !record.check_in) {
+        setCurrentRecord(record);
+        setSelectedHour('08'); // Default check-in hour
+        setSelectedMinute('00');
+        setCheckoutDialogOpen(true);
+        return;
+      }
+
       // If not checked and trying to check
       // Check if record has no check-out time and is not a NO SHOW
       if (!record.check_out && record.department !== 'NO SHOW') {
         // For records with missing check-out, show the dialog
         console.log("Record has no check-out time, opening dialog...");
-        
+
         // Set current record
         setCurrentRecord(record);
-        
+
         // Set default time to 8 hours after check-in
         try {
           const checkInTime = new Date(record.check_in);
           let suggestedCheckOut = new Date(checkInTime);
           suggestedCheckOut.setHours(suggestedCheckOut.getHours() + 8);
-          
+
           const hours = suggestedCheckOut.getHours().toString().padStart(2, '0');
           const minutes = suggestedCheckOut.getMinutes().toString().padStart(2, '0');
-          
+
           console.log(`Setting suggested time: ${hours}:${minutes}`);
           setSelectedHour(hours);
           setSelectedMinute(minutes);
@@ -338,7 +347,7 @@ export default function AttendanceList() {
           setSelectedHour('17'); // Default to 5 PM
           setSelectedMinute('00');
         }
-        
+
         console.log("About to open checkout dialog");
         setCheckoutDialogOpen(true);
         console.log("Set dialog open to true");
@@ -1074,121 +1083,244 @@ const fetchStats = useCallback(async () => {
           keepMounted
           sx={{ zIndex: 1500 }}
         >
-          <DialogTitle>Add Check-Out Time</DialogTitle>
+          <DialogTitle>
+            {currentRecord && currentRecord.no_show === true && !currentRecord.check_in
+              ? 'Add Check-In and Check-Out Time'
+              : 'Add Check-Out Time'}
+          </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 1 }}>
-              <Typography variant="body1" gutterBottom>
-                This record has no check-out time. Please add a check-out time to mark it as checked.
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'flex-end', mt: 2 }}>
-                <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
-                  <InputLabel id="hour-select-label">Hour</InputLabel>
-                  <Select
-                    labelId="hour-select-label"
-                    value={selectedHour}
-                    label="Hour"
-                    onChange={(e) => {
-                      console.log("Hour selected:", e.target.value);
-                      setSelectedHour(e.target.value);
-                      setCheckoutWarning(false);
-                      if (currentRecord && e.target.value && selectedMinute) {
-                        const checkInTime = new Date(currentRecord.check_in);
-                        const checkOutTime = new Date(currentRecord.check_in);
-                        checkOutTime.setHours(parseInt(e.target.value, 10));
-                        checkOutTime.setMinutes(parseInt(selectedMinute, 10));
-                        
-                        // Calculate duration in hours, accounting for 1-hour lunch break
-                        const totalHours = differenceInHours(checkOutTime, checkInTime);
-                        const workHours = totalHours >= 5 ? totalHours - 1 : totalHours; // Subtract 1 hour for lunch if 5+ hours
-                        if (workHours > 8) {
-                          setCheckoutWarning(true);
-                        }
-                      }
-                    }}
-                  >
-                    {Array.from({ length: 24 }, (_, i) => i).map(hour => (
-                      <MenuItem key={hour} value={hour.toString().padStart(2, '0')}>
-                        {hour.toString().padStart(2, '0')}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <FormControl sx={{ minWidth: 80 }} fullWidth>
-                  <InputLabel id="minute-select-label">Minute</InputLabel>
-                  <Select
-                    labelId="minute-select-label"
-                    value={selectedMinute}
-                    label="Minute"
-                    onChange={(e) => {
-                      console.log("Minute selected:", e.target.value);
-                      setSelectedMinute(e.target.value);
-                      setCheckoutWarning(false);
-                      if (currentRecord && selectedHour && e.target.value) {
-                        const checkInTime = new Date(currentRecord.check_in);
-                        const checkOutTime = new Date(currentRecord.check_in);
-                        checkOutTime.setHours(parseInt(selectedHour, 10));
-                        checkOutTime.setMinutes(parseInt(e.target.value, 10));
-                        
-                        // Calculate duration in hours
-                        const durationHours = differenceInHours(checkOutTime, checkInTime);
-                        if (durationHours > 8) {
-                          setCheckoutWarning(true);
-                        }
-                      }
-                    }}
-                  >
-                    {Array.from({ length: 60 }, (_, i) => i).map(minute => (
-                      <MenuItem key={minute} value={minute.toString().padStart(2, '0')}>
-                        {minute.toString().padStart(2, '0')}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-              {checkoutWarning && (
-                <Alert severity="warning" sx={{ mt: 2 }}>
-                  Warning: This check-out time will make the work duration longer than 8 hours. Please verify this is correct.
-                </Alert>
+              {currentRecord && currentRecord.no_show === true && !currentRecord.check_in ? (
+                <>
+                  <Typography variant="body1" gutterBottom>
+                    This is a No Show record with no check-in or check-out time. Please add both times to mark it as checked and present.
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-end', mt: 2 }}>
+                    <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
+                      <InputLabel id="checkin-hour-label">Check-In Hour</InputLabel>
+                      <Select
+                        labelId="checkin-hour-label"
+                        value={selectedHour}
+                        label="Check-In Hour"
+                        onChange={(e) => {
+                          setSelectedHour(e.target.value);
+                          setCheckoutWarning(false);
+                        }}
+                      >
+                        {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                          <MenuItem key={hour} value={hour.toString().padStart(2, '0')}>
+                            {hour.toString().padStart(2, '0')}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl sx={{ minWidth: 80 }} fullWidth>
+                      <InputLabel id="checkin-minute-label">Check-In Minute</InputLabel>
+                      <Select
+                        labelId="checkin-minute-label"
+                        value={selectedMinute}
+                        label="Check-In Minute"
+                        onChange={(e) => {
+                          setSelectedMinute(e.target.value);
+                          setCheckoutWarning(false);
+                        }}
+                      >
+                        {Array.from({ length: 60 }, (_, i) => i).map(minute => (
+                          <MenuItem key={minute} value={minute.toString().padStart(2, '0')}>
+                            {minute.toString().padStart(2, '0')}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-end', mt: 2 }}>
+                    <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
+                      <InputLabel id="checkout-hour-label">Check-Out Hour</InputLabel>
+                      <Select
+                        labelId="checkout-hour-label"
+                        value={selectedHour}
+                        label="Check-Out Hour"
+                        onChange={(e) => {
+                          setSelectedHour(e.target.value);
+                          setCheckoutWarning(false);
+                        }}
+                      >
+                        {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                          <MenuItem key={hour} value={hour.toString().padStart(2, '0')}>
+                            {hour.toString().padStart(2, '0')}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl sx={{ minWidth: 80 }} fullWidth>
+                      <InputLabel id="checkout-minute-label">Check-Out Minute</InputLabel>
+                      <Select
+                        labelId="checkout-minute-label"
+                        value={selectedMinute}
+                        label="Check-Out Minute"
+                        onChange={(e) => {
+                          setSelectedMinute(e.target.value);
+                          setCheckoutWarning(false);
+                        }}
+                      >
+                        {Array.from({ length: 60 }, (_, i) => i).map(minute => (
+                          <MenuItem key={minute} value={minute.toString().padStart(2, '0')}>
+                            {minute.toString().padStart(2, '0')}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {checkoutWarning && (
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                      Warning: Please verify the entered times are correct.
+                    </Alert>
+                  )}
+                  <FormHelperText>
+                    Select the check-in and check-out times for this attendance record
+                  </FormHelperText>
+                </>
+              ) : (
+                <>
+                  <Typography variant="body1" gutterBottom>
+                    This record has no check-out time. Please add a check-out time to mark it as checked.
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-end', mt: 2 }}>
+                    <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
+                      <InputLabel id="hour-select-label">Hour</InputLabel>
+                      <Select
+                        labelId="hour-select-label"
+                        value={selectedHour}
+                        label="Hour"
+                        onChange={(e) => {
+                          setSelectedHour(e.target.value);
+                          setCheckoutWarning(false);
+                          if (currentRecord && e.target.value && selectedMinute) {
+                            const checkInTime = new Date(currentRecord.check_in);
+                            const checkOutTime = new Date(currentRecord.check_in);
+                            checkOutTime.setHours(parseInt(e.target.value, 10));
+                            checkOutTime.setMinutes(parseInt(selectedMinute, 10));
+                            const totalHours = differenceInHours(checkOutTime, checkInTime);
+                            const workHours = totalHours >= 5 ? totalHours - 1 : totalHours;
+                            if (workHours > 8) {
+                              setCheckoutWarning(true);
+                            }
+                          }
+                        }}
+                      >
+                        {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                          <MenuItem key={hour} value={hour.toString().padStart(2, '0')}>
+                            {hour.toString().padStart(2, '0')}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl sx={{ minWidth: 80 }} fullWidth>
+                      <InputLabel id="minute-select-label">Minute</InputLabel>
+                      <Select
+                        labelId="minute-select-label"
+                        value={selectedMinute}
+                        label="Minute"
+                        onChange={(e) => {
+                          setSelectedMinute(e.target.value);
+                          setCheckoutWarning(false);
+                          if (currentRecord && selectedHour && e.target.value) {
+                            const checkInTime = new Date(currentRecord.check_in);
+                            const checkOutTime = new Date(currentRecord.check_in);
+                            checkOutTime.setHours(parseInt(selectedHour, 10));
+                            checkOutTime.setMinutes(parseInt(e.target.value, 10));
+                            const durationHours = differenceInHours(checkOutTime, checkInTime);
+                            if (durationHours > 8) {
+                              setCheckoutWarning(true);
+                            }
+                          }
+                        }}
+                      >
+                        {Array.from({ length: 60 }, (_, i) => i).map(minute => (
+                          <MenuItem key={minute} value={minute.toString().padStart(2, '0')}>
+                            {minute.toString().padStart(2, '0')}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {checkoutWarning && (
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                      Warning: This check-out time will make the work duration longer than 8 hours. Please verify this is correct.
+                    </Alert>
+                  )}
+                  <FormHelperText>
+                    Select the check-out time for this attendance record
+                  </FormHelperText>
+                </>
               )}
-              <FormHelperText>
-                Select the check-out time for this attendance record
-              </FormHelperText>
             </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setCheckoutDialogOpen(false)}>Cancel</Button>
-            <Button 
+            <Button
               onClick={async () => {
                 if (!currentRecord || !selectedHour || !selectedMinute) return;
-                
+
                 try {
-                  // Create a date object for check-out based on check-in date
-                  const checkInDate = new Date(currentRecord.check_in);
-                  const checkOutDate = new Date(checkInDate);
-                  
-                  // Set the selected hours and minutes
-                  checkOutDate.setHours(parseInt(selectedHour, 10));
-                  checkOutDate.setMinutes(parseInt(selectedMinute, 10));
-                  
-                  // If check-out time is earlier than check-in time, assume it's the next day
-                  if (checkOutDate < checkInDate) {
-                    checkOutDate.setDate(checkOutDate.getDate() + 1);
+                  if (currentRecord.no_show === true && !currentRecord.check_in) {
+                    // Use the record's date (from created_at or another field) for check-in/check-out
+                    const baseDate = currentRecord.created_at
+                      ? new Date(currentRecord.created_at)
+                      : new Date();
+
+                    // Set check-in and check-out times on the same date
+                    const checkInDate = new Date(baseDate);
+                    checkInDate.setHours(parseInt(selectedHour, 10));
+                    checkInDate.setMinutes(parseInt(selectedMinute, 10));
+                    checkInDate.setSeconds(0, 0);
+
+                    // For demo, set check-out 8 hours after check-in
+                    const checkOutDate = new Date(checkInDate);
+                    checkOutDate.setHours(checkOutDate.getHours() + 8);
+
+                    const updated = {
+                      check_in: checkInDate.toISOString(),
+                      check_out: checkOutDate.toISOString(),
+                      checked: true,
+                      manual_entry: true,
+                      no_show: false // Mark as present after manual entry
+                    };
+
+                    await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
+
+                    setRecords((prev: any[]) =>
+                      prev.map((r: any) =>
+                        r.id === currentRecord.id
+                          ? { ...r, check_in: checkInDate.toISOString(), check_out: checkOutDate.toISOString(), checked: true, no_show: false }
+                          : r
+                      )
+                    );
+                  } else {
+                    // Existing logic for missing check-out
+                    const checkInDate = new Date(currentRecord.check_in);
+                    const checkOutDate = new Date(checkInDate);
+
+                    checkOutDate.setHours(parseInt(selectedHour, 10));
+                    checkOutDate.setMinutes(parseInt(selectedMinute, 10));
+
+                    if (checkOutDate < checkInDate) {
+                      checkOutDate.setDate(checkOutDate.getDate() + 1);
+                    }
+
+                    const updated = {
+                      check_out: checkOutDate.toISOString(),
+                      checked: true,
+                      manual_entry: true
+                    };
+
+                    await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
+
+                    setRecords((prev: any[]) =>
+                      prev.map((r: any) => (r.id === currentRecord.id ? { ...r, check_out: checkOutDate.toISOString(), checked: true } : r))
+                    );
                   }
-                  
-                  // Update the record with check-out time, checked=true, and manual_entry flag
-                  const updated = { 
-                    check_out: checkOutDate.toISOString(),
-                    checked: true,
-                    manual_entry: true
-                  };
-                  
-                  await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
-                  
-                  // Update local records state
-                  setRecords((prev: any[]) =>
-                    prev.map((r: any) => (r.id === currentRecord.id ? { ...r, check_out: checkOutDate.toISOString(), checked: true } : r))
-                  );
-                  
+
                   setCheckoutDialogOpen(false);
                   setCurrentRecord(null);
                   setSelectedHour('');

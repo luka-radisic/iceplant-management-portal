@@ -695,7 +695,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                         Attendance.objects.create(
                             employee_id=emp_id,
                             employee_name=emp_name,
-                            check_in=datetime.combine(single_date, time.min, tzinfo=manila_tz),  # Date only, time is 00:00:00 for no show
+                            check_in=None,  # No Show: check_in is set to None (null in DB)
                             check_out=None,
                             department=employee_dept or 'Unknown',  # Ensure department is never None
                             import_date=datetime.combine(single_date, time.min, tzinfo=manila_tz),
