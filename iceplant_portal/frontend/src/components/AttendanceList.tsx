@@ -27,7 +27,7 @@ import {
   FormHelperText,
   Alert,
 } from '@mui/material';
-import { format, differenceInMinutes, differenceInHours, parseISO, addHours } from 'date-fns';
+import { format, differenceInMinutes, differenceInHours } from 'date-fns';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   ResponsiveContainer,
@@ -182,7 +182,7 @@ export default function AttendanceList() {
       // Convert to CSV string
       const csvContent =
         [header, ...rows]
-          .map(row => row.map(field =>
+          .map(row => row.map((field: string) =>
             typeof field === 'string' && (field.includes(',') || field.includes('"') || field.includes('\n'))
               ? `"${field.replace(/"/g, '""')}"`
               : field
