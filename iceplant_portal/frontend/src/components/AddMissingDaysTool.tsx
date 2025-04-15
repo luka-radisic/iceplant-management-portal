@@ -43,9 +43,10 @@ export default function AddMissingDaysTool() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const data = await apiService.getDepartments();
-        if (data && Array.isArray(data)) {
-          setDepartments(data);
+        const response = await apiService.getDepartments();
+        // Ensure response has the 'departments' key and it's an array
+        if (response && Array.isArray(response.departments)) {
+          setDepartments(response.departments);
         }
       } catch (error) {
         console.error('Error fetching departments:', error);
@@ -61,9 +62,16 @@ export default function AddMissingDaysTool() {
       if (searchTerm.length < 2) return;
       
       try {
-        const response = await apiService.get(`/api/attendance/employee-profile/?search=${searchTerm}`);
-        if (response && Array.isArray(response)) {
-          setEmployees(response);
+        const response = await apiService.get(
+          `/api/attendance/employee-profile/?search=${encodeURIComponent(searchTerm)}`,
+          {
+            params: {
+              search: searchTerm
+            }
+          }
+        );
+        if (response && Array.isArray(response.results)) {
+          setEmployees(response.results);
         }
       } catch (error) {
         console.error('Error searching employees:', error);
