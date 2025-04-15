@@ -543,7 +543,7 @@ export const apiService = {
   },
 
   async searchEmployees(query: string) {
-    return this.get('/api/attendance/employee-profile/', { search: query });
+    return this.get('/api/attendance/search-employees/', { search: query });
   },
 };
 

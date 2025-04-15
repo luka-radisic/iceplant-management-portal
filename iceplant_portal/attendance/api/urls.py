@@ -8,6 +8,7 @@ from .views import (
     EmployeeProfileViewSet,
     debug_departments
 )
+from .employee_search import AttendanceEmployeeSearchView
 
 router = DefaultRouter()
 router.register(r'attendance', AttendanceViewSet, basename='attendance')
@@ -19,4 +20,5 @@ router.register(r'employee-profile', EmployeeProfileViewSet, basename='employee-
 urlpatterns = [
     path('', include(router.urls)),
     path('debug/departments/', debug_departments, name='debug-departments'),
+    path('search-employees/', AttendanceEmployeeSearchView.as_view(), name='search-employees'),
 ] 

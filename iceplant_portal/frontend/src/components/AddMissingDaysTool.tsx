@@ -62,19 +62,34 @@ export default function AddMissingDaysTool() {
       if (searchTerm.length < 2) return;
       
       try {
-        const response = await apiService.get(
-          `/api/attendance/employee-profile/?search=${encodeURIComponent(searchTerm)}`,
-          {
-            params: {
-              search: searchTerm
-            }
+        console.log('Searching for employees with term:', searchTerm);
+        const response = await apiService.searchEmployees(searchTerm);
+        
+        console.log('Employee search response:', response);
+        
+        // Handle different possible response formats
+        if (response) {
+          if (Array.isArray(response)) {
+            console.log('Response is an array of employees');
+            setEmployees(response);
+          } else if (response.results && Array.isArray(response.results)) {
+            console.log('Found employees in results array:', response.results.length);
+            setEmployees(response.results);
+          } else if (response.count >= 0 && response.results) {
+            // Django REST Framework pagination format
+            console.log('Response has DRF pagination format');
+            setEmployees(response.results);
+          } else {
+            console.log('No employees found in expected format');
+            setEmployees([]);
           }
-        );
-        if (response && Array.isArray(response.results)) {
-          setEmployees(response.results);
+        } else {
+          console.log('No response data');
+          setEmployees([]);
         }
       } catch (error) {
         console.error('Error searching employees:', error);
+        setEmployees([]);
       }
     };
 
@@ -103,13 +118,17 @@ export default function AddMissingDaysTool() {
 
       if (selectedEmployee) {
         params.employee_id = selectedEmployee.employee_id;
+        console.log('Filtering by employee:', selectedEmployee.employee_id, selectedEmployee.full_name);
       }
 
       if (selectedDepartment) {
         params.department = selectedDepartment;
+        console.log('Filtering by department:', selectedDepartment);
       }
 
+      console.log('Sending preview request with params:', params);
       const result = await apiService.addMissingDays(params);
+      console.log('Preview results:', result);
       setPreviewResults(result);
       enqueueSnackbar(`Preview generated: ${result.added_count} records would be added`, { variant: 'success' });
     } catch (error) {
@@ -136,13 +155,17 @@ export default function AddMissingDaysTool() {
 
       if (selectedEmployee) {
         params.employee_id = selectedEmployee.employee_id;
+        console.log('Filtering by employee:', selectedEmployee.employee_id, selectedEmployee.full_name);
       }
 
       if (selectedDepartment) {
         params.department = selectedDepartment;
+        console.log('Filtering by department:', selectedDepartment);
       }
 
+      console.log('Adding missing days with params:', params);
       const result = await apiService.addMissingDays(params);
+      console.log('Add missing days result:', result);
       setPreviewResults(result);
       enqueueSnackbar(`Successfully added ${result.added_count} missing attendance records`, { variant: 'success' });
     } catch (error) {

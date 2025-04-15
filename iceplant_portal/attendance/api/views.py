@@ -601,10 +601,53 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         # Apply department filter if provided
         if department:
             print(f"Filtering by department: {department}")
-            employees_query = employees_query.filter(department=department)
+            # Use case-insensitive matching to find departments regardless of case
+            employees_query = employees_query.filter(department__iexact=department)
+            # If still no results, try partial match
+            if not employees_query.exists():
+                print(f"No exact match for department '{department}', trying contains search")
+                employees_query = EmployeeProfile.objects.filter(is_active=True)
+                if employee_id:
+                    employees_query = employees_query.filter(employee_id=employee_id)
+                employees_query = employees_query.filter(department__icontains=department)
         
         employees = employees_query.all()
-        print(f"Found {len(employees)} employees matching filters")
+        print(f"Found {len(employees)} employees matching filters from EmployeeProfile")
+        
+        # If no employees found in EmployeeProfile, look in Attendance records
+        if len(employees) == 0:
+            print("No employees found in EmployeeProfile. Looking in Attendance records instead.")
+            attendance_query = Attendance.objects.values('employee_id', 'employee_name', 'department').distinct()
+            
+            if employee_id:
+                attendance_query = attendance_query.filter(employee_id=employee_id)
+            
+            if department:
+                attendance_query = attendance_query.filter(department__iexact=department)
+                if not attendance_query.exists():
+                    attendance_query = Attendance.objects.values('employee_id', 'employee_name', 'department').distinct()
+                    if employee_id:
+                        attendance_query = attendance_query.filter(employee_id=employee_id)
+                    attendance_query = attendance_query.filter(department__icontains=department)
+            
+            # Convert attendance records to format expected by the rest of the function
+            employees = [
+                type('EmployeeFromAttendance', (), {
+                    'employee_id': record['employee_id'], 
+                    'full_name': record['employee_name']
+                }) for record in attendance_query
+            ]
+            print(f"Found {len(employees)} employees from Attendance records")
+        
+        # Print out all unique departments in the system for debugging
+        all_departments = Attendance.objects.values_list('department', flat=True).distinct()
+        print(f"Available departments in Attendance: {', '.join(filter(None, all_departments))}")
+        
+        # For debugging only - show some example employee IDs that were found
+        if employees:
+            print(f"Example employee IDs found: {', '.join([e.employee_id for e in employees[:5]])}")
+        else:
+            print("No employees found in either EmployeeProfile or Attendance")
         
         employee_map = {e.employee_id: e.full_name for e in employees}
         
@@ -926,7 +969,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 dept = dept[len(prefix):]
             cleaned_departments.add(dept)
 
-        known_departments = ['Driver', 'Office', 'Harvester', 'Operator', 'Sales', 'Admin', 'HR']
+        known_departments = []
         cleaned_departments.update(known_departments)
 
         final_departments = sorted(
