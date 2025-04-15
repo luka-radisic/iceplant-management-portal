@@ -182,7 +182,7 @@ export default function AttendanceList() {
       // Convert to CSV string
       const csvContent =
         [header, ...rows]
-          .map(row => row.map(field =>
+          .map(row => row.map((field: string | number) =>
             typeof field === 'string' && (field.includes(',') || field.includes('"') || field.includes('\n'))
               ? `"${field.replace(/"/g, '""')}"`
               : field
@@ -219,6 +219,9 @@ export default function AttendanceList() {
   const [selectedHour, setSelectedHour] = useState('');
   const [selectedMinute, setSelectedMinute] = useState('');
   const [checkoutWarning, setCheckoutWarning] = useState(false);
+  const [missingTimeType, setMissingTimeType] = useState<'in' | 'out' | 'both' | null>(null);
+  const [selectedInHour, setSelectedInHour] = useState('');
+  const [selectedInMinute, setSelectedInMinute] = useState('');
   const [filters, setFilters] = useState({
     start_date: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
     end_date: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
@@ -312,45 +315,60 @@ export default function AttendanceList() {
         return;
       }
       
-      // If not checked and trying to check
-      // Check if record has no check-out time and is not a NO SHOW
-      if (!record.check_out && record.department !== 'NO SHOW') {
-        // For records with missing check-out, show the dialog
-        console.log("Record has no check-out time, opening dialog...");
+      // State for tracking missing times
+      const hasMissingTimes = (record: any) => {
+        const hasInTime = record?.check_in;
+        const hasOutTime = record?.check_out;
         
-        // Set current record
-        setCurrentRecord(record);
-        
-        // Set default time to 8 hours after check-in
-        try {
-          const checkInTime = new Date(record.check_in);
-          let suggestedCheckOut = new Date(checkInTime);
-          suggestedCheckOut.setHours(suggestedCheckOut.getHours() + 8);
-          
-          const hours = suggestedCheckOut.getHours().toString().padStart(2, '0');
-          const minutes = suggestedCheckOut.getMinutes().toString().padStart(2, '0');
-          
-          console.log(`Setting suggested time: ${hours}:${minutes}`);
-          setSelectedHour(hours);
-          setSelectedMinute(minutes);
-        } catch (e) {
-          console.error("Error setting default time:", e);
-          setSelectedHour('17'); // Default to 5 PM
-          setSelectedMinute('00');
+        if (!hasInTime && !hasOutTime) {
+          return { missing: true, message: "Both IN and OUT times are missing", type: 'both' as const };
         }
         
-        console.log("About to open checkout dialog");
+        if (!hasInTime) {
+          return { missing: true, message: "IN time is missing", type: 'in' as const };
+        }
+        
+        if (!hasOutTime) {
+          return { missing: true, message: "OUT time is missing", type: 'out' as const };
+        }
+        
+        return { missing: false, type: null };
+      };
+      
+            // If not checked and trying to check
+      const missingTimes = hasMissingTimes(record);
+      if (missingTimes.missing) {
+        console.log("Record has missing time data, opening dialog...");
+        setCurrentRecord(record);
+        setMissingTimeType(missingTimes.type);
+        
+        // Set default times based on what's missing
+        const now = new Date();
+        const currentHour = now.getHours().toString().padStart(2, '0');
+        const currentMinute = now.getMinutes().toString().padStart(2, '0');
+        
+        if (missingTimes.type === 'out' || missingTimes.type === 'both') {
+          setSelectedHour(currentHour);
+          setSelectedMinute(currentMinute);
+        }
+        
+        if (missingTimes.type === 'in' || missingTimes.type === 'both') {
+          setSelectedInHour('08'); // Default check-in to 8 AM
+          setSelectedInMinute('00');
+        }
+        
         setCheckoutDialogOpen(true);
-        console.log("Set dialog open to true");
-      } else {
-        // If record has check-out time, mark as checked immediately
-        console.log("Record already has check-out time, marking as checked");
-        const updated = { checked: true };
-        await apiService.patch(`/api/attendance/attendance/${record.id}/`, updated);
-        setRecords((prev: any[]) =>
-          prev.map((r: any) => (r.id === record.id ? { ...r, checked: true } : r))
-        );
+        return;
       }
+
+      // If we get here, it means the record has both check-in and check-out times
+      // Mark as checked immediately
+      console.log("Record has complete time data, marking as checked");
+      const updated = { checked: true };
+      await apiService.patch(`/api/attendance/attendance/${record.id}/`, updated);
+      setRecords((prev: any[]) =>
+        prev.map((r: any) => (r.id === record.id ? { ...r, checked: true } : r))
+      );
     } catch (error) {
       console.error('Failed to update checked status:', error);
       alert('Failed to update checked status');
@@ -450,17 +468,17 @@ const fetchStats = useCallback(async () => {
       return (
         <Box display="flex" gap={1} flexWrap="wrap">
           <Chip label="Off Day" color="info" size="small" variant="outlined" />
-          {record.department === 'NO SHOW' ? (
+          {record.no_show === true ? (
             <Chip label="No Show" color="error" size="small" variant="outlined" />
           ) : null}
-          {!record.check_out && record.department !== 'NO SHOW' ? (
+          {!record.check_out && !record.no_show ? (
             <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />
           ) : null}
         </Box>
       );
     }
 
-    if (record.department === 'NO SHOW') {
+    if (record.no_show === true) {
       return <Chip label="No Show" color="error" size="small" variant="outlined" />;
     }
     if (!record.check_out) {
@@ -826,7 +844,7 @@ const fetchStats = useCallback(async () => {
                   </TableRow>
                 ) : (
                   records.map((record, index) => {
-                    const isNoShow = record.department === 'NO SHOW';
+                    const isNoShow = record.no_show === true;
                     const isMissingCheckout = !isNoShow && !record.check_out;
                     const isOffDay = isSunday(record.check_in);
                     return (
@@ -1063,46 +1081,130 @@ const fetchStats = useCallback(async () => {
           />
         )}
 
-        {/* Checkout Time Dialog - with fixed implementation */}
-        <Dialog 
-          open={checkoutDialogOpen} 
-          onClose={() => setCheckoutDialogOpen(false)}
+        {/* Time Entry Dialog - handles IN, OUT, or both */}
+        <Dialog
+          open={checkoutDialogOpen}
+          onClose={() => {
+            setCheckoutDialogOpen(false);
+            setCurrentRecord(null);
+            setSelectedHour('');
+            setSelectedMinute('');
+            setSelectedInHour('');
+            setSelectedInMinute('');
+            setMissingTimeType(null);
+            setCheckoutWarning(false);
+          }}
           disableEscapeKeyDown
           keepMounted
           sx={{ zIndex: 1500 }}
         >
-          <DialogTitle>Add Check-Out Time</DialogTitle>
+          <DialogTitle>
+            {missingTimeType === 'in' ? 'Add Check-In Time' :
+             missingTimeType === 'out' ? 'Add Check-Out Time' :
+             'Add Check-In and Check-Out Times'}
+          </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 1 }}>
               <Typography variant="body1" gutterBottom>
-                This record has no check-out time. Please add a check-out time to mark it as checked.
+                {missingTimeType === 'in' ? 'This record has no check-in time.' :
+                 missingTimeType === 'out' ? 'This record has no check-out time.' :
+                 'This record is missing both check-in and check-out times.'}
+                {' Please add the missing time(s) to mark it as checked.'}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'flex-end', mt: 2 }}>
-                <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
-                  <InputLabel id="hour-select-label">Hour</InputLabel>
-                  <Select
-                    labelId="hour-select-label"
-                    value={selectedHour}
-                    label="Hour"
-                    onChange={(e) => {
-                      console.log("Hour selected:", e.target.value);
-                      setSelectedHour(e.target.value);
-                      setCheckoutWarning(false);
-                      if (currentRecord && e.target.value && selectedMinute) {
-                        const checkInTime = new Date(currentRecord.check_in);
-                        const checkOutTime = new Date(currentRecord.check_in);
-                        checkOutTime.setHours(parseInt(e.target.value, 10));
-                        checkOutTime.setMinutes(parseInt(selectedMinute, 10));
-                        
-                        // Calculate duration in hours, accounting for 1-hour lunch break
-                        const totalHours = differenceInHours(checkOutTime, checkInTime);
-                        const workHours = totalHours >= 5 ? totalHours - 1 : totalHours; // Subtract 1 hour for lunch if 5+ hours
-                        if (workHours > 8) {
-                          setCheckoutWarning(true);
-                        }
-                      }
-                    }}
-                  >
+              
+              {/* Check-In Time Selectors (shown for 'in' or 'both' types) */}
+              {(missingTimeType === 'in' || missingTimeType === 'both') && (
+                <>
+                  <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+                    Check-In Time:
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
+                      <InputLabel id="in-hour-select-label">Hour</InputLabel>
+                      <Select
+                        labelId="in-hour-select-label"
+                        value={selectedInHour}
+                        label="Hour"
+                        onChange={(e) => {
+                          setSelectedInHour(e.target.value);
+                        }}
+                      >
+                        {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                          <MenuItem key={hour} value={hour.toString().padStart(2, '0')}>
+                            {hour.toString().padStart(2, '0')}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl sx={{ minWidth: 80 }} fullWidth>
+                      <InputLabel id="in-minute-select-label">Minute</InputLabel>
+                      <Select
+                        labelId="in-minute-select-label"
+                        value={selectedInMinute}
+                        label="Minute"
+                        onChange={(e) => {
+                          setSelectedInMinute(e.target.value);
+                        }}
+                      >
+                        {Array.from({ length: 60 }, (_, i) => i).map(minute => (
+                          <MenuItem key={minute} value={minute.toString().padStart(2, '0')}>
+                            {minute.toString().padStart(2, '0')}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                </>
+              )}
+              
+              {/* Check-Out Time Selectors (shown for 'out' or 'both' types) */}
+              {(missingTimeType === 'out' || missingTimeType === 'both') && (
+                <>
+                  <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+                    Check-Out Time:
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
+                      <InputLabel id="hour-select-label">Hour</InputLabel>
+                      <Select
+                        labelId="hour-select-label"
+                        value={selectedHour}
+                        label="Hour"
+                        onChange={(e) => {
+                          console.log("Hour selected:", e.target.value);
+                          setSelectedHour(e.target.value);
+                          setCheckoutWarning(false);
+                          if (currentRecord && e.target.value && selectedMinute) {
+                            // Only check duration if we have check-in time
+                            if (currentRecord.check_in || (missingTimeType === 'both' && selectedInHour && selectedInMinute)) {
+                              let checkInTime;
+                              
+                              if (currentRecord.check_in) {
+                                checkInTime = new Date(currentRecord.check_in);
+                              } else {
+                                // Create a check-in time from the selected values
+                                const today = new Date();
+                                checkInTime = new Date(today.setHours(
+                                  parseInt(selectedInHour, 10),
+                                  parseInt(selectedInMinute, 10),
+                                  0, 0
+                                ));
+                              }
+                              
+                              const checkOutTime = new Date(checkInTime);
+                              checkOutTime.setHours(parseInt(e.target.value, 10));
+                              checkOutTime.setMinutes(parseInt(selectedMinute, 10));
+                              
+                              // Calculate duration in hours, accounting for 1-hour lunch break
+                              const totalHours = differenceInHours(checkOutTime, checkInTime);
+                              const workHours = totalHours >= 5 ? totalHours - 1 : totalHours; // Subtract 1 hour for lunch if 5+ hours
+                              if (workHours > 8) {
+                                setCheckoutWarning(true);
+                              }
+                            }
+                          }
+                        }}
+                      >
                     {Array.from({ length: 24 }, (_, i) => i).map(hour => (
                       <MenuItem key={hour} value={hour.toString().padStart(2, '0')}>
                         {hour.toString().padStart(2, '0')}
@@ -1142,63 +1244,106 @@ const fetchStats = useCallback(async () => {
                   </Select>
                 </FormControl>
               </Box>
+                </>
+              )}
+              
               {checkoutWarning && (
                 <Alert severity="warning" sx={{ mt: 2 }}>
                   Warning: This check-out time will make the work duration longer than 8 hours. Please verify this is correct.
                 </Alert>
               )}
-              <FormHelperText>
-                Select the check-out time for this attendance record
+              
+              <FormHelperText sx={{ mt: 2 }}>
+                {missingTimeType === 'in' ? 'Select the check-in time for this attendance record' :
+                 missingTimeType === 'out' ? 'Select the check-out time for this attendance record' :
+                 'Select both check-in and check-out times for this attendance record'}
               </FormHelperText>
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setCheckoutDialogOpen(false)}>Cancel</Button>
-            <Button 
+            <Button onClick={() => {
+              setCheckoutDialogOpen(false);
+              setCurrentRecord(null);
+              setSelectedHour('');
+              setSelectedMinute('');
+              setSelectedInHour('');
+              setSelectedInMinute('');
+              setMissingTimeType(null);
+              setCheckoutWarning(false);
+            }}>Cancel</Button>
+            <Button
               onClick={async () => {
-                if (!currentRecord || !selectedHour || !selectedMinute) return;
+                if (!currentRecord) return;
+                
+                // Validate required fields based on what's missing
+                if ((missingTimeType === 'in' || missingTimeType === 'both') &&
+                    (!selectedInHour || !selectedInMinute)) return;
+                    
+                if ((missingTimeType === 'out' || missingTimeType === 'both') &&
+                    (!selectedHour || !selectedMinute)) return;
                 
                 try {
-                  // Create a date object for check-out based on check-in date
-                  const checkInDate = new Date(currentRecord.check_in);
-                  const checkOutDate = new Date(checkInDate);
-                  
-                  // Set the selected hours and minutes
-                  checkOutDate.setHours(parseInt(selectedHour, 10));
-                  checkOutDate.setMinutes(parseInt(selectedMinute, 10));
-                  
-                  // If check-out time is earlier than check-in time, assume it's the next day
-                  if (checkOutDate < checkInDate) {
-                    checkOutDate.setDate(checkOutDate.getDate() + 1);
-                  }
-                  
-                  // Update the record with check-out time, checked=true, and manual_entry flag
-                  const updated = { 
-                    check_out: checkOutDate.toISOString(),
+                  // Prepare the update object
+                  const updated: any = {
                     checked: true,
                     manual_entry: true
                   };
                   
+                  // Handle check-in time if missing
+                  if (missingTimeType === 'in' || missingTimeType === 'both') {
+                    const today = new Date();
+                    const checkInDate = new Date(today);
+                    checkInDate.setHours(parseInt(selectedInHour, 10), parseInt(selectedInMinute, 10), 0, 0);
+                    updated.check_in = checkInDate.toISOString();
+                  }
+                  
+                  // Handle check-out time if missing
+                  if (missingTimeType === 'out' || missingTimeType === 'both') {
+                    // Base the check-out date on the check-in date (either existing or newly created)
+                    const baseDate = missingTimeType === 'both'
+                      ? new Date(updated.check_in)
+                      : new Date(currentRecord.check_in);
+                      
+                    const checkOutDate = new Date(baseDate);
+                    checkOutDate.setHours(parseInt(selectedHour, 10), parseInt(selectedMinute, 10), 0, 0);
+                    
+                    // If check-out time is earlier than check-in time, assume it's the next day
+                    if (checkOutDate < baseDate) {
+                      checkOutDate.setDate(checkOutDate.getDate() + 1);
+                    }
+                    
+                    updated.check_out = checkOutDate.toISOString();
+                  }
+                  
+                  // Send the update to the server
                   await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
                   
                   // Update local records state
                   setRecords((prev: any[]) =>
-                    prev.map((r: any) => (r.id === currentRecord.id ? { ...r, check_out: checkOutDate.toISOString(), checked: true } : r))
+                    prev.map((r: any) => (r.id === currentRecord.id ? { ...r, ...updated } : r))
                   );
                   
+                  // Reset state
                   setCheckoutDialogOpen(false);
                   setCurrentRecord(null);
                   setSelectedHour('');
                   setSelectedMinute('');
+                  setSelectedInHour('');
+                  setSelectedInMinute('');
+                  setMissingTimeType(null);
                   setCheckoutWarning(false);
                 } catch (error) {
-                  console.error('Failed to update check-out time:', error);
-                  alert('Failed to update check-out time');
+                  console.error('Failed to update attendance record:', error);
+                  alert('Failed to update attendance record');
                 }
               }}
               color="primary"
               variant="contained"
-              disabled={!selectedHour || !selectedMinute}
+              disabled={
+                (missingTimeType === 'in' && (!selectedInHour || !selectedInMinute)) ||
+                (missingTimeType === 'out' && (!selectedHour || !selectedMinute)) ||
+                (missingTimeType === 'both' && (!selectedInHour || !selectedInMinute || !selectedHour || !selectedMinute))
+              }
             >
               Save
             </Button>
