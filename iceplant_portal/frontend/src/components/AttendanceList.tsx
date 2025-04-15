@@ -446,6 +446,10 @@ const fetchStats = useCallback(async () => {
   };
 
   const getStatusChip = (record: any) => {
+    // If it's a No Show and Sunday, mark as Off Day (not No Show)
+    if (record.no_show === true && isSunday(record.check_in)) {
+      return <Chip label="Off Day" color="info" size="small" variant="outlined" />;
+    }
     // Show "No Show" if the no_show flag is true, regardless of department or check_in
     if (record.no_show === true) {
       return <Chip label="No Show" color="error" size="small" variant="outlined" />;
