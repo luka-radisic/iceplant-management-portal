@@ -1533,7 +1533,7 @@ def debug_departments(request):
         employee_shift_departments = []
 
     # Add any hardcoded departments that might exist in the codebase
-    known_departments = ["Driver", "Office", "Harvester", "Operator", "Sales", "Admin", "HR"]
+    known_departments = []
 
     # Combine all department sources and remove duplicates
     all_departments = sorted(set(
