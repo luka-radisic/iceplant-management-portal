@@ -601,19 +601,31 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         # Apply department filter if provided
         if department:
             print(f"Filtering by department: {department}")
-            employees_query = employees_query.filter(department=department)
+            # Handle department with or without prefix
+            prefix = "Atlantis Fishing Development Corp\\"
+            prefixed_department = prefix + department
+            from django.db.models import Q
+            employees_query = employees_query.filter(
+                Q(department=department) | Q(department=prefixed_department)
+            )
         
         employees = employees_query.all()
         print(f"Found {len(employees)} employees matching filters")
         
-        employee_map = {e.employee_id: e.full_name for e in employees}
+        # Store both name and department for each employee
+        employee_map = {}
+        for emp in employees:
+            employee_map[emp.employee_id] = {
+                'name': emp.full_name,
+                'department': emp.department
+            }
         
         added_records = []
         checked_dates = []
         
         for single_date in (start_date + timedelta(n) for n in range((end_date - start_date).days + 1)):
             checked_dates.append(str(single_date))
-            for emp_id, emp_name in employee_map.items():
+            for emp_id, emp_data in employee_map.items():
                 # Check if any attendance exists for this employee on this date
                 exists = Attendance.objects.filter(
                     employee_id=emp_id,
@@ -624,20 +636,24 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     # Add record to the preview list
                     record_data = {
                         'employee_id': emp_id,
-                        'employee_name': emp_name,
+                        'employee_name': emp_data['name'],
+                        'department': emp_data['department'],
                         'date': str(single_date)
                     }
                     added_records.append(record_data)
                     
                     # Only create records if not in dry_run mode
                     if not dry_run:
-                        print(f"Creating NO SHOW record for {emp_name} ({emp_id}) on {single_date}")
+                        print(f"Creating NO SHOW record for {emp_data['name']} ({emp_id}) on {single_date} in department {emp_data['department']}")
+                        # Create a datetime at 00:00 for the date, but explicitly mark it as a no_show
+                        # This allows queries based on date to work correctly while still indicating no attendance
+                        date_without_time = datetime.combine(single_date, time.min)
                         Attendance.objects.create(
                             employee_id=emp_id,
-                            employee_name=emp_name,
-                            check_in=manila_tz.localize(datetime.combine(single_date, time(hour=8, minute=0))),
+                            employee_name=emp_data['name'],
+                            check_in=manila_tz.localize(date_without_time),
                             check_out=None,
-                            department='NO SHOW',
+                            department=emp_data['department'],  # Use employee's actual department
                             import_date=single_date,
                             no_show=True
                         )
@@ -895,6 +911,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='departments')
     def departments(self, request):
+        # Check if we should include hardcoded departments
+        include_defaults = request.query_params.get('include_defaults', 'true').lower() == 'true'
+        
         prefix = "Atlantis Fishing Development Corp\\"
 
         profile_departments = list(
@@ -926,8 +945,13 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 dept = dept[len(prefix):]
             cleaned_departments.add(dept)
 
-        known_departments = ['Driver', 'Office', 'Harvester', 'Operator', 'Sales', 'Admin', 'HR']
-        cleaned_departments.update(known_departments)
+        # Only add hardcoded/known departments if database is not empty or include_defaults is true
+        if include_defaults and (cleaned_departments or not all([len(profile_departments) == 0, 
+                                                             len(attendance_departments) == 0,
+                                                             len(shift_departments) == 0,
+                                                             len(dept_shift_departments) == 0])):
+            known_departments = []
+            cleaned_departments.update(known_departments)
 
         final_departments = sorted(
             d for d in cleaned_departments if d and not d.isdigit()

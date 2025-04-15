@@ -6,6 +6,7 @@ import {
   Typography, 
   TextField, 
   FormControl, 
+  FormHelperText,
   InputLabel, 
   Select, 
   MenuItem, 
@@ -18,6 +19,7 @@ import {
   FormControlLabel,
   Switch
 } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -41,20 +43,29 @@ export default function AddMissingDaysTool() {
 
   // Fetch departments on component mount
   useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        const response = await apiService.getDepartments();
-        // Ensure response has the 'departments' key and it's an array
-        if (response && Array.isArray(response.departments)) {
-          setDepartments(response.departments);
-        }
-      } catch (error) {
-        console.error('Error fetching departments:', error);
-      }
-    };
-
-    fetchDepartments();
+    // Fetch only actual departments from the database, no defaults
+    fetchDepartments(false);
   }, []);
+
+  // Separate fetchDepartments function to allow manual refresh
+  const fetchDepartments = async (includeDefaults = false) => {
+    try {
+      console.log('Fetching departments...', includeDefaults ? 'including defaults' : 'only from database');
+      const response = await apiService.getDepartments({ include_defaults: includeDefaults });
+      console.log('Departments response:', response);
+      
+      // Ensure response has the 'departments' key and it's an array
+      if (response && Array.isArray(response.departments)) {
+        setDepartments(response.departments);
+      } else {
+        console.log('No departments found or invalid response format');
+        setDepartments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      setDepartments([]);
+    }
+  };
 
   // Search for employees when search term changes
   useEffect(() => {
@@ -62,25 +73,58 @@ export default function AddMissingDaysTool() {
       if (searchTerm.length < 2) return;
       
       try {
+        console.log('Searching for employees with term:', searchTerm);
         const response = await apiService.get(
-          `/api/attendance/employee-profile/?search=${encodeURIComponent(searchTerm)}`,
-          {
-            params: {
-              search: searchTerm
+          `/api/attendance/employee-profile/?search=${encodeURIComponent(searchTerm)}`
+        );
+        
+        // Log the exact response structure
+        console.log('Employee search raw response:', response);
+        
+        // Handle different possible response structures
+        if (response) {
+          if (Array.isArray(response)) {
+            console.log('Response is an array, using directly');
+            setEmployees(response);
+          } else if (response.results && Array.isArray(response.results)) {
+            console.log('Response has results array');
+            setEmployees(response.results);
+          } else if (response.count >= 0 && response.results) {
+            // Django REST Framework pagination format
+            console.log('Response has DRF pagination format');
+            setEmployees(response.results);
+          } else {
+            // Try to extract employees from any property that is an array
+            console.log('Trying to find array in response');
+            const arrayProps = Object.entries(response)
+              .filter(([key, val]) => Array.isArray(val))
+              .map(([key, val]) => ({ key, val }));
+            
+            console.log('Found array properties:', arrayProps.map(p => p.key));
+            
+            if (arrayProps.length > 0) {
+              // Use the first array property
+              setEmployees(arrayProps[0].val);
+            } else {
+              console.log('No array found in response, search results might be empty');
+              setEmployees([]);
             }
           }
-        );
-        if (response && Array.isArray(response.results)) {
-          setEmployees(response.results);
+        } else {
+          console.log('No response data, clearing employees');
+          setEmployees([]);
         }
       } catch (error) {
         console.error('Error searching employees:', error);
+        setEmployees([]);
       }
     };
 
     const timer = setTimeout(() => {
       if (searchTerm) {
         searchEmployees();
+      } else {
+        setEmployees([]);
       }
     }, 500);
 
@@ -192,16 +236,31 @@ export default function AddMissingDaysTool() {
                 fullWidth
                 margin="normal"
                 onChange={(e) => setSearchTerm(e.target.value)}
+                helperText={searchTerm.length >= 2 && employees.length === 0 ? "No matching employees found" : ""}
               />
             )}
             onChange={(_, newValue) => setSelectedEmployee(newValue)}
             value={selectedEmployee}
+            noOptionsText="No employees found - try a different search term"
           />
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth margin="normal">
-            <InputLabel>Department (Optional)</InputLabel>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <InputLabel id="department-select-label">Department (Optional)</InputLabel>
+              <Button 
+                size="small" 
+                sx={{ ml: 'auto', mb: -3, zIndex: 1 }}
+                onClick={() => {
+                  setSelectedDepartment('');
+                  fetchDepartments();
+                }}
+              >
+                <RefreshIcon fontSize="small" />
+              </Button>
+            </Box>
             <Select
+              labelId="department-select-label"
               value={selectedDepartment}
               label="Department (Optional)"
               onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -209,12 +268,20 @@ export default function AddMissingDaysTool() {
               <MenuItem value="">
                 <em>All Departments</em>
               </MenuItem>
+              {departments.length === 0 && (
+                <MenuItem disabled>
+                  <em>No departments found</em>
+                </MenuItem>
+              )}
               {departments.map((dept) => (
                 <MenuItem key={dept} value={dept}>
                   {dept}
                 </MenuItem>
               ))}
             </Select>
+            {departments.length === 0 && (
+              <FormHelperText>No departments found. Click refresh to update.</FormHelperText>
+            )}
           </FormControl>
         </Grid>
       </Grid>

@@ -321,8 +321,11 @@ export const apiService = {
     return this.put(`/api/attendance/employee-profile/${employeeId}/`, data);
   },
 
-  async getDepartments() {
-    return this.get(endpoints.employeeProfileDepartments);
+  async getDepartments(options = { include_defaults: true }) {
+    const params = {
+      include_defaults: options.include_defaults.toString()
+    };
+    return this.get(endpoints.employeeProfileDepartments, params);
   },
 
   // Attendance Endpoints
