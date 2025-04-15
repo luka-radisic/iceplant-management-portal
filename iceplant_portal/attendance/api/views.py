@@ -857,7 +857,10 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             
             # Format for line chart
             line_chart_data = [
-                {'date': item['date'].strftime('%Y-%m-%d'), 'count': item['count']} 
+                {
+                    'date': item['date'].strftime('%Y-%m-%d') if hasattr(item['date'], 'strftime') else str(item['date']),
+                    'count': item['count']
+                }
                 for item in daily_trend
             ]
 
