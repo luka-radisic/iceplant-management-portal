@@ -314,11 +314,23 @@ export default function AttendanceList() {
 
       // If No Show with no check_in, allow staff to set both check-in and check-out manually
       if (record.no_show === true && !record.check_in) {
-        setCurrentRecord(record);
+        setCurrentRecord({ ...record, _editMode: 'no_show' });
         setSelectedHour('08'); // Default check-in hour
         setSelectedMinute('00');
         setCheckoutDialogOpen(true);
         return;
+      }
+
+      // If Check In is exactly 23:56 (missing day placeholder), allow editing both Check In and Check Out
+      if (record.check_in) {
+        const d = new Date(record.check_in);
+        if (d.getHours() === 23 && d.getMinutes() === 56) {
+          setCurrentRecord({ ...record, _editMode: 'missing_day' });
+          setSelectedHour('08'); // Default check-in hour
+          setSelectedMinute('00');
+          setCheckoutDialogOpen(true);
+          return;
+        }
       }
 
       // If not checked and trying to check
@@ -328,7 +340,7 @@ export default function AttendanceList() {
         console.log("Record has no check-out time, opening dialog...");
 
         // Set current record
-        setCurrentRecord(record);
+        setCurrentRecord({ ...record, _editMode: 'missing_checkout' });
 
         // Set default time to 8 hours after check-in
         try {
@@ -846,13 +858,19 @@ const fetchStats = useCallback(async () => {
                         key={record.id}
                         hover
                         sx={{
-                          bgcolor: isOffDay
-                            ? 'info.lighter'
-                            : isNoShow
-                            ? 'error.lighter'
-                            : isMissingCheckout
-                            ? 'warning.lighter'
-                            : (index % 2 === 0 ? '#ffffff' : '#f9f9f9'),
+                          bgcolor: (() => {
+                            // Visual indicator for "missing day" (Check In = 23:56)
+                            if (record.check_in) {
+                              const d = new Date(record.check_in);
+                              if (d.getHours() === 23 && d.getMinutes() === 56) {
+                                return 'warning.light'; // yellow background
+                              }
+                            }
+                            if (isOffDay) return 'info.lighter';
+                            if (isNoShow) return 'error.lighter';
+                            if (isMissingCheckout) return 'warning.lighter';
+                            return (index % 2 === 0 ? '#ffffff' : '#f9f9f9');
+                          })(),
                           transition: 'all 0.2s ease-in-out',
                           cursor: 'pointer',
                           '&:hover': {
@@ -937,7 +955,18 @@ const fetchStats = useCallback(async () => {
                                   if (record.check_in) {
                                     const d = new Date(record.check_in);
                                     if (d.getHours() === 23 && d.getMinutes() === 56) {
-                                      return '-';
+                                      // Visual indicator for missing day
+                                      return (
+                                        <span>
+                                          <Chip
+                                            label="Missing Day"
+                                            color="warning"
+                                            size="small"
+                                            sx={{ mr: 0.5, fontWeight: 'bold' }}
+                                          />
+                                          -
+                                        </span>
+                                      );
                                     }
                                     return formatTime(record.check_in);
                                   }
@@ -1095,16 +1124,20 @@ const fetchStats = useCallback(async () => {
           sx={{ zIndex: 1500 }}
         >
           <DialogTitle>
-            {currentRecord && currentRecord.no_show === true && !currentRecord.check_in
+            {currentRecord && currentRecord._editMode === 'no_show'
               ? 'Add Check-In and Check-Out Time'
+              : currentRecord && currentRecord._editMode === 'missing_day'
+              ? 'Edit Check-In and Check-Out Time (Missing Day)'
               : 'Add Check-Out Time'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 1 }}>
-              {currentRecord && currentRecord.no_show === true && !currentRecord.check_in ? (
+              {currentRecord && (currentRecord._editMode === 'no_show' || currentRecord._editMode === 'missing_day') ? (
                 <>
                   <Typography variant="body1" gutterBottom>
-                    This is a No Show record with no check-in or check-out time. Please add both times to mark it as checked and present.
+                    {currentRecord._editMode === 'no_show'
+                      ? 'This is a No Show record with no check-in or check-out time. Please add both times to mark it as checked and present.'
+                      : 'This is a "Missing Day" record (Check In = 23:56). Please enter the correct Check In and Check Out times.'}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'flex-end', mt: 2 }}>
                     <FormControl sx={{ mr: 2, minWidth: 80 }} fullWidth>
@@ -1274,7 +1307,7 @@ const fetchStats = useCallback(async () => {
                 if (!currentRecord || !selectedHour || !selectedMinute) return;
 
                 try {
-                  if (currentRecord.no_show === true && !currentRecord.check_in) {
+                  if (currentRecord._editMode === 'no_show') {
                     // Use the record's date (from created_at or another field) for check-in/check-out
                     const baseDate = currentRecord.created_at
                       ? new Date(currentRecord.created_at)
@@ -1304,6 +1337,38 @@ const fetchStats = useCallback(async () => {
                       prev.map((r: any) =>
                         r.id === currentRecord.id
                           ? { ...r, check_in: checkInDate.toISOString(), check_out: checkOutDate.toISOString(), checked: true, no_show: false }
+                          : r
+                      )
+                    );
+                  } else if (currentRecord._editMode === 'missing_day') {
+                    // Use the record's date for check-in/check-out
+                    const baseDate = currentRecord.check_in
+                      ? new Date(currentRecord.check_in)
+                      : new Date();
+
+                    // Set check-in and check-out times on the same date
+                    const checkInDate = new Date(baseDate);
+                    checkInDate.setHours(parseInt(selectedHour, 10));
+                    checkInDate.setMinutes(parseInt(selectedMinute, 10));
+                    checkInDate.setSeconds(0, 0);
+
+                    // For demo, set check-out 8 hours after check-in
+                    const checkOutDate = new Date(checkInDate);
+                    checkOutDate.setHours(checkOutDate.getHours() + 8);
+
+                    const updated = {
+                      check_in: checkInDate.toISOString(),
+                      check_out: checkOutDate.toISOString(),
+                      checked: true,
+                      manual_entry: true
+                    };
+
+                    await apiService.patch(`/api/attendance/attendance/${currentRecord.id}/`, updated);
+
+                    setRecords((prev: any[]) =>
+                      prev.map((r: any) =>
+                        r.id === currentRecord.id
+                          ? { ...r, check_in: checkInDate.toISOString(), check_out: checkOutDate.toISOString(), checked: true, manual_entry: true }
                           : r
                       )
                     );
