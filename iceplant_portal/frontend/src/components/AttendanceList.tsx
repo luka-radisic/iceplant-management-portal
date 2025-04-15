@@ -446,23 +446,22 @@ const fetchStats = useCallback(async () => {
   };
 
   const getStatusChip = (record: any) => {
+    // Show "No Show" if the no_show flag is true, regardless of department or check_in
+    if (record.no_show === true) {
+      return <Chip label="No Show" color="error" size="small" variant="outlined" />;
+    }
+
     if (isSunday(record.check_in)) {
       return (
         <Box display="flex" gap={1} flexWrap="wrap">
           <Chip label="Off Day" color="info" size="small" variant="outlined" />
-          {record.department === 'NO SHOW' ? (
-            <Chip label="No Show" color="error" size="small" variant="outlined" />
-          ) : null}
-          {!record.check_out && record.department !== 'NO SHOW' ? (
+          {!record.check_out ? (
             <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />
           ) : null}
         </Box>
       );
     }
 
-    if (record.department === 'NO SHOW') {
-      return <Chip label="No Show" color="error" size="small" variant="outlined" />;
-    }
     if (!record.check_out) {
       return <Chip label="Missing Check-Out" color="warning" size="small" variant="outlined" />;
     }

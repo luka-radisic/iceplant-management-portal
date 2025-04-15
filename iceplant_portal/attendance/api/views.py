@@ -82,7 +82,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             try:
                 start_dt = datetime.strptime(start_date, "%Y-%m-%d")
                 start_dt = datetime.combine(start_dt.date(), time.min)  # 00:00:00
-                queryset = queryset.filter(check_in__gte=start_dt)
+                queryset = queryset.filter(Q(check_in__gte=start_dt) | (Q(no_show=True) & Q(import_date__gte=start_dt.date())))
             except ValueError:
                 pass  # Ignore invalid date
                 
@@ -90,7 +90,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             try:
                 end_dt = datetime.strptime(end_date, "%Y-%m-%d")
                 end_dt = datetime.combine(end_dt.date(), time.max)  # 23:59:59.999999
-                queryset = queryset.filter(check_in__lte=end_dt)
+                queryset = queryset.filter(Q(check_in__lte=end_dt) | (Q(no_show=True) & Q(import_date__lte=end_dt.date())))
             except ValueError:
                 pass  # Ignore invalid date
         
@@ -102,13 +102,13 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 Q(department=department) | Q(department=prefixed_department)
             )
         
-        # Apply status filters directly here for consistency
+        # Apply status filters using no_show flag
         if status_filter == 'present':
-            queryset = queryset.exclude(department='NO SHOW')
+            queryset = queryset.filter(no_show=False)
         elif status_filter == 'no-show':
-            queryset = queryset.filter(department='NO SHOW')
+            queryset = queryset.filter(no_show=True)
         elif status_filter == 'missing-checkout':
-            queryset = queryset.filter(check_out__isnull=True).exclude(department='NO SHOW')
+            queryset = queryset.filter(check_out__isnull=True, no_show=False)
         approval_status = params.get('approval_status')
         if approval_status:
             queryset = queryset.filter(approval_status=approval_status)
@@ -143,7 +143,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
                 start_dt = datetime.combine(start_date, time.min)
                 start_dt = timezone.make_aware(start_dt, timezone.get_current_timezone())
-                queryset = queryset.filter(check_in__gte=start_dt)
+                queryset = queryset.filter(check_in__gte=start_dt) | (Q(no_show=True) & Q(import_date__gte=start_date))
             except Exception:
                 pass
                 
@@ -152,7 +152,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
                 end_dt = datetime.combine(end_date, time.max)
                 end_dt = timezone.make_aware(end_dt, timezone.get_current_timezone())
-                queryset = queryset.filter(check_in__lte=end_dt)
+                queryset = queryset.filter(check_in__lte=end_dt) | (Q(no_show=True) & Q(import_date__lte=end_date))
             except Exception:
                 pass
         
@@ -162,13 +162,13 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             raw_department = prefix + department
             queryset = queryset.filter(department__in=[department, raw_department])
         
-        # Apply status filters
+        # Apply status filters - updated to use no_show flag
         if status == 'present':
-            queryset = queryset.exclude(department='NO SHOW')
+            queryset = queryset.filter(no_show=False)
         elif status == 'no-show':
-            queryset = queryset.filter(department='NO SHOW')
+            queryset = queryset.filter(no_show=True)
         elif status == 'missing-checkout':
-            queryset = queryset.filter(check_out__isnull=True).exclude(department='NO SHOW')
+            queryset = queryset.filter(check_out__isnull=True, no_show=False)
         elif status == 'late':
             # For late arrivals, we need to join with EmployeeShift
             if employee_id:
@@ -192,8 +192,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                             output_field=DurationField()
                         )
                     ).filter(
-                        check_in_time__gt=shift_start_delta.total_seconds() / 60
-                    ).exclude(department='NO SHOW')
+                        check_in_time__gt=shift_start_delta.total_seconds() / 60,
+                        no_show=False
+                    )
                 except EmployeeShift.DoesNotExist:
                     pass
         
@@ -385,7 +386,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 no_shows.append({
                     'employee_id': employee_id,
                     'employee_name': employee_name,
-                    'check_in': self.make_aware(datetime.combine(start_date, datetime.min.time().replace(hour=8))),
+                    'check_in': None,  # Set to None instead of 8 AM for true absence
                     'check_out': None,
                     'department': 'NO SHOW',
                     'import_date': start_date
@@ -690,15 +691,18 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                             if latest_record:
                                 employee_dept = latest_record.department
                         
-                        print(f"Creating NO SHOW record for {emp_name} ({emp_id}) on {single_date}, department: {employee_dept or 'Unknown'}")
+                        print(f"Creating NO SHOW record for {emp_name} ({emp_id}) on {single_date}, department: {employee_dept or 'Unknown'}, no_show=True")
                         Attendance.objects.create(
                             employee_id=emp_id,
                             employee_name=emp_name,
-                            check_in=manila_tz.localize(datetime.combine(single_date, time(hour=8, minute=0))),
+                            check_in=datetime.combine(single_date, time.min, tzinfo=manila_tz),  # Date only, time is 00:00:00 for no show
                             check_out=None,
-                            department=employee_dept,  # Use the actual department, not 'NO SHOW'
-                            import_date=single_date,
-                            no_show=True  # We use the no_show flag instead of department='NO SHOW'
+                            department=employee_dept or 'Unknown',  # Ensure department is never None
+                            import_date=datetime.combine(single_date, time.min, tzinfo=manila_tz),
+                            no_show=True,
+                            approval_status='pending',
+                            manual_entry=False,
+                            checked=False,
                         )
         
         return Response({

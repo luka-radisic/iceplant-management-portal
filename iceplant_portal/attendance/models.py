@@ -73,7 +73,7 @@ class EmployeeProfile(models.Model):
 class Attendance(models.Model):
     employee_id = models.CharField(max_length=50)
     employee_name = models.CharField(max_length=100, null=True, blank=True)
-    check_in = models.DateTimeField()
+    check_in = models.DateTimeField(null=True, blank=True)
     check_out = models.DateTimeField(null=True, blank=True)
     department = models.CharField(max_length=50)
     import_date = models.DateTimeField(auto_now_add=True)
