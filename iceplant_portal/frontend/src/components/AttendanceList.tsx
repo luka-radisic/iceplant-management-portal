@@ -1144,6 +1144,7 @@ const fetchStats = useCallback(async () => {
                       <InputLabel id="checkin-hour-label">Check-In Hour</InputLabel>
                       <Select
                         labelId="checkin-hour-label"
+                        MenuProps={{ disablePortal: true }}
                         value={selectedHour}
                         label="Check-In Hour"
                         onChange={(e) => {
@@ -1162,6 +1163,7 @@ const fetchStats = useCallback(async () => {
                       <InputLabel id="checkin-minute-label">Check-In Minute</InputLabel>
                       <Select
                         labelId="checkin-minute-label"
+                        MenuProps={{ disablePortal: true }}
                         value={selectedMinute}
                         label="Check-In Minute"
                         onChange={(e) => {
