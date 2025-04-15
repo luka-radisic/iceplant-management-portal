@@ -695,10 +695,12 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                         Attendance.objects.create(
                             employee_id=emp_id,
                             employee_name=emp_name,
-                            check_in=None,  # No Show: check_in is set to None (null in DB)
+                            # For No Show: set check_in to missing date at midnight, timezone-aware, to support correct display and stats
+                            check_in=timezone.make_aware(datetime.combine(single_date, time.min), timezone=manila_tz),
                             check_out=None,
                             department=employee_dept or 'Unknown',  # Ensure department is never None
-                            import_date=datetime.combine(single_date, time.min, tzinfo=manila_tz),
+                            # Must use timezone-aware datetime for DateTimeField; set to midnight of missing date in Manila timezone
+                            import_date=timezone.make_aware(datetime.combine(single_date, time.min), timezone=manila_tz),
                             no_show=True,
                             approval_status='pending',
                             manual_entry=False,
