@@ -624,15 +624,6 @@ const fetchStats = useCallback(async () => {
         <Paper elevation={2} sx={{ p: 2, mb: 3, width: '100%' }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                label="Employee ID"
-                value={filters.employee_id}
-                onChange={e => handleFilterChange('employee_id', e.target.value)}
-                fullWidth
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
               <DatePicker
                 label="Start Date"
                 value={filters.start_date ? new Date(filters.start_date + 'T00:00:00') : null}
@@ -693,6 +684,15 @@ const fetchStats = useCallback(async () => {
                 label="Employee Name"
                 value={filters.employee_name || ''}
                 onChange={e => handleFilterChange('employee_name', e.target.value)}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                label="Employee ID"
+                value={filters.employee_id}
+                onChange={e => handleFilterChange('employee_id', e.target.value)}
+                fullWidth
                 size="small"
               />
             </Grid>
