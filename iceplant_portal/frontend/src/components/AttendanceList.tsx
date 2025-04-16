@@ -92,6 +92,9 @@ export default function AttendanceList() {
         process_checkins: 'false',
         sunday_only: debouncedFilters.sunday_only ? 'true' : undefined,
       };
+      if (debouncedFilters.employee_id) {
+        params.employee_id = debouncedFilters.employee_id;
+      }
       if (
         debouncedFilters.approval_status &&
         debouncedFilters.approval_status !== 'all'
@@ -235,6 +238,8 @@ export default function AttendanceList() {
     department: '',
     approval_status: 'all',
     sunday_only: false,
+    employee_id: '',
+    employee_name: '',
   });
   const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -272,6 +277,12 @@ export default function AttendanceList() {
         process_checkins: 'false',
         sunday_only: debouncedFilters.sunday_only ? 'true' : undefined,
       };
+      if (debouncedFilters.employee_id) {
+        params.employee_id = debouncedFilters.employee_id;
+      }
+      if (debouncedFilters.employee_name) {
+        params.employee_name = debouncedFilters.employee_name;
+      }
       // Only include approval_status if not 'all' and not empty
       if (
         debouncedFilters.approval_status &&
@@ -612,7 +623,16 @@ const fetchStats = useCallback(async () => {
 
         <Paper elevation={2} sx={{ p: 2, mb: 3, width: '100%' }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                label="Employee ID"
+                value={filters.employee_id}
+                onChange={e => handleFilterChange('employee_id', e.target.value)}
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
               <DatePicker
                 label="Start Date"
                 value={filters.start_date ? new Date(filters.start_date + 'T00:00:00') : null}
@@ -666,6 +686,15 @@ const fetchStats = useCallback(async () => {
                   </MenuItem>
                 ))}
               </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="Employee Name"
+                value={filters.employee_name || ''}
+                onChange={e => handleFilterChange('employee_name', e.target.value)}
+                size="small"
+              />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Box display="flex" alignItems="center">
