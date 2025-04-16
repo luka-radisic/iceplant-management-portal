@@ -879,26 +879,26 @@ const fetchStats = useCallback(async () => {
                 ) : (
                   records.map((record, index) => {
                     const isNoShow = record.department === 'NO SHOW';
-                    const isMissingCheckout = !isNoShow && !record.check_out;
                     const isOffDay = isSunday(record.check_in);
+                    // Refined: Only flag as missing checkout if not NO SHOW, not off day, not missing day placeholder, and no check_out
+                    let isMissingDayPlaceholder = false;
+                    if (record.check_in) {
+                      const d = new Date(record.check_in);
+                      if (d.getHours() === 23 && d.getMinutes() === 56) {
+                        isMissingDayPlaceholder = true;
+                      }
+                    }
+                    const isMissingCheckout =
+                      !isNoShow &&
+                      !isOffDay &&
+                      !isMissingDayPlaceholder &&
+                      !record.check_out;
+
                     return (
                       <TableRow
                         key={record.id}
                         hover
                         sx={{
-                          bgcolor: (() => {
-                            // Visual indicator for "missing day" (Check In = 23:56)
-                            if (record.check_in) {
-                              const d = new Date(record.check_in);
-                              if (d.getHours() === 23 && d.getMinutes() === 56) {
-                                return 'warning.light'; // yellow background
-                              }
-                            }
-                            if (isOffDay) return 'info.lighter';
-                            if (isNoShow) return 'error.lighter';
-                            if (isMissingCheckout) return 'warning.lighter';
-                            return (index % 2 === 0 ? '#ffffff' : '#f9f9f9');
-                          })(),
                           transition: 'all 0.2s ease-in-out',
                           cursor: 'pointer',
                           '&:hover': {

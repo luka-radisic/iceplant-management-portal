@@ -194,11 +194,14 @@ export default function EmployeeAttendanceModal({ open, onClose, employeeId, emp
 
   const getShiftType = (checkInTime: Date, checkOutTime: Date | null): string => {
     const timeStr = formatTZ(checkInTime, 'HH:mm', { timeZone: 'Asia/Manila' });
-   // const manilaDate = new Date(formatTZ(checkInTime, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'Asia/Manila' }));
-   // const shiftStartTime = parse(shiftConfig.shift_start, 'HH:mm', manilaDate);
+    const checkInHour = checkInTime.getHours();
+
+    // First check for very late check-ins that should be considered "No Shift"
+    if (checkInHour === 23 && checkInTime.getMinutes() === 56 && checkOutTime === null) {
+      return 'No Shift';
+    }
 
     if (checkOutTime) {
-      const checkInHour = checkInTime.getHours();
       const duration = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
       if (duration >= 8) {
         if (shiftConfig.is_rotating_shift && shiftConfig.shift_duration >= 12 && duration >= 10) {
