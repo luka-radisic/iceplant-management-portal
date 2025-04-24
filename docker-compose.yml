@@ -15,14 +15,13 @@ services:
     environment:
       - FRONTEND_PORT=5173
       - BACKEND_PORT=8000
-      # Add any additional environment variables here
+      - DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,146.190.201.119
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
       interval: 30s
       timeout: 10s
       retries: 3
-    # Add explicit network for better control
     networks:
       - iceplant-network
 
