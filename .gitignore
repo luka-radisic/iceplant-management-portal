@@ -63,6 +63,7 @@ yarn-error.log*
 *.bak
 *.tmp
 *~
+iceplant-portal-latest.tar
 
 # Coverage reports
 htmlcov/
