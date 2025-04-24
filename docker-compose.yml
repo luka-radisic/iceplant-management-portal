@@ -1,30 +1,23 @@
+version: '3'
+
 services:
   iceplant:
+    image: iceplantph/iceplant-portal:latest
     container_name: iceplant-app
-    build:
-      context: .
-      dockerfile: Dockerfile
     ports:
-      - "5173:5173"  # Frontend port
+      - "8080:5173"  # Frontend port
       - "8000:8000"  # Backend port
     volumes:
-      - .:/app
-      - /app/node_modules  # Don't override root node_modules
-      - /app/iceplant_portal/frontend/node_modules  # Don't override frontend node_modules
-      - /app/venv  # Don't override venv
+      - iceplant_data:/app/iceplant_portal/data
+      - iceplant_media:/app/iceplant_portal/media
+      - iceplant_static:/app/iceplant_portal/staticfiles
     environment:
       - FRONTEND_PORT=5173
       - BACKEND_PORT=8000
-      - DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,146.190.201.119
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - iceplant-network
+      - DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,146.190.201.119,cma.atlantis-fishing.com
+    restart: always
 
-networks:
-  iceplant-network:
-    driver: bridge
+volumes:
+  iceplant_data:
+  iceplant_media:
+  iceplant_static:
