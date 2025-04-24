@@ -1,23 +1,36 @@
-version: '3'
+version: '3.8'
 
 services:
-  iceplant:
-    image: iceplantph/iceplant-portal:latest
-    container_name: iceplant-app
+  web:
+    build: .
+    container_name: iceplant_web
+    command: /app/docker-entrypoint.sh
     ports:
-      - "8080:5173"  # Frontend port
-      - "8000:8000"  # Backend port
-    volumes:
-      - iceplant_data:/app/iceplant_portal/data
-      - iceplant_media:/app/iceplant_portal/media
-      - iceplant_static:/app/iceplant_portal/staticfiles
+      - "8000:8000"
+      - "5173:5173"
+    env_file:
+      - ./.env
     environment:
-      - FRONTEND_PORT=5173
-      - BACKEND_PORT=8000
-      - DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost,146.190.201.119,cma.atlantis-fishing.com
-    restart: always
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - DATABASE_URL=sqlite:///db.sqlite3
+    volumes:
+      - .:/app
+      - static_volume:/app/iceplant_portal/static
+      - media_volume:/app/iceplant_portal/media
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    container_name: iceplant_db
+    environment:
+      POSTGRES_DB: iceplantdb
+      POSTGRES_USER: iceplantuser
+      POSTGRES_PASSWORD: iceplantpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  iceplant_data:
-  iceplant_media:
-  iceplant_static:
+  postgres_data:
+  static_volume:
+  media_volume:
