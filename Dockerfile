@@ -3,7 +3,7 @@ FROM python:3.11
 # Set working directory
 WORKDIR /app
 
-# Install Node.js
+# Install Node.js, npm, and curl
 RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
@@ -11,29 +11,27 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
+# Copy project files into the container
 COPY . .
 
-# Install root-level dependencies from package.json if present
-RUN npm install
+# Remove existing node_modules and lockfile to avoid native module errors
+RUN rm -rf iceplant_portal/frontend/node_modules iceplant_portal/frontend/package-lock.json
 
-# Set up Python virtual environment
-RUN python -m venv venv
-ENV PATH="/app/venv/bin:$PATH"
+# Install root-level dependencies if needed (safe fallback)
+RUN npm install || true
 
-# Install Python requirements
+# Install backend (Python) dependencies directly (no virtualenv)
 WORKDIR /app/iceplant_portal
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Update settings.py to use environment variable for ALLOWED_HOSTS
+# Patch ALLOWED_HOSTS in Django settings to be dynamic
 RUN sed -i "s/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')/" iceplant_core/settings.py
 
-# Install frontend dependencies and add needed type definitions
+# Install frontend dev dependencies and type declarations
 WORKDIR /app/iceplant_portal/frontend
-RUN npm install
 RUN npm install --save-dev @types/node
 
-# Create a custom tsconfig for Docker build
+# Create a relaxed tsconfig override to skip strict checking in Docker
 RUN echo '{\n\
   "extends": "./tsconfig.json",\n\
   "compilerOptions": {\n\
@@ -43,27 +41,22 @@ RUN echo '{\n\
   }\n\
 }' > tsconfig.docker.json
 
-# Build frontend with type checking skipped
+# Build the frontend with skipped TS checks (just Vite build)
 RUN echo '#!/bin/bash\n\
-echo "Building with strict TypeScript checks disabled..."\n\
+echo "Building with relaxed TypeScript config..."\n\
 export NODE_OPTIONS="--max-old-space-size=4096"\n\
-npx tsc --noEmit false --skipLibCheck true || echo "TypeScript check skipped"\n\
+npx tsc --project tsconfig.docker.json || echo "TypeScript warnings skipped"\n\
 npx vite build\n' > docker-build.sh && \
     chmod +x docker-build.sh && \
     ./docker-build.sh
 
-# Create entrypoint script
+# Create entrypoint script to run backend and frontend
 WORKDIR /app
 RUN echo '#!/bin/bash\n\
-# Activate virtual environment\n\
-source /app/venv/bin/activate\n\
-\n\
-# Start Django backend\n\
 cd /app/iceplant_portal\n\
 python manage.py migrate\n\
 python manage.py runserver 0.0.0.0:8000 &\n\
 \n\
-# Start frontend dev server\n\
 cd /app/iceplant_portal/frontend\n\
 export NODE_OPTIONS="--max-old-space-size=4096"\n\
 npm run dev &\n\
@@ -72,8 +65,8 @@ wait\n' > /app/docker-entrypoint.sh
 
 RUN chmod +x /app/docker-entrypoint.sh
 
-# Expose ports for the frontend and backend
-EXPOSE 5173 8000
+# Expose backend and frontend ports
+EXPOSE 8000 5173
 
-# Start servers
+# Default command
 CMD ["/app/docker-entrypoint.sh"]
