@@ -35,6 +35,23 @@ For advanced debugging, you can start the servers in debug mode:
 ./start.sh --debug
 ```
 
+## Docker Setup
+
+For containerized deployment, you can use Docker:
+
+```bash
+# Build the Docker image
+docker-compose build
+
+# Start the containers
+docker-compose up -d
+
+# View logs (optional)
+docker-compose logs -f
+```
+
+See the [build-and-run.md](build-and-run.md) file for more Docker instructions.
+
 ## Project Structure
 
 ```
@@ -67,75 +84,97 @@ iceplant-management-portal/       # This directory (project root)
 
 ## Access the Application
 
-After starting the application using the script:
+After starting the application:
 
 - Django Admin: http://127.0.0.1:8000/admin/
 - Frontend: http://localhost:5173/
+- **Attendance Cleanup Tool:** Accessible on the Tools page, visible only to superusers.
 
 ## Manual Setup & Management Commands
 
-While the `./start.sh` script handles most common setup tasks, you might need to run Django management commands manually (e.g., `makemigrations`, `migrate`, `shell`, `createsuperuser`).
+While the `./start.sh` script handles most common setup tasks, you might need to run Django management commands manually.
 
-**1. Navigate to the Backend Directory:**
+### Backend Setup
 
-All `manage.py` commands should be run from the `iceplant_portal` directory:
+1. Navigate to the iceplant_portal directory
+   ```bash
+   cd iceplant_portal
+   ```
 
-```bash
-cd iceplant_portal
-```
+2. Create and activate a virtual environment
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-**2. Activate the Virtual Environment:**
+3. Install dependencies
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-The project uses a virtual environment located at `iceplant_portal/venv/`. You need to activate it before running commands:
+4. Apply migrations
+   ```bash
+   python manage.py migrate
+   ```
 
-```bash
-# From within the iceplant_portal directory
-source venv/bin/activate
-```
+5. (Optional) Load initial demo data
+   ```bash
+   python manage.py create_demo_data
+   ```
 
-Your terminal prompt should now indicate the active environment (e.g., `(venv) ...`).
+6. Create a superuser (for admin access)
+   ```bash
+   python manage.py createsuperuser
+   ```
 
-**3. Run Management Commands:**
+7. Run the development server
+   ```bash
+   python manage.py runserver
+   ```
 
-Once the virtual environment is active, use `python3`:
+### Frontend Setup
 
-```bash
-# Example: Make migrations
-python3 manage.py makemigrations
+1. Navigate to the frontend directory
+   ```bash
+   cd iceplant_portal/frontend
+   ```
 
-# Example: Apply migrations
-python3 manage.py migrate
+2. Install dependencies
+   ```bash
+   npm install
+   ```
 
-# Example: Open Django shell
-python3 manage.py shell
-
-# Example: Create a superuser
-python3 manage.py createsuperuser
-```
+3. Start the development server
+   ```bash
+   npm run dev
+   ```
 
 **Troubleshooting Activation:**
 
-If `source venv/bin/activate` doesn't seem to work correctly (e.g., you still get `ModuleNotFoundError: No module named 'django'`), you can bypass activation by running commands using the virtual environment's specific Python interpreter:
+If `source venv/bin/activate` doesn't work correctly, you can use the virtual environment's specific Python interpreter:
 
 ```bash
 # From within the iceplant_portal directory
 venv/bin/python3 manage.py <your_command>
-
-# Example:
-venv/bin/python3 manage.py migrate
 ```
 
-**4. Deactivate the Virtual Environment:**
+## Features
 
-When you're finished, you can deactivate the environment:
+- Attendance import, management, and analytics
+- Bulk Attendance Cleanup Tool with filters (Month, Employee, Department, Date Range)
+- Dry-run preview before deletion
+- Role-based access control (HR and superusers)
+- Sales, Inventory, Expenses modules
+- Equipment maintenance tracking and scheduling
+- Automated database backup via GitHub Actions
+- Dockerized deployment support
 
-```bash
-deactivate
-```
+## Deployment Notes
 
-## License
-
-This project is licensed under the MIT License. 
+- Environment variables configured in `.env` or `.env.example`
+- PostgreSQL recommended for production
+- Static files collected via `python manage.py collectstatic`
+- For production, use Gunicorn (see `Dockerfile`)
 
 ## Change Log
 
@@ -159,3 +198,14 @@ This project is licensed under the MIT License.
 - All date and time fields use the same formatting as the table view for consistency.
 - This change addresses user feedback and requirements described in `docs/attendance_page_enhancement_context.md`.
 - Code is documented with references to the context doc and user feedback.
+
+### 2025-04-05
+
+**Attendance Cleanup Tool**
+- Added Attendance Punchcard Cleanup Tool (bulk delete with filters, dry-run, audit logging)
+- Updated implementation plan accordingly
+- Improved permission checks and UI integration
+
+## License
+
+This project is licensed under the MIT License.

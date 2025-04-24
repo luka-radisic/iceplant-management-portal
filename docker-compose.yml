@@ -1,0 +1,31 @@
+services:
+  iceplant:
+    container_name: iceplant-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"  # Frontend port
+      - "8000:8000"  # Backend port
+    volumes:
+      - .:/app
+      - /app/node_modules  # Don't override root node_modules
+      - /app/iceplant_portal/frontend/node_modules  # Don't override frontend node_modules
+      - /app/venv  # Don't override venv
+    environment:
+      - FRONTEND_PORT=5173
+      - BACKEND_PORT=8000
+      # Add any additional environment variables here
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Add explicit network for better control
+    networks:
+      - iceplant-network
+
+networks:
+  iceplant-network:
+    driver: bridge
