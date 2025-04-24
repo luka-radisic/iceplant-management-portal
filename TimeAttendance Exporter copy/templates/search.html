@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Employees{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-search me-2"></i>Employee Search</h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Search Employees</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('search') }}" method="post" class="row g-3">
+            <div class="col-md-5">
+                <label for="search_term" class="form-label">Search by Name or ID</label>
+                <input type="text" class="form-control" id="search_term" name="search_term" 
+                       value="{{ search_term }}" placeholder="Enter employee name or ID">
+            </div>
+            <div class="col-md-5">
+                <label for="department" class="form-label">Department</label>
+                <select class="form-select" id="department" name="department">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>
+                        {{ dept }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if search_term %}
+    <div class="card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-list-ul me-2"></i> Search Results
+            </h5>
+            <span class="badge bg-primary rounded-pill">{{ results|length }} result(s) found</span>
+        </div>
+        
+        {% if results %}
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for employee in results %}
+                <a href="{{ url_for('employee_detail', employee_id=employee.employee_id) }}" 
+                   class="list-group-item list-group-item-action">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="avatar-circle" 
+                                 {% if employee.employee_id|string|int > 0 %}
+                                 style="background-color: {{ '#%06x' % ((employee.name|length + employee.employee_id|string|int) % 0xffffff) }}"
+                                 {% else %}
+                                 style="background-color: #6c757d"
+                                 {% endif %}>
+                                {{ employee.name[0:1].upper() if employee.name else '?' }}
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ employee.name }}</h5>
+                                <span>
+                                    <small class="badge bg-secondary me-1">ID: {{ employee.employee_id }}</small>
+                                    {% if employee.department %}
+                                    <small class="badge bg-info text-dark">{{ employee.department }}</small>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <small class="text-muted d-flex align-items-center">
+                                <i class="bi bi-clock-history me-1" aria-hidden="true"></i> Click to view attendance records
+                            </small>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="card-body text-center py-5">
+            <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mb-0 mt-3">No employees found matching "{{ search_term }}"</p>
+            <p class="small text-muted">Try a different search term or employee ID</p>
+        </div>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* Improve text visibility */
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Fill Missing Workdays{% endblock %}
+
+{% block content %}
+<h1>
+    <i class="bi bi-calendar-plus"></i> Fill Missing Workdays
+</h1>
+<p class="text-muted">Add "No Work" records for missing weekdays and "Weekend" for missing weekend days</p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Fill Missing Days</h5>
+            </div>
+            <div class="card-body">
+                <p>This tool will analyze employee attendance records and add entries for missing days:</p>
+                <ul>
+                    <li><strong>Missing weekdays</strong> will be marked as <span class="badge bg-warning">No Work</span></li>
+                    <li><strong>Missing weekend days</strong> will be marked as <span class="badge bg-secondary">Weekend</span></li>
+                </ul>
+                
+                <form method="post" action="{{ url_for('admin_fill_workdays') }}">
+                    <div class="mb-3">
+                        <label for="employee_id" class="form-label">Employee (optional):</label>
+                        <select class="form-select" id="employee_id" name="employee_id">
+                            <option value="">All Employees</option>
+                            {% for employee in employees %}
+                            <option value="{{ employee.employee_id }}">{{ employee.name }} ({{ employee.employee_id }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">Leave blank to process all employees</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_date" class="form-label">Start Date (optional):</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_date" class="form-label">End Date (optional):</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="confirm" required>
+                        <label class="form-check-label" for="confirm">
+                            I understand this will add new attendance records to the database
+                        </label>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i> 
+                        If no date range is specified, the system will use each employee's first and last attendance record.
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i> Fill Missing Days
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">How It Works</h5>
+            </div>
+            <div class="card-body">
+                <p>This tool helps ensure your attendance data is complete by:</p>
+                
+                <ol>
+                    <li>Finding date ranges for each employee (first attendance to last attendance)</li>
+                    <li>Identifying days within that range with no attendance records</li>
+                    <li>Adding "No Work" entries for missing weekdays</li>
+                    <li>Adding "Weekend" entries for missing weekend days</li>
+                </ol>
+                
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> This process may add many records to your database. Consider creating a backup first.
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('backup_admin') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-database-fill-check me-2"></i> Create Database Backup
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% if stats %}
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Results</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-4 text-center">
+                        <div class="display-6">{{ stats.employees_processed }}</div>
+                        <div class="text-muted">Employees</div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="display-6">{{ stats.no_work_added }}</div>
+                        <div class="text-muted">Workdays Added</div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="display-6">{{ stats.weekend_added }}</div>
+                        <div class="text-muted">Weekends Added</div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <p class="text-center mb-0">
+                    <strong>Total Records Added:</strong> {{ stats.total_added }}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">When to Use This Tool</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-graph-up-arrow me-2 text-success"></i>Before Reports</h5>
+                        <p class="card-text">Run this tool before generating monthly or yearly attendance reports to ensure all days are accounted for in statistics.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-cloud-upload me-2 text-primary"></i>After Imports</h5>
+                        <p class="card-text">Use after importing punch records or other attendance data that only includes days when employees were present.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-calendar-check me-2 text-danger"></i>End of Month</h5>
+                        <p class="card-text">Run at the end of each month to complete the attendance records before finalizing monthly statistics.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

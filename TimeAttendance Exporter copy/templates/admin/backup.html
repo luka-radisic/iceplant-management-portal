@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Database Backup{% endblock %}
+
+{% block content %}
+<h1>
+    <i class="bi bi-database-fill-check"></i> Database Backup
+</h1>
+<p class="text-muted">Create and manage database backups</p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Create New Backup</h5>
+            </div>
+            <div class="card-body">
+                <p>Create a backup of your database to protect against data loss.</p>
+                
+                <form method="post" action="{{ url_for('create_backup') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Backup Type:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="backup_type" id="type_database" value="database" checked>
+                            <label class="form-check-label" for="type_database">
+                                Database Only
+                            </label>
+                            <small class="form-text text-muted d-block">Only backs up the database file (attendance.db)</small>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="backup_type" id="type_full" value="full">
+                            <label class="form-check-label" for="type_full">
+                                Full Backup (Recommended)
+                            </label>
+                            <small class="form-text text-muted d-block">Creates a complete backup of database and uploaded files</small>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Create Backup
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Backup Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Create regular backups, especially before importing large datasets</li>
+                    <li>Store backups in a different location than your application</li>
+                    <li>Full backups include the database and uploaded files</li>
+                    <li>To restore, simply replace your attendance.db file with the backup</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Available Backups</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Filename</th>
+                                <th>Date</th>
+                                <th>Size</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in backups %}
+                            <tr>
+                                <td>
+                                    {% if backup.is_zip %}
+                                    <i class="bi bi-file-earmark-zip text-primary me-1"></i>
+                                    {% else %}
+                                    <i class="bi bi-file-earmark-binary text-success me-1"></i>
+                                    {% endif %}
+                                    {{ backup.filename }}
+                                </td>
+                                <td>{{ backup.created.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ (backup.size / 1024)|round(1) }} KB</td>
+                                <td>
+                                    <a href="{{ url_for('download_backup', filename=backup.filename) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-download"></i> Download
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="bi bi-exclamation-circle text-muted me-2"></i>
+                                    No backups available. Create your first backup now!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

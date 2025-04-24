@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Database Management{% endblock %}
+
+{% block content %}
+<h1>
+    <i class="bi bi-database-gear"></i> Database Management
+</h1>
+<p class="text-muted">Manage the attendance database</p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Database Statistics</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Total Employees:</strong> {{ employee_count }}</p>
+                <p><strong>Attendance Records:</strong> {{ stats.total_records }}</p>
+                <p><strong>Present Records:</strong> {{ stats.present }}</p>
+                <p><strong>No Work Records:</strong> {{ stats.no_work|default(0) }}</p>
+                <p><strong>Incomplete Records:</strong> {{ stats.incomplete|default(0) }}</p>
+                <p><strong>Late Work Records:</strong> {{ stats.late_work|default(0) }}</p>
+                <p><strong>Early Departure Records:</strong> {{ stats.early_departure|default(0) }}</p>
+                
+                {% if stats.date_range[0] %}
+                <p><strong>Date Range:</strong> {{ stats.date_range[0] }} to {{ stats.date_range[1] }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">Danger Zone</h5>
+            </div>
+            <div class="card-body">
+                <h6>Purge Database</h6>
+                <p>This action will delete <strong>ALL</strong> data from the database. This cannot be undone.</p>
+                
+                <form method="post" action="{{ url_for('purge_database') }}" onsubmit="return confirm('WARNING: This will delete ALL data from the database. Are you sure?');">
+                    <div class="mb-3">
+                        <label for="confirmation" class="form-label">Type "DELETE-ALL-DATA" to confirm:</label>
+                        <input type="text" class="form-control" id="confirmation" name="confirmation" required>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Purge Database</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Command Line Tools</h5>
+    </div>
+    <div class="card-body">
+        <p>For advanced database management, use the command line tool:</p>
+        
+        <pre class="bg-light p-3">
+# View database statistics
+python db_manager.py --stats
+
+# Delete data for a specific employee
+python db_manager.py --delete-employee EMPLOYEE_ID
+
+# Delete records in a date range
+python db_manager.py --delete-range --start-date 2023-01-01 --end-date 2023-01-31
+        </pre>
+    </div>
+</div>
+
+<!-- Add new backup card -->
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Database Backup</h5>
+    </div>
+    <div class="card-body">
+        <p>Create regular backups to protect your data from loss.</p>
+        <a href="{{ url_for('backup_admin') }}" class="btn btn-info">
+            <i class="bi bi-database-fill-check me-2"></i> Manage Backups
+        </a>
+    </div>
+</div>
+
+<!-- Add new card for fill missing workdays -->
+<div class="card mt-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Data Completeness</h5>
+    </div>
+    <div class="card-body">
+        <p>Add missing attendance records for complete reporting.</p>
+        <a href="{{ url_for('admin_fill_workdays') }}" class="btn btn-success">
+            <i class="bi bi-calendar-plus me-2"></i> Fill Missing Workdays
+        </a>
+        <small class="d-block mt-2 text-muted">
+            Adds "No Work" records for missing weekdays and "Weekend" records for missing weekend days.
+        </small>
+    </div>
+</div>
+
+{% endblock %}

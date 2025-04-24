@@ -1,11 +1,8 @@
 iceplant_portal/venv/
-iceplant_portal/frontend/node_modules/
-node_modules/
 **/__pycache__/
 **/*.pyc
 .git/
-.env
+.gitignore
 **/*.log
-.DS_Store
 .cursor/
-*.sqlite3
+.Import Data/

@@ -1,0 +1,46 @@
+/* Avatar styles */
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Custom badge styles with better contrast */
+.badge.bg-info {
+    color: #000;  /* Ensure text is dark on light backgrounds for readability */
+}
+
+/* Weekend work styles */
+.table-purple {
+    background-color: rgba(123, 104, 238, 0.1);
+}
+
+.bg-purple {
+    background-color: #7b68ee;
+}
+
+/* Card hover effect */
+.list-group-item:hover {
+    transition: background-color 0.2s ease;
+}
+
+/* Responsive improvements */
+@media (max-width: 576px) {
+    .display-5 {
+        font-size: 1.5rem;
+    }
+    
+    h1 {
+        font-size: 1.75rem;
+    }
+    
+    .table {
+        font-size: 0.85rem;
+    }
+}

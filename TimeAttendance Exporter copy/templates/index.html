@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}TimeAttendance Manager - Home{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="bi bi-calendar-check me-2"></i> TimeAttendance Manager
+        </h1>
+        
+        <div>
+            <a href="{{ url_for('import_data') }}" class="btn btn-primary">
+                <i class="bi bi-cloud-upload me-1" aria-hidden="true"></i> Import Data
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Attendance Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6">
+                            <div class="card text-center h-100 border-success">
+                                <div class="card-body">
+                                    <h3 class="text-success mb-1">{{ stats.present|default(0) }}</h3>
+                                    <p class="text-muted mb-0 small">Present</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="card text-center h-100 border-secondary">
+                                <div class="card-body">
+                                    <h3 class="text-secondary mb-1">{{ stats.no_work|default(0) }}</h3>
+                                    <p class="text-muted mb-0 small">No Work</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="card text-center h-100 border-info">
+                                <div class="card-body">
+                                    <h3 class="text-info mb-1">{{ stats.weekend_work|default(0) }}</h3>
+                                    <p class="text-muted mb-0 small">Weekend Work</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="card text-center h-100 border-warning">
+                                <div class="card-body">
+                                    <h3 class="text-warning mb-1">{{ stats.incomplete|default(0) }}</h3>
+                                    <p class="text-muted mb-0 small">Incomplete</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if stats.date_range and stats.date_range[0] %}
+                    <p class="text-muted mt-3 mb-0 small">
+                        <strong>Database Range:</strong> {{ stats.date_range[0] }} to {{ stats.date_range[1] }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Recent Employees</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for employee in recent_employees %}
+                    <a href="{{ url_for('employee_detail', employee_id=employee.employee_id) }}" 
+                       class="list-group-item list-group-item-action d-flex align-items-center">
+                        <div class="avatar-circle me-3" 
+                             {% if employee.employee_id|string|int > 0 %}
+                             style="background-color: {{ '#%06x' % ((employee.name|length + employee.employee_id|string|int) % 0xffffff) }}"
+                             {% else %}
+                             style="background-color: #6c757d"
+                             {% endif %}>
+                            {{ employee.name[0:1].upper() if employee.name else '?' }}
+                        </div>
+                        <div>
+                            <strong>{{ employee.name }}</strong>
+                            <div class="small text-muted">ID: {{ employee.employee_id }}</div>
+                        </div>
+                    </a>
+                    {% else %}
+                    <div class="list-group-item text-center py-4">
+                        <p class="text-muted mb-0">No employees found in database</p>
+                        <a href="{{ url_for('import_data') }}" class="btn btn-sm btn-primary mt-2">
+                            Import Data
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('search') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="bi bi-search me-3 text-primary" aria-hidden="true"></i>
+                        <div>
+                            <strong>Search Employees</strong>
+                            <div class="small text-muted">Find and view attendance records</div>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('report') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="bi bi-bar-chart me-3 text-success" aria-hidden="true"></i>
+                        <div>
+                            <strong>View Reports</strong>
+                            <div class="small text-muted">Generate attendance reports</div>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="bi bi-cloud-upload me-3 text-info" aria-hidden="true"></i>
+                        <div>
+                            <strong>Import Data</strong>
+                            <div class="small text-muted">Upload attendance records</div>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('weekend_work') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="bi bi-calendar-check me-3 text-danger" aria-hidden="true"></i>
+                        <div>
+                            <strong>Weekend Work Report</strong>
+                            <div class="small text-muted">View weekend attendance</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            {% if session.get('logged_in') %}
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Admin Tools</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('database_admin') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="bi bi-database-gear me-3 text-danger" aria-hidden="true"></i>
+                        <div>
+                            <strong>Database Management</strong>
+                            <div class="small text-muted">Manage attendance database</div>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('backup_admin') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="bi bi-cloud-download me-3 text-primary" aria-hidden="true"></i>
+                        <div>
+                            <strong>Backup & Restore</strong>
+                            <div class="small text-muted">Create database backups</div>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_fill_workdays') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <i class="bi bi-calendar-plus me-3 text-success" aria-hidden="true"></i>
+                        <div>
+                            <strong>Fill Missing Workdays</strong>
+                            <div class="small text-muted">Add missing attendance records</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+</style>
+{% endblock %}

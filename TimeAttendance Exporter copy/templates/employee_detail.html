@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ employee.name }} - Employee Details{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>
+        <i class="bi bi-person-badge"></i> {{ employee.name }}
+    </h1>
+    <a href="{{ url_for('search') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Search
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Employee Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ employee.name }}</p>
+                <p><strong>Employee ID:</strong> {{ employee.employee_id }}</p>
+                {% if employee.department %}
+                <p><strong>Department:</strong> {{ employee.department }}</p>
+                {% endif %}
+                
+                <!-- Statistics -->
+                <hr>
+                <h6>Attendance Summary</h6>
+                <p><strong>Total Records:</strong> {{ stats.total_records }}</p>
+                <p><strong>Present:</strong> {{ stats.present }}</p>
+                <p><strong>No Work:</strong> {{ stats.no_work|default(0) }}</p>
+                {% if stats.incomplete %}
+                <p><strong>Incomplete Records:</strong> {{ stats.incomplete }}</p>
+                {% endif %}
+                {% if stats.late_work %}
+                <p><strong>Late Work:</strong> {{ stats.late_work }}</p>
+                {% endif %}
+                {% if stats.early_departure %}
+                <p><strong>Early Departure:</strong> {{ stats.early_departure }}</p>
+                {% endif %}
+                {% if stats.weekend %}
+                <p><strong>Weekend Days:</strong> {{ stats.weekend }}</p>
+                {% endif %}
+                
+                {% if stats.date_range[0] %}
+                <p><strong>Date Range:</strong> {{ stats.date_range[0] }} to {{ stats.date_range[1] }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Filter Attendance Records</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('employee_detail', employee_id=employee.employee_id) }}" method="get" class="row g-3">
+                    <div class="col-md-5">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                               value="{{ start_date }}">
+                    </div>
+                    <div class="col-md-5">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date"
+                               value="{{ end_date }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update the summary statistics section to show incomplete records -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card border-success h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">Present</h5>
+                <p class="display-5">{{ stats.present }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-secondary h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">No Work</h5>
+                <p class="display-5">{{ stats.no_work|default(0) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-warning h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">Incomplete</h5>
+                <p class="display-5">{{ stats.incomplete|default(0) }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-danger h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">Late Work</h5>
+                <p class="display-5">{{ stats.late_work|default(0) }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Records -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Attendance Records</h5>
+        <a href="{{ url_for('export_report', employee_id=employee.employee_id, start_date=start_date, end_date=end_date) }}" 
+           class="btn btn-sm btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Export to Excel
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Status</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Required Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr class="{% if record.status == 'No Work' %}table-secondary
+                           {% elif record.status == 'Present' %}table-success
+                           {% elif record.status == 'Weekend' %}table-secondary
+                           {% elif record.status == 'Weekend Work' %}table-info
+                           {% elif record.status == 'Incomplete' %}table-warning
+                           {% elif record.status == 'Late Work' %}table-danger
+                           {% elif record.status == 'Early Departure' %}table-danger
+                           {% endif %}">
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.day }}</td>
+                    <td>
+                        <span class="badge {% if record.status == 'Present' %}bg-success{% elif record.status == 'No Work' %}bg-light text-dark border{% elif record.status == 'Weekend' %}bg-secondary{% elif record.status == 'Weekend Work' %}bg-info{% elif record.status == 'Incomplete' %}bg-warning{% elif record.status == 'Late Work' %}bg-danger{% elif record.status == 'Early Departure' %}bg-danger{% else %}bg-dark{% endif %}">
+                            {{ record.status }}
+                        </span>
+                    </td>
+                    <td>{{ record.time_in }}</td>
+                    <td>{{ record.time_out }}</td>
+                    <td>{{ record.required_time }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4">No records found matching your criteria</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

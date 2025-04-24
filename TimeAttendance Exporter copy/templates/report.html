@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance Reports{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>
+        <i class="bi bi-bar-chart"></i> Attendance Reports
+    </h1>
+    {% if records %}
+    <a href="{{ url_for('export_report', start_date=filters.start_date, end_date=filters.end_date, employee_id=filters.employee_id, status=filters.status) }}" 
+       class="btn btn-success">
+        <i class="bi bi-file-earmark-excel"></i> Export to Excel
+    </a>
+    {% endif %}
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Report Filters</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('report') }}" method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" 
+                       value="{{ filters.start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="end_date" name="end_date"
+                       value="{{ filters.end_date }}">
+            </div>
+            <div class="col-md-2">
+                <label for="department" class="form-label">Department</label>
+                <select class="form-select" id="department" name="department">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept }}" {% if filters.department == dept %}selected{% endif %}>
+                        {{ dept }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="employee_id" class="form-label">Employee</label>
+                <select class="form-select" id="employee_id" name="employee_id">
+                    <option value="">All Employees</option>
+                    {% for employee in employees %}
+                    <option value="{{ employee.employee_id }}" {% if filters.employee_id == employee.employee_id %}selected{% endif %}>
+                        {{ employee.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All</option>
+                    <option value="Present" {% if filters.status == 'Present' %}selected{% endif %}>Present</option>
+                    <!-- Removed Absent option -->
+                    <option value="Weekend" {% if filters.status == 'Weekend' %}selected{% endif %}>Weekend</option>
+                    <option value="No Work" {% if filters.status == 'No Work' %}selected{% endif %}>No Work</option>
+                    <option value="Weekend Work" {% if filters.status == 'Weekend Work' %}selected{% endif %}>Weekend Work</option>
+                    <option value="Incomplete" {% if filters.status == 'Incomplete' %}selected{% endif %}>Incomplete</option>
+                    <option value="Late Work" {% if filters.status == 'Late Work' %}selected{% endif %}>Late Work</option>
+                    <option value="Early Departure" {% if filters.status == 'Early Departure' %}selected{% endif %}>Early Departure</option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Summary Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">{{ stats.total_records }}</h3>
+                                <p class="text-muted mb-0">Total Records</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-success">
+                            <div class="card-body text-center">
+                                <h3 class="text-success mb-0">{{ stats.present }}</h3>
+                                <p class="text-muted mb-0">Present</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-info">
+                            <div class="card-body text-center">
+                                <h3 class="text-info mb-0">{{ stats.no_work }}</h3>
+                                <p class="text-muted mb-0">No Work</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3 mx-auto">
+                        <div class="card h-100 border-purple">
+                            <div class="card-body text-center">
+                                <h3 class="text-purple mb-0">{{ stats.weekend_work }}</h3>
+                                <p class="text-muted mb-0">Weekend Work</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if stats.date_range[0] %}
+                <p class="mb-0 mt-3">
+                    <strong>Date Range:</strong> {{ stats.date_range[0] }} to {{ stats.date_range[1] }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update the report summary to include Incomplete records -->
+<div class="card mt-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card border-primary h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total</h5>
+                        <p class="display-5">{{ stats.total_records }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card border-success h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Present</h5>
+                        <p class="display-5">{{ stats.present }}</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Removed Absent card -->
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card border-info h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Weekend</h5>
+                        <p class="display-5">{{ stats.weekend|default(0) }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card border-secondary h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">No Work</h5>
+                        <p class="display-5">{{ stats.no_work|default(0) }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card border-warning h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Incomplete</h5>
+                        <p class="display-5">{{ stats.incomplete|default(0) }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card border-danger h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Late Work</h5>
+                        <p class="display-5">{{ stats.late_work|default(0) }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card border-danger h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Early Departure</h5>
+                        <p class="display-5">{{ stats.early_departure|default(0) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Records Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Attendance Records</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Status</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr class="{% if record.status == 'Absent' %}table-warning{% elif record.status == 'Weekend' %}table-secondary{% elif record.status == 'No Work' %}table-info{% elif record.status == 'Weekend Work' %}table-purple{% elif record.status == 'Incomplete' %}table-warning{% endif %}">
+                    <td>
+                        <a href="{{ url_for('employee_detail', employee_id=record.employee_id) }}">
+                            {{ record.employee_name }}
+                        </a>
+                    </td>
+                    <td>{{ record.department }}</td>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.day }}</td>
+                    <td>
+                        <span class="badge {% if record.status == 'Present' %}bg-success
+                                          {% elif record.status == 'No Work' %}bg-secondary
+                                          {% elif record.status == 'Weekend' %}bg-secondary
+                                          {% elif record.status == 'Weekend Work' %}bg-info
+                                          {% elif record.status == 'Incomplete' %}bg-warning
+                                          {% elif record.status == 'Late Work' %}bg-danger
+                                          {% elif record.status == 'Early Departure' %}bg-danger
+                                          {% else %}bg-dark{% endif %}">
+                            {{ record.status }}
+                        </span>
+                    </td>
+                    <td>{{ record.time_in }}</td>
+                    <td>{{ record.time_out }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="bi bi-exclamation-circle me-2"></i>No attendance records match your criteria
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {% if records %}
+    <div class="card-footer text-muted text-end">
+        Showing {{ records|length }} of {{ stats.total_records }} total records
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

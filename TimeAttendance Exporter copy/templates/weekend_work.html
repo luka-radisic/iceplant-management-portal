@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Weekend Work Report{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>
+        <i class="bi bi-calendar-check"></i> Weekend Work Report
+    </h1>
+    {% if records %}
+    <a href="{{ url_for('export_report', status='Weekend Work') }}" 
+       class="btn btn-success">
+        <i class="bi bi-file-earmark-excel"></i> Export to Excel
+    </a>
+    {% endif %}
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-purple text-white">
+                <h5 class="mb-0">Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">{{ stats.total_records }}</h3>
+                                <p class="text-muted mb-0">Total Records</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-purple">
+                            <div class="card-body text-center">
+                                <h3 class="text-purple mb-0">{{ stats.employees }}</h3>
+                                <p class="text-muted mb-0">Employees</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if stats.date_range[0] %}
+                <p class="mb-0 mt-3">
+                    <strong>Date Range:</strong> {{ stats.date_range[0] }} to {{ stats.date_range[1] }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Records Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Weekend Work Records</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr class="table-purple">
+                    <td>
+                        <a href="{{ url_for('employee_detail', employee_id=record.employee_id) }}">
+                            {{ record.employee_name }}
+                        </a>
+                    </td>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.day }}</td>
+                    <td>{{ record.time_in }}</td>
+                    <td>{{ record.time_out }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="bi bi-info-circle me-2"></i>No weekend work records found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .table-purple {
+        background-color: rgba(111, 66, 193, 0.05);
+    }
+</style>
+{% endblock %}
