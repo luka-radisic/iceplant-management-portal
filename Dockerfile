@@ -20,6 +20,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install serve globally
+RUN npm install -g serve
+
 # Copy project files
 COPY . .
 
@@ -54,10 +57,6 @@ RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose backend and frontend ports
 EXPOSE 8000 5173
-
-# Use a non-root user for security
-RUN id -u appuser &>/dev/null || useradd -m appuser
-USER appuser
 
 # Set the entrypoint to the script
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -74,3 +74,4 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover 
+iceplant-portal.tar.gz
