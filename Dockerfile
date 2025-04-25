@@ -58,13 +58,13 @@ RUN python manage.py collectstatic --noinput
 
 # Entrypoint: run Django and static frontend
 WORKDIR /app
-RUN echo '#!/bin/bash\n\
+RUN echo '#!/bin/bash -e\n\
 cd /app/iceplant_portal\n\
-python manage.py migrate --noinput\n\
 pip install --no-cache-dir -r requirements.txt\n\
+python manage.py migrate --noinput\n\
 gunicorn iceplant_core.wsgi:application --bind 0.0.0.0:8000 --workers 3 &\n\
 cd /app/iceplant_portal/frontend\n\
-serve -s dist -l 5173\n' > /app/docker-entrypoint.sh
+serve -s dist -l 5173' > /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose backend and frontend ports
