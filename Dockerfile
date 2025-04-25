@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     gunicorn \
     postgresql-client \
+    python3-pip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20.x
@@ -30,6 +31,7 @@ COPY . .
 # Install backend Python dependencies
 WORKDIR /app/iceplant_portal
 RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m django --version
 
 # Ensure 'import os' is present before patching ALLOWED_HOSTS and CORS
 RUN grep -q '^import os' iceplant_core/settings.py || sed -i '1s/^/import os\n/' iceplant_core/settings.py
@@ -37,8 +39,10 @@ RUN sed -i "s/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWE
 RUN sed -i "/CORS_ALLOWED_ORIGINS = \[/a \\\n    \"http://206.189.87.53:5173\"," iceplant_core/settings.py
 
 # Switch database engine to PostgreSQL
-RUN sed -i "/^DATABASES = {/,\$c\
-DATABASES = {\n    'default': {\n        'ENGINE': 'django.db.backends.postgresql',\n        'NAME': os.environ.get('POSTGRES_DB', 'iceplant_db'),\n        'USER': os.environ.get('POSTGRES_USER', 'postgres'),\n        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),\n        'HOST': os.environ.get('POSTGRES_HOST', 'db'),\n        'PORT': os.environ.get('POSTGRES_PORT', '5432'),\n    }\n}" iceplant_core/settings.py
+RUN python -c "path = 'iceplant_core/settings.py'; text = open(path).read(); text = text[:text.index('DATABASES =')] + '''DATABASES = {\n    'default': {\n        'ENGINE': 'django.db.backends.postgresql',\n        'NAME': os.environ.get('POSTGRES_DB', 'iceplant_db'),\n        'USER': os.environ.get('POSTGRES_USER', 'postgres'),\n        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),\n        'HOST': os.environ.get('POSTGRES_HOST', 'db'),\n        'PORT': os.environ.get('POSTGRES_PORT', '5432'),\n    }\n}'''; open(path, 'w').write(text)"
+
+# Ensure STATIC_URL is set to fix collectstatic crash
+RUN grep -q '^STATIC_URL' iceplant_core/settings.py || echo "\nSTATIC_URL = '/static/'\nSTATIC_ROOT = BASE_DIR / 'staticfiles'" >> iceplant_core/settings.py
 
 # Install frontend dependencies and build
 WORKDIR /app/iceplant_portal/frontend
