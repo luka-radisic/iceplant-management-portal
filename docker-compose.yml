@@ -1,36 +1,43 @@
-version: '3.8'
+version: "3.9"
 
 services:
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: iceplant_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - iceplantnet
+
   web:
-    build: .
-    container_name: iceplant_web
-    command: /app/docker-entrypoint.sh
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iceplant-portal
     ports:
       - "8000:8000"
       - "5173:5173"
-    env_file:
-      - ./.env
     environment:
-      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-      - DATABASE_URL=sqlite:///db.sqlite3
-    volumes:
-      - .:/app
-      - static_volume:/app/iceplant_portal/static
-      - media_volume:/app/iceplant_portal/media
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      POSTGRES_DB: iceplant_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
     depends_on:
       - db
-
-  db:
-    image: postgres:15
-    container_name: iceplant_db
-    environment:
-      POSTGRES_DB: iceplantdb
-      POSTGRES_USER: iceplantuser
-      POSTGRES_PASSWORD: iceplantpass
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - iceplantnet
 
 volumes:
-  postgres_data:
-  static_volume:
-  media_volume:
+  pgdata:
+    driver: local
+
+networks:
+  iceplantnet:
+    driver: bridge

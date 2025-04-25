@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     gunicorn \
+    postgresql-client \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20.x
@@ -35,6 +36,10 @@ RUN grep -q '^import os' iceplant_core/settings.py || sed -i '1s/^/import os\n/'
 RUN sed -i "s/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,206.189.87.53').split(',')/" iceplant_core/settings.py
 RUN sed -i "/CORS_ALLOWED_ORIGINS = \[/a \\\n    \"http://206.189.87.53:5173\"," iceplant_core/settings.py
 
+# Switch database engine to PostgreSQL
+RUN sed -i "/^DATABASES = {/,\$c\
+DATABASES = {\n    'default': {\n        'ENGINE': 'django.db.backends.postgresql',\n        'NAME': os.environ.get('POSTGRES_DB', 'iceplant_db'),\n        'USER': os.environ.get('POSTGRES_USER', 'postgres'),\n        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),\n        'HOST': os.environ.get('POSTGRES_HOST', 'db'),\n        'PORT': os.environ.get('POSTGRES_PORT', '5432'),\n    }\n}" iceplant_core/settings.py
+
 # Install frontend dependencies and build
 WORKDIR /app/iceplant_portal/frontend
 RUN rm -rf node_modules package-lock.json && npm install --legacy-peer-deps
@@ -52,7 +57,7 @@ cd /app/iceplant_portal\n\
 python manage.py migrate --noinput\n\
 gunicorn iceplant_core.wsgi:application --bind 0.0.0.0:8000 --workers 3 &\n\
 cd /app/iceplant_portal/frontend\n\
-serve -s dist -l 5173' > /app/docker-entrypoint.sh
+serve -s dist -l 5173\n' > /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose backend and frontend ports
