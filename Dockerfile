@@ -31,6 +31,8 @@ COPY . .
 # Install backend Python dependencies
 WORKDIR /app/iceplant_portal
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Verify Django is installed
 RUN python -m django --version
 
 # Ensure 'import os' is present before patching ALLOWED_HOSTS and CORS
@@ -59,6 +61,7 @@ WORKDIR /app
 RUN echo '#!/bin/bash\n\
 cd /app/iceplant_portal\n\
 python manage.py migrate --noinput\n\
+pip install --no-cache-dir -r requirements.txt\n\
 gunicorn iceplant_core.wsgi:application --bind 0.0.0.0:8000 --workers 3 &\n\
 cd /app/iceplant_portal/frontend\n\
 serve -s dist -l 5173\n' > /app/docker-entrypoint.sh
