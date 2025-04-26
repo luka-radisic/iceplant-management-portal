@@ -20,8 +20,8 @@ services:
       dockerfile: Dockerfile
     container_name: iceplant-portal
     ports:
-      - "8000:8000"
-      - "5173:5173"
+      - "8000:8000"   # Django backend
+      - "5173:5173"   # React frontend (serve)
     environment:
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
       POSTGRES_DB: iceplant_db

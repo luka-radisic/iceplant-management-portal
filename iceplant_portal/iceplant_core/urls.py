@@ -27,6 +27,9 @@ from django.views.static import serve
 from .auth import CustomObtainAuthToken
 
 urlpatterns = [
+    # Give api-token-auth highest precedence for debugging
+    path('api-token-auth/', CustomObtainAuthToken.as_view(), name='api_token_auth'),
+
     path('admin/', admin.site.urls),
     # API endpoints
     path('api/attendance/', include('attendance.api.urls')),
@@ -38,7 +41,6 @@ urlpatterns = [
     path('api/buyers/', include('buyers.api.urls')),
     path('api/maintenance/', include('maintenance.urls')),
     path('api-auth/', include('rest_framework.urls')),
-    path('api-token-auth/', CustomObtainAuthToken.as_view(), name='api_token_auth'),
     
     # Serve media files directly
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
