@@ -1,4 +1,5 @@
 export const endpoints = {
+  login: '/api-token-auth/',
   buyers: '/api/buyers/',
   companyConfig: '/api/company/config/',
   publicCompanyInfo: '/api/company/public-info/',
@@ -16,4 +17,4 @@ export const endpoints = {
   inventory: '/api/inventory/items/', // Assuming this is the path
   lowStock: '/api/inventory/low-stock/', // Assuming this is the path
   expensesTotal: '/api/expenses/total/' // Assuming this is the path
-}; 
+};

@@ -75,21 +75,81 @@ export default function Login() {
     setLoading(true);
     setError(null);
 
+    // Debug output to console
+    console.log('[Login] Attempting login for user:', formData.username);
+    console.log('[Login] Login endpoint:', '/api-token-auth/');
+
     try {
-      await authLogin(formData.username, formData.password);
-      enqueueSnackbar('Login successful', { variant: 'success' });
-      navigate('/', { replace: true });
-    } catch (error: any) {
-      console.error('Login error:', error);
-      let errorMessage = 'Login failed. Please try again.'; // Default error message
-      if (error.response?.status === 400) {
-        errorMessage = 'Invalid username or password';
-      } else if (error.message) {
-         // Use a more specific message if available from the error object
-        errorMessage = `Login failed: ${error.message}`;
+      // Direct fetch for debugging
+      console.log('[Login] Creating URLSearchParams');
+      const params = new URLSearchParams();
+      params.append('username', formData.username);
+      params.append('password', formData.password);
+      
+      console.log('[Login] Starting fetch request');
+      // Use direct fetch to see exactly what's happening with the request
+      const fetchResponse = await fetch('/api-token-auth/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          // Add a custom header to help track this request in server logs
+          'X-Debug-Login': 'true'
+        },
+        body: params
+      });
+      
+      console.log('[Login] Fetch status:', fetchResponse.status);
+      console.log('[Login] Response headers:', Object.fromEntries([...fetchResponse.headers.entries()]));
+      
+      // Early check to see the raw response
+      const responseText = await fetchResponse.text();
+      console.log('[Login] Response body (raw):', responseText);
+      
+      let data;
+      try {
+        // Try to parse the JSON response
+        data = JSON.parse(responseText);
+        console.log('[Login] Parsed response data:', data);
+      } catch (error) {
+        console.error('[Login] Failed to parse JSON response:', error);
+        throw new Error(`Failed to parse response: ${responseText.substring(0, 100)}...`);
       }
-      setError(errorMessage); // Update the Alert component message
-      enqueueSnackbar(errorMessage, { variant: 'error' }); // Add snackbar notification for error
+      
+      // If we've reached here, we have valid JSON data
+      if (data.token) {
+        console.log('[Login] Successfully received token');
+        // Fixed: Pass only username and token to match the AuthContext's login function signature
+        await authLogin(formData.username, data.token);
+        enqueueSnackbar('Login successful', { variant: 'success' });
+        navigate('/', { replace: true });
+      } else {
+        console.error('[Login] No token in response data');
+        throw new Error('Invalid response format: missing token');
+      }
+    } catch (error: any) {
+      console.error('[Login] Error details:', error);
+      
+      // Extract useful error information
+      let errorMessage = 'Login failed. Please check your username and password.';
+      if (error.response) {
+        // Axios error with response
+        console.error('[Login] Response status:', error.response.status);
+        console.error('[Login] Response headers:', error.response.headers);
+        console.error('[Login] Response data:', error.response.data);
+        
+        if (error.response.status === 400) {
+          errorMessage = 'Invalid username or password';
+        } else if (error.response.status === 404) {
+          errorMessage = 'Login endpoint not found (404). Please check server configuration.';
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server error occurred. Please try again later.';
+        }
+      } else if (error.message) {
+        errorMessage = `Login error: ${error.message}`;
+      }
+      
+      setError(errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -217,4 +277,4 @@ export default function Login() {
       </Container>
     </Box>
   );
-} 
+}

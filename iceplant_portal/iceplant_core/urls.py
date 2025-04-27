@@ -46,12 +46,28 @@ urlpatterns = [
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
     
-    # Frontend routes - Catch all non-API URLs and serve index.html
-    # Use re_path to ensure API routes are not caught by this
-    re_path(r'^(?!api/).*$', TemplateView.as_view(template_name='index.html'), name='react-app'),
+    # Explicit company info endpoint
+    path('api/company-info/', public_company_info, name='company-info'),
+]
+
+# Add Django Debug Toolbar URLs if in debug mode and the toolbar is installed
+if settings.DEBUG:
+    try:
+        import debug_toolbar
+        urlpatterns = [
+            path('__debug__/', include('debug_toolbar.urls')),
+        ] + urlpatterns
+    except ImportError:
+        pass
+
+# Frontend routes - Must be after all API routes
+# Catch all non-API URLs and serve index.html
+urlpatterns += [
+    re_path(r'^(?!(api|admin|api-token-auth|api-auth|media|static|__debug__)).*$', 
+            TemplateView.as_view(template_name='index.html'), name='react-app'),
+    
     # Keep the root path explicitly for home
     path('', TemplateView.as_view(template_name='index.html'), name='home'),
-    path('api/company-info/', public_company_info, name='company-info'),
 ]
 
 # Serve media and static files in development

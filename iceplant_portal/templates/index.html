@@ -4,94 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IcePlant Management Portal</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f7f9;
-            color: #333;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-        }
-        header {
-            background-color: #0e75b9;
-            color: white;
-            padding: 20px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        h1 {
-            margin: 0;
-            font-size: 2.5rem;
-        }
-        .subtitle {
-            margin-top: 10px;
-            font-size: 1.2rem;
-            opacity: 0.8;
-        }
-        .loading {
-            margin-top: 50px;
-            font-size: 1.2rem;
-        }
-        .feature-list {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 40px;
-        }
-        .feature-item {
-            background-color: white;
-            border-radius: 8px;
-            padding: 25px;
-            width: 250px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-        }
-        .feature-item:hover {
-            transform: translateY(-5px);
-        }
-        .feature-item h3 {
-            color: #0e75b9;
-            margin-top: 0;
-        }
-    </style>
+    {% load static %}
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    <!-- Include the CSS from the React build -->
+    <link rel="stylesheet" href="{% static 'index.css' %}">
 </head>
 <body>
-    <header>
-        <div class="container">
-            <h1>IcePlant Management Portal</h1>
-            <div class="subtitle">Efficient Ice Plant Operations Management</div>
-        </div>
-    </header>
+    <div id="root"></div>
     
-    <div class="container">
-        <div class="loading">
-            <p>Loading application...</p>
-        </div>
-        
-        <div class="feature-list">
-            <div class="feature-item">
-                <h3>Time and Attendance</h3>
-                <p>Track employee check-ins, calculate working hours, and manage department assignments.</p>
-            </div>
-            <div class="feature-item">
-                <h3>Sales Management</h3>
-                <p>Record ice block sales, track buyer information, and manage payment methods.</p>
-            </div>
-            <div class="feature-item">
-                <h3>Inventory Management</h3>
-                <p>Monitor ice block stock levels, track raw materials, and receive low stock alerts.</p>
-            </div>
-            <div class="feature-item">
-                <h3>Expense Tracking</h3>
-                <p>Record expenses, categorize them, and generate comprehensive expense reports.</p>
-            </div>
-        </div>
-    </div>
+    <!-- Include the JS from the React build -->
+    <script src="{% static 'index.js' %}"></script>
 </body>
-</html> 
+</html>

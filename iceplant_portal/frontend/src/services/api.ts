@@ -1,80 +1,60 @@
 import axios from 'axios';
 import { loggerService } from '../utils/logger';
+import { endpoints as apiEndpoints } from './endpoints';
 
-// Change from static URL to a dynamic URL that will work in all environments
-const API_BASE_URL = 'http://127.0.0.1:8000';
-
+// Create axios instance with default config
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  // Add timeout and withCredentials settings
-  timeout: 60000, // 60 seconds timeout - the huge data might need more time
+  baseURL: import.meta.env.VITE_API_URL || '',
+  timeout: 10000,
 });
 
-// Request interceptor for adding auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    // Skip adding token for login requests
-    if (token && !config.url?.includes('/api-token-auth/')) {
-      config.headers.Authorization = `Token ${token}`;
+// Add console logging for API requests if in development
+if (import.meta.env.MODE === 'development') {
+  api.interceptors.request.use(
+    (config) => {
+      console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, config);
+      return config;
+    },
+    (error) => {
+      console.error('API Request Error:', error);
+      return Promise.reject(error);
     }
-    // Log the request for debugging
-    console.log('API Request:', {
-      url: config.url,
-      method: config.method,
-      params: config.params,
-    });
-    loggerService.info('API Request', {
-      url: config.url,
-      method: config.method,
-      headers: config.headers,
-      params: config.params,
-    });
-    return config;
-  },
-  (error) => {
-    loggerService.error('API Request Error', {
-      error: error.toString(),
-      details: error.response?.data
-    });
-    return Promise.reject(error);
-  }
-);
+  );
 
-// Response interceptor for handling errors
-api.interceptors.response.use(
-  (response) => {
-    // Log successful response
-    console.log('API Response:', {
-      url: response.config.url,
-      status: response.status,
-    });
-    loggerService.info('API Response', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data,
-    });
-    return response;
-  },
-  (error) => {
-    // Log error response
-    console.error('API Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.message
-    });
-    loggerService.error('API Error', {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
-    return Promise.reject(error);
-  }
-);
+  api.interceptors.response.use(
+    (response) => {
+      console.log(`API Response: ${response.status} ${response.config.url}`, response.data);
+      return response;
+    },
+    (error) => {
+      console.error('API Response Error:', error);
+      return Promise.reject(error);
+    }
+  );
+}
+
+// Define authentication token handling
+const TOKEN_KEY = 'token';
+
+const setToken = (token: string) => {
+  localStorage.setItem(TOKEN_KEY, token);
+  api.defaults.headers.common['Authorization'] = `Token ${token}`;
+};
+
+const getToken = (): string | null => {
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+const removeToken = () => {
+  localStorage.removeItem(TOKEN_KEY);
+  delete api.defaults.headers.common['Authorization'];
+};
+
+// Initialize token from localStorage if available
+const storedToken = getToken();
+if (storedToken) {
+  api.defaults.headers.common['Authorization'] = `Token ${storedToken}`;
+}
 
 // API endpoints
 export const endpoints = {
@@ -142,84 +122,79 @@ const triggerFileDownload = (blob: Blob, filename: string) => {
   window.URL.revokeObjectURL(url);
 };
 
-// Generic API functions
-export const apiService = {
-  // Auth
+// API service object
+const apiService = {
+  // Authentication endpoints
   login: async (username: string, password: string) => {
-    const response = await api.post(endpoints.login, { username, password });
-    const { 
-      token, 
-      user_id, 
-      username: userName, 
-      email, 
-      is_superuser, 
-      is_staff, 
-      group,
-      first_name,
-      last_name,
-      full_name
-    } = response.data;
+    console.log('[Login] Attempting login for user:', username);
     
-    // Store token in localStorage
-    localStorage.setItem('token', token);
-    
-    // Create user object with all relevant information
-    const user = {
-      id: user_id,
-      username: userName,
-      email: email || '',
-      is_superuser: is_superuser || false,
-      is_staff: is_staff || false,
-      group: group || '',
-      first_name: first_name || '',
-      last_name: last_name || '',
-      full_name: full_name || userName
-    };
-    
-    // Store user data in localStorage
-    localStorage.setItem('user', JSON.stringify(user));
-    
-    return {
-      token,
-      user
-    };
+    // Use direct backend URL instead of relative URL to bypass Vite proxy
+    // This ensures we hit the Django backend directly
+    const backendUrl = 'http://localhost:8000';
+    const loginEndpoint = `/api-token-auth/`;
+    console.log('[Login] Login endpoint:', loginEndpoint);
+
+    // Create form data
+    const params = new URLSearchParams();
+    params.append('username', username);
+    params.append('password', password);
+    console.log('[Login] Creating URLSearchParams');
+
+    try {
+      console.log('[Login] Starting fetch request');
+      
+      // Make direct request to backend
+      const response = await fetch(`${backendUrl}${loginEndpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params,
+      });
+
+      console.log('[Login] Fetch status:', response.status);
+      console.log('[Login] Response headers:', response.headers);
+      
+      const responseText = await response.text();
+      console.log('[Login] Response body (raw):', responseText);
+      
+      try {
+        // Parse the response as JSON
+        const data = JSON.parse(responseText);
+        
+        // Save token to localStorage and configure axios
+        if (data.token) {
+          setToken(data.token);
+        }
+        
+        return data;
+      } catch (parseError) {
+        console.log('[Login] Failed to parse JSON response:', parseError);
+        throw new Error(`Failed to parse response: ${responseText.substring(0, 100)}...`);
+      }
+    } catch (error) {
+      console.log('[Login] Error details:', error);
+      throw error;
+    }
+  },
+  
+  logout: () => {
+    removeToken();
+  },
+  
+  isAuthenticated: () => {
+    return !!getToken();
   },
 
-  // User registration - Removed
-  /*
-  register: async (userData: {
-    username: string;
-    email: string;
-    password: string;
-    admin_code?: string;
-  }) => {
-    const response = await api.post(endpoints.register, userData);
-    return response.data;
-  },
-  */
-
-  // User management (admin only) - Removed
-  /*
-  getUsers: async () => {
-    return apiService.get(endpoints.users);
+  // User endpoints
+  getCurrentUser: async () => {
+    return api.get('/api/users/me/').then(response => response.data);
   },
 
-  getUserById: async (userId: number) => {
-    return apiService.get(`${endpoints.users}${userId}/`);
+  // Company info endpoints
+  getCompanyInfo: async () => {
+    return api.get('/api/company/public-info/').then(response => response.data);
   },
-
-  createUser: async (userData: any) => {
-    return apiService.post(endpoints.users, userData);
-  },
-
-  updateUser: async (userId: number, userData: any) => {
-    return apiService.put(`${endpoints.users}${userId}/`, userData);
-  },
-
-  deleteUser: async (userId: number) => {
-    return apiService.delete(`${endpoints.users}${userId}/`);
-  },
-  */
 
   // GET requests
   get: async (endpoint: string, params?: any) => {
@@ -547,4 +522,4 @@ export const apiService = {
   },
 };
 
-export default apiService; 
+export default apiService;

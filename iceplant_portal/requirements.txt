@@ -8,4 +8,5 @@ psycopg2-binary==2.9.10
 Pillow==11.1.0
 python-dateutil==2.9.0.post0
 pytz==2025.1
-django-filter==24.1 
+django-filter==24.1
+django-debug-toolbar==4.3.0

@@ -24,6 +24,9 @@ services:
       - "5173:5173"   # React frontend (serve)
     environment:
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      DJANGO_CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173" 
+      DJANGO_DEBUG: "True"
+      DJANGO_AUTH_TOKEN_URL: "/api-token-auth/"
       POSTGRES_DB: iceplant_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -33,10 +36,23 @@ services:
       - db
     networks:
       - iceplantnet
+    volumes:
+      - ./iceplant_portal:/app/iceplant_portal
+      - static_volume:/app/iceplant_portal/staticfiles
+      - media_volume:/app/iceplant_portal/media
+      - frontend_dist:/app/iceplant_portal/frontend/dist
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   pgdata:
     driver: local
+  static_volume:
+  media_volume:
+  frontend_dist:
 
 networks:
   iceplantnet:
