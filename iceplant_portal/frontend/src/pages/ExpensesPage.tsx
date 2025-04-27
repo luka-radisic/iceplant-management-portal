@@ -45,7 +45,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
-import { apiService, endpoints } from '../services/api';
+import apiService, { endpoints } from '../services/api';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
 import { useAuth } from '../contexts/AuthContext';
