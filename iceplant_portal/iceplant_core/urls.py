@@ -20,15 +20,15 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
-from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.views import obtain_auth_token
 from django.views.static import serve
 
-# Import our custom auth token view
+# Import our custom auth token view (keeping for reference)
 from .auth import CustomObtainAuthToken
 
 urlpatterns = [
     # Give api-token-auth highest precedence for debugging
-    path('api-token-auth/', CustomObtainAuthToken.as_view(), name='api_token_auth'),
+    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
 
     path('admin/', admin.site.urls),
     # API endpoints
