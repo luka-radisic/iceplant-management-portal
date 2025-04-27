@@ -33,7 +33,7 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
-import { apiService } from '../services/api';
+import apiService from '../services/api';
 import { Buyer } from '../types/buyers';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -694,4 +694,4 @@ const BuyersPage: React.FC = () => {
   );
 };
 
-export default BuyersPage; 
+export default BuyersPage;

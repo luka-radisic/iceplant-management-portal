@@ -23,7 +23,7 @@ import {
 import { useSnackbar } from 'notistack';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SaveIcon from '@mui/icons-material/Save';
-import { apiService } from '../services/api';
+import apiService from '../services/api';
 import { CompanySettings, defaultCompanySettings } from '../types/company';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -567,4 +567,4 @@ const CompanySettingsPage: React.FC = () => {
   );
 };
 
-export default CompanySettingsPage; 
+export default CompanySettingsPage;

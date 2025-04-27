@@ -29,7 +29,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import HistoryIcon from '@mui/icons-material/History';
-import { apiService, endpoints } from '../services/api';
+import apiService, { endpoints } from '../services/api';
 import { useSnackbar } from 'notistack';
 
 interface InventoryItem {
@@ -833,4 +833,4 @@ const InventoryPage = () => {
   );
 };
 
-export default InventoryPage; 
+export default InventoryPage;

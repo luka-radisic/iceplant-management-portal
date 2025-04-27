@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Grid, Paper, Typography, Box, CircularProgress, Card, CardContent, Divider, useTheme, alpha, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import React, { useEffect, useState, ReactNode } from 'react';
+import { Grid, Typography, Box, CircularProgress, Card, CardContent, useTheme, alpha, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {
   BarChart,
   PieChart,
@@ -13,12 +13,70 @@ import {
   Warning as WarningIcon,
   CalendarMonth as CalendarIcon,
 } from '@mui/icons-material';
+import { SvgIconProps } from '@mui/material/SvgIcon';
 import { useSnackbar } from 'notistack';
 import apiService, { endpoints } from '../services/api';
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from 'date-fns';
 
+// Define types for the dashboard data
+interface SalesDataPoint {
+  month: string;
+  amount: number;
+  color: string;
+}
+
+interface InventoryDataPoint {
+  id: number;
+  value: number;
+  label: string;
+  color: string;
+}
+
+interface LowStockItem {
+  id: number;
+  item_name: string;
+  quantity: number;
+  unit: string;
+  minimum_level: number;
+}
+
+interface DashboardData {
+  employeesPresent: number;
+  employeesTotal: number;
+  employeesTrend: number;
+  todaySales: number;
+  yesterdaySales: number;
+  salesTrend: number;
+  salesData: SalesDataPoint[];
+  inventoryData: InventoryDataPoint[];
+  iceBlocksTotal: number;
+  iceBlocksLow: boolean;
+  lowStockItems: LowStockItem[];
+  monthlyExpenses: number;
+  prevMonthExpenses: number;
+  expensesTrend: number;
+}
+
+// Types for component props
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon?: typeof PeopleIcon;
+  color?: string;
+  trend?: number;
+  trendLabel?: string;
+  subtitle?: string;
+}
+
+interface ChartContainerProps {
+  title: string;
+  children: ReactNode;
+  icon?: React.ComponentType<SvgIconProps>;
+  color?: string;
+}
+
 // Modern stat card with animations and better styling
-const StatCard = ({ title, value, icon: Icon, color, subtitle = null, trend = null }: any) => {
+const StatCard = ({ title, value, icon: Icon, color = '#1976d2', subtitle = '', trend = null }: StatCardProps) => {
   const theme = useTheme();
   
   return (
@@ -60,7 +118,7 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle = null, trend = nu
             color: color,
             display: 'flex',
           }}>
-            <Icon fontSize="small" />
+            {Icon && <Icon fontSize="small" />}
           </Box>
         </Box>
         
@@ -91,40 +149,26 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle = null, trend = nu
 };
 
 // Chart container component
-const ChartContainer = ({ title, children, icon: Icon = null, color = 'primary.main' }) => {
+const ChartContainer = ({ title, children, icon: Icon, color }: ChartContainerProps) => {
   const theme = useTheme();
   
   return (
-    <Card 
-      elevation={3} 
-      sx={{ 
-        height: '100%',
-        transition: 'transform 0.3s, box-shadow 0.3s',
-        '&:hover': {
-          transform: 'translateY(-5px)',
-          boxShadow: theme.shadows[10],
-        },
-        borderRadius: 2,
-        overflow: 'hidden',
-      }}
-    >
+    <Card sx={{ height: '100%' }} elevation={2}>
       <Box sx={{ 
-        p: 2, 
         display: 'flex', 
         alignItems: 'center', 
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        backgroundColor: alpha(theme.palette.primary.main, 0.05)
+        p: 2,
+        pb: 1,
+        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}` 
       }}>
         {Icon && (
-          <Box 
-            sx={{ 
-              mr: 1.5, 
-              display: 'flex', 
-              p: 0.75, 
-              borderRadius: 1, 
-              backgroundColor: alpha(color, 0.1),
-              color: color
-            }}
+          <Box sx={{ 
+            mr: 2,
+            p: 1,
+            borderRadius: 1,
+            backgroundColor: color ? alpha(color, 0.1) : alpha(theme.palette.primary.main, 0.1),
+            color: color || theme.palette.primary.main
+          }}
           >
             <Icon fontSize="small" />
           </Box>
@@ -142,11 +186,11 @@ const ChartContainer = ({ title, children, icon: Icon = null, color = 'primary.m
 
 export default function Dashboard() {
   const { enqueueSnackbar } = useSnackbar();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const theme = useTheme();
-  const [timeRange, setTimeRange] = useState('this_month');
+  const [timeRange, setTimeRange] = useState<'this_month' | 'last_month' | 'this_year'>('this_month');
   
-  const [dashboardData, setDashboardData] = useState({
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
     employeesPresent: 0,
     employeesTotal: 0,
     employeesTrend: 0,
@@ -227,7 +271,7 @@ export default function Dashboard() {
             ? ((salesTrend / salesSummary.previous_total) * 100).toFixed(1) 
             : 0;
             
-          const formattedSalesData = salesSummary.monthly_data ? salesSummary.monthly_data.map(item => ({
+          const formattedSalesData = salesSummary.monthly_data ? salesSummary.monthly_data.map((item: { month: string; total: number }) => ({
             month: item.month,
             amount: item.total,
             color: theme.palette.primary.main,
@@ -251,15 +295,15 @@ export default function Dashboard() {
             : (Array.isArray(inventoryData) ? inventoryData : []);
             
           // Get ice blocks inventory
-          const iceBlocksItem = inventoryItems.find(item => 
+          const iceBlocksItem = inventoryItems.find((item: any) => 
             (item.item_name.toLowerCase().includes('block') || item.unit.toLowerCase() === 'block')
           );
           
           // Transform inventory data for pie chart
           const topInventoryItems = inventoryItems
-            .sort((a, b) => b.quantity - a.quantity)
+            .sort((a: any, b: any) => b.quantity - a.quantity)
             .slice(0, 5)
-            .map(item => ({
+            .map((item: any) => ({
               id: item.id,
               value: item.quantity,
               label: item.item_name,
@@ -339,7 +383,7 @@ export default function Dashboard() {
   }
 
   // Format numbers for display
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number) => {
     // Return 0 if amount is null, undefined, or NaN
     if (amount === null || amount === undefined || isNaN(Number(amount))) {
       return new Intl.NumberFormat('en-PH', {
@@ -358,18 +402,10 @@ export default function Dashboard() {
     }).format(amount);
   };
   
-  // Format percentage for display
-  const formatTrend = (value) => {
-    if (isNaN(value) || value === null || value === undefined) {
-      return '0%';
-    }
-    return value > 0 ? `+${value}%` : `${value}%`;
-  };
-
   // Handler for time range change
   const handleTimeRangeChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newTimeRange: string | null,
+    _event: React.MouseEvent<HTMLElement>,
+    newTimeRange: 'this_month' | 'last_month' | 'this_year' | null,
   ) => {
     if (newTimeRange !== null) {
       setTimeRange(newTimeRange);
@@ -469,8 +505,8 @@ export default function Dashboard() {
                     style: { 
                       fill: theme.palette.primary.main,
                       strokeWidth: 1,
-                      rx: 4, // Rounded corners
-                    },
+                      rx: 4, // Rounded corners - TS doesn't know about this SVG attribute
+                    } as React.CSSProperties,
                   },
                 }}
               />
@@ -554,4 +590,4 @@ export default function Dashboard() {
       </Grid>
     </Box>
   );
-} 
+}

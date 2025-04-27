@@ -46,7 +46,7 @@ import SummarizeIcon from '@mui/icons-material/Summarize';
 import { useSnackbar } from 'notistack';
 import SalesForm from '../components/sales/SalesForm';
 import StatusChip from '../components/common/StatusChip';
-import { apiService, endpoints } from '../services/api';
+import apiService, { endpoints } from '../services/api';
 import { Sale as BaseSale } from '../types/sales';
 
 interface SaleItem {
@@ -1556,4 +1556,4 @@ const SalesPage: React.FC = (): React.ReactElement => {
   );
 };
 
-export default SalesPage; 
+export default SalesPage;

@@ -16,7 +16,7 @@ import {
 import { useParams } from 'react-router-dom';
 import { Sale } from '../../types/sales';
 import { CompanySettings, defaultCompanySettings } from '../../types/company';
-import { apiService, endpoints } from '../../services/api';
+import apiService, { endpoints } from '../../services/api';
 import PrintIcon from '@mui/icons-material/Print';
 
 const SalePrintView: React.FC = () => {
@@ -399,4 +399,4 @@ const SalePrintView: React.FC = () => {
   );
 };
 
-export default SalePrintView; 
+export default SalePrintView;

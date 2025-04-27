@@ -10,7 +10,7 @@ import {
   AutocompleteChangeDetails
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
-import { apiService, endpoints } from '../../services/api';
+import apiService, { endpoints } from '../../services/api';
 import { BuyerLight } from '../../types/buyers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -925,4 +925,4 @@ const SalesForm: React.FC<SalesFormProps> = (props) => {
   );
 };
 
-export default SalesForm; 
+export default SalesForm;
