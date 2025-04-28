@@ -81,21 +81,22 @@ export default function Login() {
 
     try {
       // Direct fetch for debugging
-      console.log('[Login] Creating URLSearchParams');
-      const params = new URLSearchParams();
-      params.append('username', formData.username);
-      params.append('password', formData.password);
+      console.log('[Login] Creating JSON body');
+      const body = JSON.stringify({
+        username: formData.username,
+        password: formData.password
+      });
       
       console.log('[Login] Starting fetch request');
       // Use direct fetch to see exactly what's happening with the request
       const fetchResponse = await fetch('/api-token-auth/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
           // Add a custom header to help track this request in server logs
           'X-Debug-Login': 'true'
         },
-        body: params
+        body: body
       });
       
       console.log('[Login] Fetch status:', fetchResponse.status);
