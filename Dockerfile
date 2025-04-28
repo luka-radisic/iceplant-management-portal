@@ -17,6 +17,15 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install OpenSSH server
+RUN apt-get update && apt-get install -y openssh-server && \
+    mkdir /var/run/sshd && \
+    echo 'root:root' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd && \
+    mkdir -p /root/.ssh && chmod 700 /root/.ssh
+
 # Install Node.js 20.x
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && apt-get install -y nodejs && \
@@ -38,6 +47,12 @@ RUN python -m django --version
 # Ensure 'import os' is present before patching ALLOWED_HOSTS and CORS
 RUN grep -q '^import os' iceplant_core/settings.py || sed -i '1s/^/import os\n/' iceplant_core/settings.py
 RUN sed -i "s/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',')/" iceplant_core/settings.py
+
+# Expose SSH port
+EXPOSE 22
+
+# Start SSH service and keep container running
+CMD ["/usr/sbin/sshd", "-D"]
 
 # Ensure STATIC_URL is set to fix collectstatic crash
 RUN grep -q '^STATIC_URL' iceplant_core/settings.py || echo "\nSTATIC_URL = '/static/'\nSTATIC_ROOT = BASE_DIR / 'staticfiles'" >> iceplant_core/settings.py
