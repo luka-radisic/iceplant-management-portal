@@ -1,3 +1,4 @@
+// frontend/src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface User {
@@ -15,7 +16,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   isSuperuser: boolean;
-  // note: login now takes a token, not a password
+
+  // Changed: login now takes a token, not a password
   login: (username: string, token: string) => void;
   logout: () => void;
 }
@@ -31,11 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (stored) {
       try {
         const parsed: User = JSON.parse(stored);
-        // normalize legacy key if needed
+        // normalize legacy is_superuser if present
         if ((parsed as any).is_superuser !== undefined && parsed.isSuperuser === undefined) {
           parsed.isSuperuser = (parsed as any).is_superuser === true;
         }
-        // coerce booleans
+        // coerce to boolean
         parsed.isSuperuser = Boolean(parsed.isSuperuser);
         parsed.isAdmin      = Boolean(parsed.isAdmin);
         setUser(parsed);
@@ -46,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  // 🔥 NEW: no more network call here!
+  // 🔥 NEW: no network call here, just store the token + user info
   const login = (username: string, token: string) => {
     // persist token
     localStorage.setItem('token', token);
@@ -59,7 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isSuperuser: false,
       token,
     };
-
     localStorage.setItem('user', JSON.stringify(userObj));
     setUser(userObj);
   };
