@@ -11,18 +11,19 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       proxy: {
-        '/api/': {
+        // forward everything under /api to your Django backend
+        '/api': {
           target: BACKEND,
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/api/, '')
         },
-        '/api-token-auth/': {
+        // forward login requests to the Django backend
+        '/api-token-auth': {
           target: BACKEND,
           changeOrigin: true,
-          secure: false
+          secure: false,
         },
-      }
-    }
+      },
+    },
   }
 })

@@ -89,7 +89,8 @@ export default function Login() {
       
       console.log('[Login] Starting fetch request');
       // Use direct fetch to see exactly what's happening with the request
-      const fetchResponse = await fetch('/api-token-auth/', {
+      // Updated URL to match Django backend configuration
+      const fetchResponse = await fetch('/api/api-token-auth/', {
         method: 'POST',
         headers: {
           'Content-Type':  'application/json',
