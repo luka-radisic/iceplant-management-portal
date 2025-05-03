@@ -89,6 +89,7 @@ export default function DashboardLayout() {
   
   // Check if user is a superuser
   const isSuperuser = user?.isSuperuser === true;
+  console.log('[DashboardLayout] isSuperuser:', isSuperuser); // Add console log
 
   const handleDrawerToggle = () => {
     setOpen(!open);

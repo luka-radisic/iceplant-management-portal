@@ -30,9 +30,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
+    console.log('[AuthContext] Raw user data from localStorage:', stored); // Log raw data
     if (stored) {
       try {
         const parsed: User = JSON.parse(stored);
+        console.log('[AuthContext] Parsed user data from localStorage:', parsed); // Log parsed data
         // normalize legacy is_superuser if present
         if ((parsed as any).is_superuser !== undefined && parsed.isSuperuser === undefined) {
           parsed.isSuperuser = (parsed as any).is_superuser === true;
@@ -40,8 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // coerce to boolean
         parsed.isSuperuser = Boolean(parsed.isSuperuser);
         parsed.isAdmin      = Boolean(parsed.isAdmin);
+        console.log('[AuthContext] Final user data after normalization:', parsed); // Log final data
         setUser(parsed);
       } catch {
+        console.error('[AuthContext] Failed to parse user data from localStorage'); // Log parsing errors
         setUser(null);
       }
     }
@@ -55,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('token', userData.token);
 
     // Store the full user data object
+    console.log('[AuthContext] Storing user data in localStorage:', userData); // Log data being stored
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };

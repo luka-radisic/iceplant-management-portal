@@ -55,7 +55,7 @@ function TabPanel(props: TabPanelProps) {
 
 const CompanySettingsPage: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -180,10 +180,11 @@ const CompanySettingsPage: React.FC = () => {
     setActiveTab(newValue);
   };
 
-  if (!isAdmin) {
+  // Check if user is a superuser for access
+  if (!user?.isSuperuser) {
     return (
       <Box sx={{ p: 4 }}>
-        <Alert severity="warning">You need admin privileges to access company settings.</Alert>
+        <Alert severity="warning">You need superuser privileges to access company settings.</Alert>
       </Box>
     );
   }
