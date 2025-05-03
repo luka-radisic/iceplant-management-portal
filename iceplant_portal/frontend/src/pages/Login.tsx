@@ -142,8 +142,8 @@ export default function Login() {
       // If we've reached here, we have valid JSON data
       if (data.token) {
         console.log('[Login] Successfully received token');
-        // Fixed: Pass only username and token to match the AuthContext's login function signature
-        await authLogin(formData.username, data.token);
+        // Updated: Pass the full user data object to authLogin
+        await authLogin(data);
         enqueueSnackbar('Login successful', { variant: 'success' });
         navigate('/', { replace: true });
       } else {

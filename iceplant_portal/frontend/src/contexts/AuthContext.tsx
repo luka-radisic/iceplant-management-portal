@@ -17,8 +17,8 @@ interface AuthContextType {
   isAdmin: boolean;
   isSuperuser: boolean;
 
-  // Changed: login now takes a token, not a password
-  login: (username: string, token: string) => void;
+  // Changed: login now takes a user object including token
+  login: (userData: User) => void;
   logout: () => void;
 }
 
@@ -49,20 +49,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // 🔥 NEW: no network call here, just store the token + user info
-  const login = (username: string, token: string) => {
+  // Updated: login now takes a user data object
+  const login = (userData: User) => {
     // persist token
-    localStorage.setItem('token', token);
+    localStorage.setItem('token', userData.token);
 
-    const userObj: User = {
-      username,
-      full_name: username,
-      group: null,
-      isAdmin: false,
-      isSuperuser: false,
-      token,
-    };
-    localStorage.setItem('user', JSON.stringify(userObj));
-    setUser(userObj);
+    // Store the full user data object
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
   };
 
   const logout = () => {
