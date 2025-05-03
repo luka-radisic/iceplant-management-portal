@@ -21,8 +21,12 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
+    expose:
+      - "8000"
+    # you can still publish to host if you like:
     ports:
       - "8000:8000"
+      
     environment:
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,backend"
       DJANGO_CORS_ALLOWED_ORIGINS: "http://localhost:5173"
