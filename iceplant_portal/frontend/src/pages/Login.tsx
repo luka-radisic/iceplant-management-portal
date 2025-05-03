@@ -96,6 +96,7 @@ export default function Login() {
           // Add a custom header to help track this request in server logs
           'X-Debug-Login': 'true'
         },
+        credentials: 'include', // Include cookies if needed
         body: body
       });
       

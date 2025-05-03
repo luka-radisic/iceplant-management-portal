@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   db:
     image: postgres:15
@@ -14,20 +12,21 @@ services:
     networks:
       - iceplantnet
 
-  web:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: iceplant-portal
+    container_name: iceplant-backend
+    working_dir: /app/iceplant_portal
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
     ports:
-      - "8000:8000"   # Django backend
-      - "5173:5173"   # React frontend (serve)
-      - "2222:22"     # SSH access to container
+      - "8000:8000"
     environment:
       DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
-      DJANGO_CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173" 
+      DJANGO_CORS_ALLOWED_ORIGINS: "http://localhost:5173"
       DJANGO_DEBUG: "True"
-      DJANGO_AUTH_TOKEN_URL: "/api-token-auth/"
       POSTGRES_DB: iceplant_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -35,25 +34,30 @@ services:
       POSTGRES_PORT: 5432
     depends_on:
       - db
-    networks:
-      - iceplantnet
     volumes:
       - ./iceplant_portal:/app/iceplant_portal
-      - static_volume:/app/iceplant_portal/staticfiles
-      - media_volume:/app/iceplant_portal/media
-      - frontend_dist:/app/iceplant_portal/frontend/dist
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    networks:
+      - iceplantnet
+
+  frontend:
+    image: node:18-alpine
+    container_name: iceplant-frontend
+    working_dir: /app
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_BACKEND_URL: "http://backend:8000"
+    volumes:
+      - ./iceplant_portal/frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - iceplantnet
 
 volumes:
   pgdata:
-    driver: local
-  static_volume:
-  media_volume:
-  frontend_dist:
 
 networks:
   iceplantnet:
