@@ -15,7 +15,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   isSuperuser: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  // note: login now takes a token, not a password
+  login: (username: string, token: string) => void;
   logout: () => void;
 }
 
@@ -26,75 +27,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const stored = localStorage.getItem('user');
+    if (stored) {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        // Patch: ensure consistent property names 
-        if (parsedUser.is_superuser !== undefined && parsedUser.isSuperuser === undefined) {
-          parsedUser.isSuperuser = parsedUser.is_superuser;
+        const parsed: User = JSON.parse(stored);
+        // normalize legacy key if needed
+        if ((parsed as any).is_superuser !== undefined && parsed.isSuperuser === undefined) {
+          parsed.isSuperuser = (parsed as any).is_superuser === true;
         }
-        // Ensure is_superuser is boolean
-        parsedUser.isSuperuser = parsedUser.isSuperuser === true || parsedUser.isSuperuser === 'true';
-        parsedUser.isAdmin = parsedUser.isAdmin === true || parsedUser.isAdmin === 'true';
-        setUser(parsedUser);
-      } catch (e) {
-        console.error('Failed to parse user from localStorage', e);
+        // coerce booleans
+        parsed.isSuperuser = Boolean(parsed.isSuperuser);
+        parsed.isAdmin      = Boolean(parsed.isAdmin);
+        setUser(parsed);
+      } catch {
         setUser(null);
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api-token-auth/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      if (!response.ok) throw new Error('Invalid credentials');
-      const data = await response.json();
+  // 🔥 NEW: no more network call here!
+  const login = (username: string, token: string) => {
+    // persist token
+    localStorage.setItem('token', token);
 
-      const token = data.token;
-      const isAdmin = data.is_staff ?? false;
-      // Use is_superuser from backend but store as isSuperuser for frontend consistency
-      const isSuperuser = data.is_superuser ?? false;
+    const userObj: User = {
+      username,
+      full_name: username,
+      group: null,
+      isAdmin: false,
+      isSuperuser: false,
+      token,
+    };
 
-      const userObj = {
-        username,
-        full_name: data.full_name ?? username,
-        group: data.group ?? null,
-        isAdmin,
-        isSuperuser,
-        token
-      };
-      localStorage.setItem('user', JSON.stringify(userObj));
-      localStorage.setItem('token', token);
-      localStorage.setItem('username', username);
-      localStorage.setItem('isAdmin', String(isAdmin));
-      localStorage.setItem('isSuperuser', String(isSuperuser));
-
-      setUser({
-        username,
-        full_name: data.full_name ?? username,
-        group: data.group ?? null,
-        isAdmin,
-        isSuperuser,
-        token
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    localStorage.setItem('user', JSON.stringify(userObj));
+    setUser(userObj);
   };
 
   const logout = () => {
-    localStorage.removeItem('user');
     localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('isSuperuser');
+    localStorage.removeItem('user');
     setUser(null);
   };
 
@@ -116,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 };
