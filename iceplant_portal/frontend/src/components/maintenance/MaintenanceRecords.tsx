@@ -71,9 +71,23 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<ModalType>(ModalType.ADD);
-  const [currentRecord, setCurrentRecord] = useState<MaintenanceRecord | null>(null);
-  const [formData, setFormData] = useState({
-    maintenance_item: 0,
+  const [currentRecord, setCurrentRecord] = useState<MaintenanceRecord | null>(null);  // Define explicit interface for form data to ensure consistency
+  interface MaintenanceFormData {
+    maintenance_item_id: number;
+    maintenance_date: string;
+    maintenance_type: string;
+    performed_by: string;
+    cost: number;
+    parts_replaced: string;
+    duration: number;
+    issues_found: string;
+    actions_taken: string;
+    recommendations: string;
+    status: string;
+  }
+  
+  const [formData, setFormData] = useState<MaintenanceFormData>({
+    maintenance_item_id: 0, // Changed field name to match backend
     maintenance_date: '',
     maintenance_type: 'scheduled',
     performed_by: '',
@@ -178,7 +192,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       
       if (type === ModalType.EDIT) {
         setFormData({
-          maintenance_item: record.maintenance_item,
+          maintenance_item_id: record.maintenance_item.id, // Extract ID from nested object
           maintenance_date: record.maintenance_date,
           maintenance_type: record.maintenance_type,
           performed_by: record.performed_by,
@@ -190,12 +204,11 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
           recommendations: record.recommendations || '',
           status: record.status,
         });
-      }
-    } else {
+      }    } else {
       // Reset form for add new
       setCurrentRecord(null);
       setFormData({
-        maintenance_item: equipment.length > 0 ? equipment[0].id : 0,
+        maintenance_item_id: equipment.length > 0 ? equipment[0].id : 0,
         maintenance_date: new Date().toISOString().split('T')[0],
         maintenance_type: 'scheduled',
         performed_by: '',
@@ -215,13 +228,31 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
   const handleCloseModal = () => {
     setModalOpen(false);
   };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name as string]: value,
-    });
+    
+    // Process appropriate type conversions for different fields
+    if (name === 'maintenance_item_id') {
+      // Convert string value to number for IDs
+      const numericValue = parseInt(value as string, 10);
+      setFormData({
+        ...formData,
+        [name]: isNaN(numericValue) ? 0 : numericValue,
+      });
+    } else if (name === 'cost' || name === 'duration') {
+      // Convert string value to number for numeric fields
+      const numericValue = parseFloat(value as string);
+      setFormData({
+        ...formData,
+        [name]: isNaN(numericValue) ? 0 : numericValue,
+      });
+    } else {
+      // Keep as string for other fields
+      setFormData({
+        ...formData,
+        [name as string]: value,
+      });
+    }
   };
 
   const handleDateChange = (newValue: Date | null) => {
@@ -237,39 +268,84 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
       ...formData,
       maintenance_date: formattedValue,
     });
-  };
-
-  const handleAddRecord = async () => {
+  };  const handleAddRecord = async () => {
     try {
       setLoading(true);
-      await apiService.post(endpoints.maintenanceRecords, formData);
+      console.log('Submitting form data:', formData);
+      
+      // If maintenance_item_id is 0 or undefined, it means no item was selected
+      if (!formData.maintenance_item_id) {
+        enqueueSnackbar('Please select equipment for the maintenance record', { variant: 'warning' });
+        setLoading(false);
+        return;
+      }
+        // Create a modified payload that includes maintenance_item field for the backend
+      // The Django REST Framework serializer expects this field name
+      const apiPayload = {
+        ...formData,
+        maintenance_item: formData.maintenance_item_id
+      };
+      
+      console.log('Sending payload to API:', apiPayload);
+      await apiService.post(endpoints.maintenanceRecords, apiPayload);
       
       // Refresh records after adding
       fetchData(page);
       enqueueSnackbar('Maintenance record added successfully', { variant: 'success' });
       handleCloseModal();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error adding maintenance record:', err);
-      enqueueSnackbar('Failed to add maintenance record', { variant: 'error' });
+      // Enhanced error reporting
+      if (err.response && err.response.data) {
+        console.error('Server error details:', err.response.data);
+        // Extract error message if available
+        const errorMessage = err.response.data.detail || 
+          (typeof err.response.data === 'string' ? err.response.data : 'Unknown error');
+        enqueueSnackbar(`Failed to add maintenance record: ${errorMessage}`, { variant: 'error' });
+      } else {
+        enqueueSnackbar('Failed to add maintenance record', { variant: 'error' });
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEditRecord = async () => {
+  };  const handleEditRecord = async () => {
     if (!currentRecord) return;
     
     try {
       setLoading(true);
-      await apiService.put(`${endpoints.maintenanceRecords}${currentRecord.id}/`, formData);
+      console.log('Editing record with data:', formData);
+      
+      // If maintenance_item_id is 0 or undefined, it means no item was selected
+      if (!formData.maintenance_item_id) {
+        enqueueSnackbar('Please select equipment for the maintenance record', { variant: 'warning' });
+        setLoading(false);
+        return;
+      }      // Create a modified payload that includes maintenance_item field for the backend
+      // The Django REST Framework serializer expects this field name
+      const apiPayload = {
+        ...formData,
+        // Include both fields to cover all cases - the backend should use one of them
+        maintenance_item: formData.maintenance_item_id
+      };
+      
+      console.log('Edit payload with explicit maintenance_item field:', apiPayload);
+      await apiService.put(`${endpoints.maintenanceRecords}${currentRecord.id}/`, apiPayload);
       
       // Refresh records after editing
       fetchData(page);
       enqueueSnackbar('Maintenance record updated successfully', { variant: 'success' });
       handleCloseModal();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating maintenance record:', err);
-      enqueueSnackbar('Failed to update maintenance record', { variant: 'error' });
+      // Enhanced error reporting
+      if (err.response && err.response.data) {
+        console.error('Server error details:', err.response.data);
+        const errorMessage = err.response.data.detail || 
+          (typeof err.response.data === 'string' ? err.response.data : 'Unknown error');
+        enqueueSnackbar(`Failed to update maintenance record: ${errorMessage}`, { variant: 'error' });
+      } else {
+        enqueueSnackbar('Failed to update maintenance record', { variant: 'error' });
+      }
     } finally {
       setLoading(false);
     }
@@ -364,19 +440,24 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
               {modalType === ModalType.ADD ? 'Add New Maintenance Record' : 'Edit Maintenance Record'}
             </DialogTitle>
             <DialogContent>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} sm={6}>
+              <Grid container spacing={2} sx={{ mt: 1 }}>                <Grid item xs={12} sm={6}>
                   <FormControl fullWidth required>
                     <InputLabel id="equipment-label">Equipment</InputLabel>
                     <Select
                       labelId="equipment-label"
-                      name="maintenance_item"
-                      value={equipment.some(item => item.id === formData.maintenance_item) ? formData.maintenance_item : ''}
-                      onChange={handleInputChange}
+                      name="maintenance_item_id"
+                      value={formData.maintenance_item_id ? formData.maintenance_item_id.toString() : ''} 
+                      onChange={(e) => {
+                        const selectedId = parseInt(e.target.value, 10);
+                        setFormData({
+                          ...formData,
+                          maintenance_item_id: isNaN(selectedId) ? 0 : selectedId
+                        });
+                      }}
                       label="Equipment"
                     >
                       {equipment.map((item) => (
-                        <MenuItem key={item.id} value={item.id}>
+                        <MenuItem key={item.id} value={item.id.toString()}>
                           {item.equipment_name} ({item.equipment_type})
                         </MenuItem>
                       ))}
@@ -524,7 +605,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
             <DialogContent>
               <Typography>
                 Are you sure you want to delete the maintenance record for
-                <strong> {currentRecord?.equipment_name}</strong> from
+                <strong> {currentRecord?.maintenance_item?.equipment_name}</strong> from
                 <strong> {currentRecord?.maintenance_date}</strong>?
                 This action cannot be undone.
               </Typography>
@@ -572,7 +653,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Equipment</Typography>
-                  <Typography variant="body1" gutterBottom>{currentRecord.equipment_name}</Typography>
+                  <Typography variant="body1" gutterBottom>{currentRecord.maintenance_item?.equipment_name}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Date</Typography>
@@ -1003,12 +1084,10 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
                         color: 'primary.main' 
                       }
                     }}
-                    title="View Record Details"
-                    id={labelId} // Add id for aria-labelledby
+                    title="View Record Details"                    id={labelId} // Add id for aria-labelledby
                   >
                     {record.maintenance_item?.equipment_name || 'N/A'}
                   </TableCell>
-                  <TableCell>{record.maintenance_item?.equipment_name || 'N/A'}</TableCell>
                   <TableCell>{formatDate(record.maintenance_date)}</TableCell>
                   <TableCell>{getMaintenanceTypeChip(record.maintenance_type)}</TableCell>
                   <TableCell>{record.performed_by}</TableCell>

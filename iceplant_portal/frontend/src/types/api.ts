@@ -170,8 +170,7 @@ export interface MaintenanceItem {
 
 export interface MaintenanceRecord {
   id: number;
-  maintenance_item: number;
-  equipment_name: string;
+  maintenance_item: MaintenanceItem; // Changed to MaintenanceItem object
   maintenance_date: string;
   maintenance_type: 'scheduled' | 'emergency' | 'preventive' | 'corrective';
   performed_by: string;
