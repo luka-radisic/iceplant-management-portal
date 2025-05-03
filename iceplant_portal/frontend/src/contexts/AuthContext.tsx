@@ -20,6 +20,10 @@ interface AuthContextType {
   // Changed: login now takes a user object including token
   login: (userData: User) => void;
   logout: () => void;
+  
+  // Group-based permission helpers
+  hasAccess: (module: string) => boolean;
+  isInGroup: (groupName: string | string[]) => boolean; 
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,6 +73,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
     setUser(null);
   };
+  // Helper function to check if user has access to a specific module
+  const hasAccess = (module: string): boolean => {
+    if (!user) return false;
+    if (user.isSuperuser) return true; // Superuser has access to everything
+    
+    // Module-specific group access rules
+    const moduleAccessMapping: Record<string, string[]> = {
+      'attendance': ['HR', 'Managers', 'Admins'],
+      'sales': ['Sales', 'Accounting', 'Managers', 'Admins'],
+      'inventory': ['Inventory', 'Operations', 'Managers', 'Admins'],
+      'expenses': ['Accounting', 'Finance', 'Managers', 'Admins'],
+      'maintenance': ['Maintenance', 'Operations', 'Managers', 'Admins'],
+      'buyers': ['Sales', 'Accounting', 'Managers', 'Admins'],
+    };
+    
+    const allowedGroups = moduleAccessMapping[module] || [];
+    return isInGroup(allowedGroups);
+  };
+  
+  // Helper function to check if user belongs to one of the specified groups
+  const isInGroup = (groupName: string | string[]): boolean => {
+    if (!user || !user.group) return false;
+    if (user.isSuperuser) return true; // Superuser is considered in all groups
+    
+    const groups = Array.isArray(groupName) ? groupName : [groupName];
+    return groups.includes(user.group);
+  };
 
   return (
     <AuthContext.Provider
@@ -80,6 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSuperuser: user?.isSuperuser ?? false,
         login,
         logout,
+        hasAccess,
+        isInGroup,
       }}
     >
       {children}

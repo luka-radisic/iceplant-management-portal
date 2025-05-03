@@ -14,6 +14,7 @@ import {
   Lock as LockIcon,
   ConstructionOutlined as BuildIcon,
 } from '@mui/icons-material';
+import GroupAwareNavigation from '../components/GroupAwareNavigation';
 import {
   AppBar,
   Box,
@@ -57,28 +58,72 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
   }),
 }));
 
-// Regular menu items for all users
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Attendance', icon: <PeopleIcon />, path: '/attendance' },
-  { text: 'Sales', icon: <SalesIcon />, path: '/sales' },
-  { text: 'Buyers', icon: <BusinessIcon />, path: '/buyers' },
-  { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
-  { text: 'Expenses', icon: <ExpensesIcon />, path: '/expenses' },
-  { text: 'Maintenance', icon: <BuildIcon />, path: '/maintenance' },
-];
-
-// Superuser-only menu items
-const superuserMenuItems = [
-  { text: 'Tools', icon: <ToolsIcon />, path: '/tools' },
-  { text: 'Company Settings', icon: <SettingsIcon />, path: '/company-settings' },
-];
-
-// Admin-only menu items
-const adminMenuItems = [
-  // { text: 'User Management', icon: <AdminIcon />, path: '/admin' },
-  // { text: 'User Permissions', icon: <LockIcon />, path: '/admin/permissions' },
-  // Moved to superuserMenuItems
+// Define all navigation items with their access requirements
+const navigationItems = [
+  { 
+    text: 'Dashboard', 
+    icon: <DashboardIcon />, 
+    path: '/' 
+  },
+  { 
+    text: 'Attendance', 
+    icon: <PeopleIcon />, 
+    path: '/attendance',
+    requiredModules: ['attendance'],
+    requiredGroups: ['HR', 'Managers', 'Admins'] 
+  },
+  { 
+    text: 'Sales', 
+    icon: <SalesIcon />, 
+    path: '/sales',
+    requiredModules: ['sales'],
+    requiredGroups: ['Sales', 'Accounting', 'Managers', 'Admins'] 
+  },
+  { 
+    text: 'Buyers', 
+    icon: <BusinessIcon />, 
+    path: '/buyers',
+    requiredModules: ['buyers'],
+    requiredGroups: ['Sales', 'Accounting', 'Managers', 'Admins'] 
+  },
+  { 
+    text: 'Inventory', 
+    icon: <InventoryIcon />, 
+    path: '/inventory',
+    requiredModules: ['inventory'],
+    requiredGroups: ['Inventory', 'Operations', 'Managers', 'Admins'] 
+  },
+  { 
+    text: 'Expenses', 
+    icon: <ExpensesIcon />, 
+    path: '/expenses',
+    requiredModules: ['expenses'],
+    requiredGroups: ['Accounting', 'Finance', 'Managers', 'Admins'] 
+  },
+  { 
+    text: 'Maintenance', 
+    icon: <BuildIcon />, 
+    path: '/maintenance',
+    requiredModules: ['maintenance'],
+    requiredGroups: ['Maintenance', 'Operations', 'Managers', 'Admins'] 
+  },
+  { 
+    text: 'Tools', 
+    icon: <ToolsIcon />, 
+    path: '/tools',
+    superuserOnly: true
+  },  { 
+    text: 'Company Settings', 
+    icon: <SettingsIcon />, 
+    path: '/company-settings',
+    superuserOnly: true
+  },
+  { 
+    text: 'Group Management', 
+    icon: <AdminIcon />, 
+    path: '/group-management',
+    superuserOnly: true
+  },
 ];
 
 export default function DashboardLayout() {
@@ -128,11 +173,23 @@ export default function DashboardLayout() {
                     color: '#000'
                   }}
                 />
-              )}
-              <Typography variant="body1" fontWeight="medium" noWrap>
+              )}              <Typography 
+                variant="body1" 
+                fontWeight="medium" 
+                noWrap 
+                sx={{ cursor: 'pointer' }}
+                onClick={() => navigate('/profile')}
+              >
                 {user?.full_name || user?.username}
               </Typography>
             </Box>
+            <Button
+              color="inherit"
+              onClick={() => navigate('/profile')}
+              sx={{ mr: 1 }}
+            >
+              My Profile
+            </Button>
             <Button
               color="inherit"
               onClick={logout}
@@ -155,65 +212,10 @@ export default function DashboardLayout() {
             boxSizing: 'border-box',
           },
         }}
-      >
-        <Toolbar />
+      >        <Toolbar />
         <Box sx={{ overflow: 'auto' }}>
-          <List>
-            {menuItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  selected={location.pathname === item.path}
-                  onClick={() => navigate(item.path)}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-          
-          {isSuperuser && (
-            <>
-              <Divider />
-              <List>
-                <ListItem>
-                  <Typography variant="overline" color="text.secondary">
-                    Superuser Tools
-                  </Typography>
-                </ListItem>
-                {superuserMenuItems.map((item) => (
-                  <ListItem key={item.text} disablePadding>
-                    <ListItemButton
-                      selected={location.pathname === item.path}
-                      onClick={() => navigate(item.path)}
-                    >
-                      <ListItemIcon>{item.icon}</ListItemIcon>
-                      <ListItemText primary={item.text} />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-            </>
-          )}
-          
-          {isAdmin && adminMenuItems.length > 0 && (
-            <>
-              <Divider />
-              <List>
-                <ListItem>
-                  <Typography variant="overline" color="text.secondary">
-                    Administration
-                  </Typography>
-                </ListItem>
-                {adminMenuItems.map((item) => (
-                  <ListItem key={item.text} disablePadding>
-                    <ListItemButton
-                      selected={location.pathname === item.path}
-                      onClick={() => navigate(item.path)}
-                    >
-                      <ListItemIcon>{item.icon}</ListItemIcon>
-                      <ListItemText primary={item.text} />
-                    </ListItemButton>
+          {/* Use GroupAwareNavigation to render navigation items */}
+          <GroupAwareNavigation navigationItems={navigationItems} />
                   </ListItem>
                 ))}
               </List>

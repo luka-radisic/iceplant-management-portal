@@ -11,6 +11,7 @@ import { LogViewer } from './components/LogViewer';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import SuperAdminRoute from './components/SuperAdminRoute';
+import GroupRoute from './components/GroupRoute';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import Attendance from './pages/Attendance';
@@ -25,6 +26,8 @@ import InventoryPage from './pages/InventoryPage';
 import ExpensesPage from './pages/ExpensesPage';
 import MaintenancePage from './pages/MaintenancePage';
 import MaintenancePrintPage from './pages/MaintenancePrintPage';
+import GroupManagementPage from './pages/GroupManagementPage';
+import UserProfilePage from './pages/UserProfilePage';
 
 // Remove placeholder components
 // const Sales = () => <div>Sales Page (Coming Soon)</div>;
@@ -74,18 +77,50 @@ function AppContent() {
                       <DashboardLayout />
                     </ProtectedRoute>
                   }
-                >
-                  <Route index element={<Dashboard />} />
-                  <Route path="/attendance" element={<Attendance />} />
-                  <Route path="/sales" element={<SalesPage />} />
-                  <Route path="/buyers" element={<BuyersPage />} />
-                  <Route path="/inventory" element={<InventoryPage />} />
-                  <Route path="/expenses" element={<ExpensesPage />} />
-                  <Route path="/maintenance" element={<MaintenancePage />} />
+                >                  <Route index element={<Dashboard />} />
                   
-                  {/* Superadmin-only routes */}
+                  {/* Group-protected routes */}
+                  <Route path="/attendance" element={
+                    <GroupRoute allowedGroups={['HR', 'Managers', 'Admins']}>
+                      <Attendance />
+                    </GroupRoute>
+                  } />
+                  
+                  <Route path="/sales" element={
+                    <GroupRoute allowedGroups={['Sales', 'Accounting', 'Managers', 'Admins']}>
+                      <SalesPage />
+                    </GroupRoute>
+                  } />
+                  
+                  <Route path="/buyers" element={
+                    <GroupRoute allowedGroups={['Sales', 'Accounting', 'Managers', 'Admins']}>
+                      <BuyersPage />
+                    </GroupRoute>
+                  } />
+                  
+                  <Route path="/inventory" element={
+                    <GroupRoute allowedGroups={['Inventory', 'Operations', 'Managers', 'Admins']}>
+                      <InventoryPage />
+                    </GroupRoute>
+                  } />
+                  
+                  <Route path="/expenses" element={
+                    <GroupRoute allowedGroups={['Accounting', 'Finance', 'Managers', 'Admins']}>
+                      <ExpensesPage />
+                    </GroupRoute>
+                  } />
+                  
+                  <Route path="/maintenance" element={
+                    <GroupRoute allowedGroups={['Maintenance', 'Operations', 'Managers', 'Admins']}>
+                      <MaintenancePage />
+                    </GroupRoute>
+                  } />                  {/* Superadmin-only routes */}
                   <Route path="/tools" element={<SuperAdminRoute><ToolsPage /></SuperAdminRoute>} />
                   <Route path="/company-settings" element={<SuperAdminRoute><CompanySettingsPage /></SuperAdminRoute>} />
+                  <Route path="/group-management" element={<SuperAdminRoute><GroupManagementPage /></SuperAdminRoute>} />
+                  
+                  {/* User profile - accessible to all authenticated users */}
+                  <Route path="/profile" element={<UserProfilePage />} />
                   
                   {/* Admin edit routes */}
                   <Route path="/admin/sales/sale/:id/change" element={

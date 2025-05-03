@@ -7,7 +7,8 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
+from iceplant_core.group_permissions import IsInGroups, HasModulePermission, ReadOnly
 
 from .models import MaintenanceItem, MaintenanceRecord
 from .serializers import MaintenanceItemSerializer, MaintenanceRecordSerializer
@@ -23,7 +24,7 @@ class MaintenanceItemViewSet(viewsets.ModelViewSet):
     serializer_class = MaintenanceItemSerializer
     pagination_class = StandardResultsSetPagination
     authentication_classes = [TokenAuthentication, SessionAuthentication]
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, HasModulePermission('maintenance')]
     
     def get_queryset(self):
         queryset = MaintenanceItem.objects.all().order_by('-created_at')
@@ -119,7 +120,20 @@ class MaintenanceRecordViewSet(viewsets.ModelViewSet):
     serializer_class = MaintenanceRecordSerializer
     pagination_class = StandardResultsSetPagination
     authentication_classes = [TokenAuthentication, SessionAuthentication]
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, HasModulePermission('maintenance')]
+    
+    def get_permissions(self):
+        """
+        Override to implement different permission levels based on the action:
+        - READ operations: Anyone with access to maintenance module can view
+        - WRITE operations: Only Maintenance, Operations, and Managers groups
+        """
+        if self.action in ['list', 'retrieve']:
+            # Read-only permissions - anyone with module access
+            return [IsAuthenticated(), HasModulePermission('maintenance')]
+        else:
+            # Write permissions - only specific groups
+            return [IsAuthenticated(), IsInGroups(['Maintenance', 'Operations', 'Managers', 'Admins'])]
     
     def get_queryset(self):
         queryset = MaintenanceRecord.objects.all().order_by('-maintenance_date')
