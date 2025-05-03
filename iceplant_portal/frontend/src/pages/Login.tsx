@@ -92,7 +92,9 @@ export default function Login() {
       const fetchResponse = await fetch('/api-token-auth/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
+          'Accept':        'application/json',        // ← tell DRF you want JSON
+          'X-Requested-With': 'XMLHttpRequest',       // ← disable Browsable API & toolbar
           // Add a custom header to help track this request in server logs
           'X-Debug-Login': 'true'
         },
