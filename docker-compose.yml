@@ -43,7 +43,7 @@ services:
     image: node:18-alpine
     container_name: iceplant-frontend
     working_dir: /app
-    command: npm run dev -- --host 0.0.0.0
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
     ports:
       - "5173:5173"
     environment:
@@ -56,9 +56,8 @@ services:
     networks:
       - iceplantnet
 
-volumes:
-  pgdata:
-
 networks:
   iceplantnet:
     driver: bridge
+volumes:
+  pgdata:
