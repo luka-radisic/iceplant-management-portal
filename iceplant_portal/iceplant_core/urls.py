@@ -1,76 +1,56 @@
-"""
-URL configuration for iceplant_core project.
+# iceplant_core/urls.py
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from companyconfig.views import public_company_info
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
-from rest_framework.authtoken.views import obtain_auth_token
 from django.views.static import serve
 
-# Import our custom auth token view (keeping for reference)
-from .auth import CustomObtainAuthToken
-
 urlpatterns = [
-    # Give api-token-auth highest precedence for debugging
-    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    # Core API (token-auth, company-info, any future core endpoints)
+    path('', include('iceplant_core.api.urls')),
 
-    path('admin/', admin.site.urls),
-    # API endpoints
-    path('api/attendance/', include('attendance.api.urls')),
-    path('api/sales/', include('sales.urls')),
-    path('api/company/', include('companyconfig.urls')),
-    path('api/inventory/', include('inventory.api.urls')),
-    path('api/expenses/', include('expenses.api.urls')),
-    path('api/tools/', include('tools.api.urls')),
-    path('api/buyers/', include('buyers.api.urls')),
-    path('api/maintenance/', include('maintenance.urls')),
+    # App-specific API endpoints
+    path('api/attendance/',   include('attendance.api.urls')),
+    path('api/sales/',        include('sales.urls')),
+    path('api/company/',      include('companyconfig.urls')),
+    path('api/inventory/',    include('inventory.api.urls')),
+    path('api/expenses/',     include('expenses.api.urls')),
+    path('api/tools/',        include('tools.api.urls')),
+    path('api/buyers/',       include('buyers.api.urls')),
+    path('api/maintenance/',  include('maintenance.urls')),
+
+    # DRF browsable-api login/logout
     path('api-auth/', include('rest_framework.urls')),
-    
-    # Serve media files directly
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+
+    # Django admin
+    path('admin/', admin.site.urls),
+
+    # Serve media & static (when DEBUG=False you’ll typically let nginx handle this)
+    re_path(r'^media/(?P<path>.*)$',  serve, {'document_root': settings.MEDIA_ROOT}),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': settings.STATIC_ROOT}),
-    
-    # Explicit company info endpoint
-    path('api/company-info/', public_company_info, name='company-info'),
 ]
 
-# Add Django Debug Toolbar URLs if in debug mode and the toolbar is installed
+# Debug toolbar
 if settings.DEBUG:
     try:
         import debug_toolbar
-        urlpatterns = [
-            path('__debug__/', include('debug_toolbar.urls')),
-        ] + urlpatterns
+        urlpatterns = [path('__debug__/', include(debug_toolbar.urls))] + urlpatterns
     except ImportError:
         pass
 
-# Frontend routes - Must be after all API routes
-# Catch all non-API URLs and serve index.html
+# React SPA catch-all (must come after all API/static routes)
 urlpatterns += [
-    re_path(r'^(?!(api|admin|api-token-auth|api-auth|media|static|__debug__)).*$', 
-            TemplateView.as_view(template_name='index.html'), name='react-app'),
-    
-    # Keep the root path explicitly for home
+    re_path(
+        r'^(?!(api|admin|api-token-auth|api-auth|media|static|__debug__)).*$',
+        TemplateView.as_view(template_name='index.html'),
+        name='react-app'
+    ),
     path('', TemplateView.as_view(template_name='index.html'), name='home'),
 ]
 
-# Serve media and static files in development
+# Serve media & static in development
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL,  document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
