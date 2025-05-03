@@ -6,7 +6,15 @@ export const apiClient = axios.create({
   withCredentials: true, // if you rely on cookies
 });
 
-// Example: you can add interceptors here to attach auth tokens, etc.
-// apiClient.interceptors.request.use(config => { ... })
+// Add a request interceptor to attach the auth token
+apiClient.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Token ${token}`;
+  }
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
 
 export default apiClient;
