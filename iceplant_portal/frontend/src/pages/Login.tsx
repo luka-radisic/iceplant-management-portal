@@ -16,6 +16,23 @@ import { useSnackbar } from 'notistack';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
+// Function to get CSRF token from cookie
+function getCookie(name: string) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 // Fallback logo as base64 data URL in case the company logo fails to load
 const fallbackLogoDataUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgODAiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiPgogIDxzdHlsZT4KICAgIC50ZXh0IHsKICAgICAgZm9udC1mYW1pbHk6IEFyaWFsLCBzYW5zLXNlcmlmOwogICAgICBmb250LXdlaWdodDogYm9sZDsKICAgICAgZm9udC1zaXplOiAyNHB4OwogICAgICBmaWxsOiAjMTk3NmQyOwogICAgfQogICAgLmljZSB7CiAgICAgIGZpbGw6ICM5MGNhZjk7CiAgICB9CiAgICAucGxhbnQgewogICAgICBmaWxsOiAjNGNhZjUwOwogICAgfQogIDwvc3R5bGU+CiAgPHJlY3Qgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0id2hpdGUiIHJ4PSIxMCIgcnk9IjEwIiAvPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwLCA1MCkiPgogICAgPCEtLSBJY2UgY3ViZXMgLS0+CiAgICA8cmVjdCB4PSIwIiB5PSItMzAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgY2xhc3M9ImljZSIgcng9IjIiIHJ5PSIyIiAvPgogICAgPHJlY3QgeD0iMjUiIHk9Ii0zMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBjbGFzcz0iaWNlIiByeD0iMiIgcnk9IjIiIC8+CiAgICA8cmVjdCB4PSIxMyIgeT0iLTEwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGNsYXNzPSJpY2UiIHJ4PSIyIiByeT0iMiIgLz4KICAgIDwhLS0gUGxhbnQgLS0+CiAgICA8cGF0aCBkPSJNNjAsMCBDNjAsLTIwIDgwLC0yMCA4MCwwIEw3MCwwIFoiIGNsYXNzPSJwbGFudCIgLz4KICAgIDxwYXRoIGQ9Ik05MCwwIEM5MCwtMjUgMTEwLC0yNSAxMTAsMCBMMTAwLDAgWiIgY2xhc3M9InBsYW50IiAvPgogICAgPHBhdGggZD0iTTc1LC01IEw5NSwtNSBMODUsLTM1IFoiIGNsYXNzPSJwbGFudCIgLz4KICAgIDxyZWN0IHg9IjgwIiB5PSIwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiM4ZDZlNjMiIC8+CiAgICA8IS0tIFRleHQgLS0+CiAgICA8dGV4dCB4PSIwIiB5PSIyMCIgY2xhc3M9InRleHQiPklDRSBQTEFOVDwvdGV4dD4KICA8L2c+Cjwvc3ZnPg==';
 
@@ -89,13 +106,15 @@ export default function Login() {
       
       console.log('[Login] Starting fetch request');
       // Use direct fetch to see exactly what's happening with the request
-      // Updated URL to match Django backend configuration
+      // Updated URL to match Django backend configuration and include CSRF token
+      const csrftoken = getCookie('csrftoken');
       const fetchResponse = await fetch('/api/api-token-auth/', {
         method: 'POST',
         headers: {
           'Content-Type':  'application/json',
           'Accept':        'application/json',        // ← tell DRF you want JSON
           'X-Requested-With': 'XMLHttpRequest',       // ← disable Browsable API & toolbar
+          'X-CSRFToken': csrftoken || '', // Include CSRF token
           // Add a custom header to help track this request in server logs
           'X-Debug-Login': 'true'
         },
