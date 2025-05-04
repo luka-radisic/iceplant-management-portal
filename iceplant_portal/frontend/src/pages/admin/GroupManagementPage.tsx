@@ -80,12 +80,11 @@ const GroupManagementPage: React.FC = () => {
     fetchGroups();
     fetchModuleMapping();
   }, []);
-
   const fetchGroups = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await apiService.get('/api/groups/');
+      const response = await apiService.get(endpoints.groups);
       setGroups(response.data);
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -94,19 +93,20 @@ const GroupManagementPage: React.FC = () => {
       setLoading(false);
     }
   };
-
   const fetchModuleMapping = async () => {
     try {
-      const response = await apiService.get('/api/users/module-permissions/');
+      const response = await apiService.get(endpoints.modulePermissions);
       setModuleMapping(response.data);
       
       // Prepare available modules
-      const modules: Module[] = Object.keys(response.data).map(key => ({
-        key,
-        name: key.charAt(0).toUpperCase() + key.slice(1), // Capitalize module name
-        allowed: false
-      }));
-      setAvailableModules(modules);
+      if (response.data) {
+        const modules: Module[] = Object.keys(response.data).map(key => ({
+          key,
+          name: key.charAt(0).toUpperCase() + key.slice(1), // Capitalize module name
+          allowed: false
+        }));
+        setAvailableModules(modules);
+      }
     } catch (err) {
       console.error('Error fetching module mapping:', err);
       enqueueSnackbar('Failed to load module permissions', { variant: 'error' });

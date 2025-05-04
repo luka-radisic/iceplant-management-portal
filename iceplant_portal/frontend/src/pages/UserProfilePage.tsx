@@ -113,17 +113,16 @@ const UserProfilePage: React.FC = () => {
                     <ListItem>
                       <ListItemIcon>
                         <SecurityIcon />
-                      </ListItemIcon>
-                      <ListItemText 
+                      </ListItemIcon>                      <ListItemText 
                         primary="Role" 
-                        secondary={
-                          <Chip 
-                            label="Superuser" 
-                            color="error" 
-                            size="small" 
-                            icon={<VerifiedUserIcon />} 
-                          />
-                        } 
+                        secondary="Superuser"
+                      />
+                      <Chip 
+                        label="Superuser" 
+                        color="error" 
+                        size="small" 
+                        icon={<VerifiedUserIcon />} 
+                        sx={{ ml: 2 }}
                       />
                     </ListItem>
                   )}
