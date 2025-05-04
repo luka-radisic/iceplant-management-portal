@@ -24,9 +24,15 @@ interface GroupAwareNavigationProps {
 }
 
 const GroupAwareNavigation: React.FC<GroupAwareNavigationProps> = ({ navigationItems }) => {
-  const { isAdmin, isSuperuser, user, isInGroup, hasAccess } = useAuth();
+  const { isAdmin, isSuperuser, user, hasAccess } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Helper function to check if user is in any of the required groups
+  const isInGroup = (groups?: string[]) => {
+    if (!groups || !groups.length || !user?.group) return false;
+    return groups.includes(user.group);
+  };
   
   // Filter navigation items based on user permissions
   const filteredItems = navigationItems.filter(item => {

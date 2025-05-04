@@ -12,6 +12,7 @@ import {
   Divider,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
@@ -22,9 +23,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Avatar,
-  FormControlLabel,
-  Switch
+  Avatar
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -249,21 +248,20 @@ const GroupDetails: React.FC<GroupDetailsProps> = ({
           {availableUsers.length === 0 ? (
             <Typography color="text.secondary">All users are already in this group</Typography>
           ) : (
-            <List>
-              {availableUsers.map((user) => (
-                <ListItem 
-                  key={user.id} 
-                  button
-                  onClick={() => handleSelectUser(user.id)}
-                  selected={selectedUserIds.includes(user.id)}
-                >
-                  <Avatar sx={{ mr: 2, bgcolor: selectedUserIds.includes(user.id) ? 'primary.main' : 'grey.400' }}>
-                    {user.full_name.charAt(0)}
-                  </Avatar>
-                  <ListItemText 
-                    primary={user.full_name} 
-                    secondary={user.email || `@${user.username}`} 
-                  />
+            <List>              {availableUsers.map((user) => (
+                <ListItem key={user.id} disablePadding>
+                  <ListItemButton
+                    onClick={() => handleSelectUser(user.id)}
+                    selected={selectedUserIds.includes(user.id)}
+                  >
+                    <Avatar sx={{ mr: 2, bgcolor: selectedUserIds.includes(user.id) ? 'primary.main' : 'grey.400' }}>
+                      {user.full_name.charAt(0)}
+                    </Avatar>
+                    <ListItemText 
+                      primary={user.full_name} 
+                      secondary={user.email || `@${user.username}`} 
+                    />
+                  </ListItemButton>
                 </ListItem>
               ))}
             </List>

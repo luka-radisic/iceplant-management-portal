@@ -17,9 +17,9 @@ export const endpoints = {
   inventory: '/api/inventory/items/', // Assuming this is the path
   lowStock: '/api/inventory/low-stock/', // Assuming this is the path
   expensesTotal: '/api/expenses/total/', // Assuming this is the path
-  
-  // User & Permission Management Endpoints
+    // User & Permission Management Endpoints
   userPermissions: '/api/users/me/permissions/',
+  modulePermissions: '/api/users/module-permissions/',
   users: '/api/users/users/',
   groups: '/api/users/groups/',
   userManagement: '/api/users/user-management/',

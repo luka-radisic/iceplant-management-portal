@@ -32,15 +32,14 @@ import {
 } from '@mui/material';
 import {
   Edit as EditIcon,
-  Block as BlockIcon,
-  CheckCircle as CheckCircleIcon,
-  AdminPanelSettings as AdminIcon,
   Person as PersonIcon,
   Search as SearchIcon,
+  AdminPanelSettings as AdminIcon,
   VerifiedUser as VerifiedUserIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import apiService from '../../services/api';
+import { endpoints } from '../../services/endpoints';
 
 interface User {
   id: number;
@@ -121,12 +120,11 @@ const UserManagementPage: React.FC = () => {
     setFilteredUsers(result);
     setPage(0); // Reset to first page when filtering
   }, [users, searchTerm, selectedFilter]);
-
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await apiService.get('/api/user-management/');
+      const response = await apiService.get(endpoints.userManagement);
       setUsers(response.data);
       setFilteredUsers(response.data);
     } catch (err) {
@@ -136,10 +134,9 @@ const UserManagementPage: React.FC = () => {
       setLoading(false);
     }
   };
-
   const fetchGroups = async () => {
     try {
-      const response = await apiService.get('/api/groups/');
+      const response = await apiService.get(endpoints.groups);
       setGroups(response.data);
     } catch (err) {
       console.error('Error fetching groups:', err);

@@ -4,9 +4,9 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
+  ListItemButton,
   IconButton,
-  Typography,
-  Chip
+  Typography
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -34,15 +34,14 @@ const GroupList: React.FC<GroupListProps> = ({ groups, onSelect, onDelete, selec
           <Typography color="text.secondary">No groups found</Typography>
         </ListItem>
       )}
-      {groups.map((group) => (
-        <ListItem 
+      {groups.map((group) => (        <ListItem 
           key={group.id}
-          button 
           onClick={() => onSelect(group.id)}
           selected={selectedId === group.id}
           sx={{ 
             borderRadius: 1,
             mb: 0.5,
+            cursor: 'pointer',
             '&.Mui-selected': {
               backgroundColor: 'primary.light',
               '&:hover': {

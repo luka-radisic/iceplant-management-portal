@@ -179,8 +179,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
   useEffect(() => {
     setSelectedRecordIds([]);
   }, [records]);
-
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
   };
 
@@ -778,8 +777,7 @@ const MaintenanceRecords: React.FC<MaintenanceRecordsProps> = () => {
     }
     setSelectedRecordIds([]);
   };
-
-  const handleCheckboxClick = (event: React.MouseEvent<unknown>, id: number) => {
+  const handleCheckboxClick = (_event: React.MouseEvent<unknown>, id: number) => {
     const selectedIndex = selectedRecordIds.indexOf(id);
     let newSelected: number[] = [];
 

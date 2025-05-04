@@ -40,17 +40,11 @@ const AccessDeniedPage: React.FC = () => {
         <Typography variant="body1" paragraph>
           You don't have permission to access this page.
         </Typography>
-        
-        {user && user.group && (
+          {user && user.group && (
           <Alert severity="info" sx={{ width: '100%', mt: 2, mb: 2 }}>
             <Typography variant="body2">
-              Your current group: <strong>{user.group}</strong>
+              Your group: <strong>{user.group}</strong>
             </Typography>
-            {user.groups && user.groups.length > 0 && (
-              <Typography variant="body2">
-                All your groups: <strong>{user.groups.join(', ')}</strong>
-              </Typography>
-            )}
           </Alert>
         )}
         

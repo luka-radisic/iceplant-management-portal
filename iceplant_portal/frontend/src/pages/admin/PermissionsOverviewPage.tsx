@@ -26,15 +26,15 @@ import {
   Download as DownloadIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
-import { useSnackbar } from 'notistack';
 import apiService from '../../services/api';
+import { endpoints } from '../../services/endpoints';
 
 interface ModuleGroupMapping {
   [module: string]: string[];
 }
 
 const PermissionsOverviewPage: React.FC = () => {
-  const { enqueueSnackbar } = useSnackbar();
+  // No need for snackbar as we use Alert component for notifications
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,12 +43,11 @@ const PermissionsOverviewPage: React.FC = () => {
   useEffect(() => {
     fetchModuleMapping();
   }, []);
-
   const fetchModuleMapping = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await apiService.get('/api/users/module-permissions/');
+      const response = await apiService.get(endpoints.modulePermissions);
       setModuleMapping(response.data);
     } catch (err) {
       console.error('Error fetching module mapping:', err);

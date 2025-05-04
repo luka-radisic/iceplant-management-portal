@@ -1,6 +1,44 @@
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer for User model"""
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'full_name', 'is_active', 'is_staff', 'is_superuser', 'groups']
+        read_only_fields = ['is_superuser']
+        
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip() or obj.username
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating new users"""
+    password = serializers.CharField(write_only=True, required=True)
+    confirm_password = serializers.CharField(write_only=True, required=True)
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'password', 'confirm_password', 'first_name', 'last_name', 'is_active', 'is_staff']
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs.pop('confirm_password'):
+            raise serializers.ValidationError({"confirm_password": "Password fields didn't match."})
+        return attrs
+    
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            is_active=validated_data.get('is_active', True),
+            is_staff=validated_data.get('is_staff', False)
+        )
+        return user
+
 class GroupSerializer(serializers.ModelSerializer):
     """Serializer for Group model with count of users"""
     user_count = serializers.SerializerMethodField()

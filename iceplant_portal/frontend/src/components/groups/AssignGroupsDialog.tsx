@@ -7,12 +7,12 @@ import {
   Button,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   Checkbox,
   CircularProgress,
   Typography,
-  Divider,
   Box
 } from '@mui/material';
 
@@ -100,26 +100,25 @@ const AssignGroupsDialog: React.FC<AssignGroupsDialogProps> = ({
           Select the groups this user should belong to:
         </Typography>
         
-        <List>
-          {groups.map((group) => (
-            <ListItem 
-              button 
-              key={group.id}
-              onClick={() => handleToggle(group.id)}
-              disabled={loading}
-            >
-              <ListItemIcon>
-                <Checkbox
-                  edge="start"
-                  checked={selectedGroups.indexOf(group.id) !== -1}
-                  tabIndex={-1}
-                  disableRipple
+        <List>          {groups.map((group) => (
+            <ListItem key={group.id} disablePadding>
+              <ListItemButton 
+                onClick={() => handleToggle(group.id)}
+                disabled={loading}
+              >
+                <ListItemIcon>
+                  <Checkbox
+                    edge="start"
+                    checked={selectedGroups.indexOf(group.id) !== -1}
+                    tabIndex={-1}
+                    disableRipple
+                  />
+                </ListItemIcon>
+                <ListItemText 
+                  primary={group.name} 
+                  secondary={`${group.user_count} user${group.user_count !== 1 ? 's' : ''}`}
                 />
-              </ListItemIcon>
-              <ListItemText 
-                primary={group.name} 
-                secondary={`${group.user_count} user${group.user_count !== 1 ? 's' : ''}`}
-              />
+              </ListItemButton>
             </ListItem>
           ))}
           

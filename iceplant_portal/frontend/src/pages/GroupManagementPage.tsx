@@ -11,16 +11,10 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  CircularProgress,
-  Alert,
-  Snackbar
+  CircularProgress
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Group as GroupIcon,
-  PersonAdd as PersonAddIcon
+  Add as AddIcon
 } from '@mui/icons-material';
 import apiService from '../services/api';
 import { endpoints } from '../services/endpoints';
@@ -150,8 +144,7 @@ const GroupManagementPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 

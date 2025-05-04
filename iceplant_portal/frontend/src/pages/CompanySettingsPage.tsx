@@ -6,13 +6,11 @@ import {
   Grid,
   TextField,
   Button,
-  Divider,
   CircularProgress,
   Card,
   CardMedia,
   CardContent,
   Alert,
-  Snackbar,
   FormControl,
   InputLabel,
   OutlinedInput,
@@ -55,7 +53,7 @@ function TabPanel(props: TabPanelProps) {
 
 const CompanySettingsPage: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
-  const { isAdmin, user } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);

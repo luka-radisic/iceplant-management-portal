@@ -1,6 +1,4 @@
 import axios from 'axios';
-import { loggerService } from '../utils/logger';
-import { endpoints as apiEndpoints } from './endpoints';
 
 // Create axios instance with default config
 const api = axios.create({

@@ -103,12 +103,11 @@ const UserProfilePage: React.FC = () => {
                       <PersonIcon />
                     </ListItemIcon>
                     <ListItemText primary="Username" secondary={permissions?.username || user?.username} />
-                  </ListItem>
-                  <ListItem>
+                  </ListItem>                  <ListItem>
                     <ListItemIcon>
                       <EmailIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Email" secondary={permissions?.email || user?.email} />
+                    <ListItemText primary="Email" secondary={permissions?.email || "Not available"} />
                   </ListItem>
                   {(permissions?.is_superuser || user?.isSuperuser) && (
                     <ListItem>

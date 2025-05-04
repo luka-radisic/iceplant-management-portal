@@ -12,7 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import SuperAdminRoute from './components/SuperAdminRoute';
 import GroupRoute from './components/GroupRoute';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import DashboardLayout from './layouts/DashboardLayout';
 import Attendance from './pages/Attendance';
 import Dashboard from './pages/Dashboard';
@@ -26,7 +26,7 @@ import InventoryPage from './pages/InventoryPage';
 import ExpensesPage from './pages/ExpensesPage';
 import MaintenancePage from './pages/MaintenancePage';
 import MaintenancePrintPage from './pages/MaintenancePrintPage';
-import GroupManagementPage from './pages/GroupManagementPage';
+import GroupManagementPage from './pages/admin/GroupManagementPage';
 import UserProfilePage from './pages/UserProfilePage';
 
 // Remove placeholder components
@@ -37,7 +37,6 @@ import UserProfilePage from './pages/UserProfilePage';
 function AppContent() {
   const [showLogs, setShowLogs] = useState(false);
   const theme = useTheme();
-  const { user } = useAuth();
 
   // Fetch company info and update title
   useEffect(() => {

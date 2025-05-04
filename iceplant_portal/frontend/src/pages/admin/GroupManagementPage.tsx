@@ -30,13 +30,11 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Search as SearchIcon,
   Group as GroupIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import apiService from '../../services/api';
+import { endpoints } from '../../services/endpoints';
 
 interface Group {
   id: number;
@@ -146,17 +144,15 @@ const GroupManagementPage: React.FC = () => {
     if (!groupName.trim()) {
       enqueueSnackbar('Group name is required', { variant: 'error' });
       return;
-    }
-
-    try {
+    }    try {
       setDialogLoading(true);
       if (dialogMode === 'create') {
         // Create new group
-        await apiService.post('/api/groups/', { name: groupName });
+        await apiService.post(endpoints.groups, { name: groupName });
         enqueueSnackbar('Group created successfully', { variant: 'success' });
       } else if (dialogMode === 'edit' && selectedGroup) {
         // Update existing group
-        await apiService.put(`/api/groups/${selectedGroup.id}/`, { name: groupName });
+        await apiService.put(`${endpoints.groups}${selectedGroup.id}/`, { name: groupName });
         enqueueSnackbar('Group updated successfully', { variant: 'success' });
       }
       

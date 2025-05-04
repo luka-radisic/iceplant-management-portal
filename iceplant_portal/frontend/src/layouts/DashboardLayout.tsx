@@ -11,7 +11,6 @@ import {
   AdminPanelSettings as AdminIcon,
   Business as BusinessIcon,
   Settings as SettingsIcon,
-  Lock as LockIcon,
   ConstructionOutlined as BuildIcon,
 } from '@mui/icons-material';
 import GroupAwareNavigation from '../components/GroupAwareNavigation';
@@ -23,18 +22,13 @@ import {
   Divider,
   Drawer,
   IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
   Toolbar,
   Typography,
   Chip,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const drawerWidth = 240;
@@ -60,67 +54,67 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
 
 // Define all navigation items with their access requirements
 const navigationItems = [
-  { 
-    text: 'Dashboard', 
-    icon: <DashboardIcon />, 
-    path: '/' 
+  {
+    text: 'Dashboard',
+    icon: <DashboardIcon />,
+    path: '/'
   },
-  { 
-    text: 'Attendance', 
-    icon: <PeopleIcon />, 
+  {
+    text: 'Attendance',
+    icon: <PeopleIcon />,
     path: '/attendance',
     requiredModules: ['attendance'],
-    requiredGroups: ['HR', 'Managers', 'Admins'] 
+    requiredGroups: ['HR', 'Managers', 'Admins']
   },
-  { 
-    text: 'Sales', 
-    icon: <SalesIcon />, 
+  {
+    text: 'Sales',
+    icon: <SalesIcon />,
     path: '/sales',
     requiredModules: ['sales'],
-    requiredGroups: ['Sales', 'Accounting', 'Managers', 'Admins'] 
+    requiredGroups: ['Sales', 'Accounting', 'Managers', 'Admins']
   },
-  { 
-    text: 'Buyers', 
-    icon: <BusinessIcon />, 
+  {
+    text: 'Buyers',
+    icon: <BusinessIcon />,
     path: '/buyers',
     requiredModules: ['buyers'],
-    requiredGroups: ['Sales', 'Accounting', 'Managers', 'Admins'] 
+    requiredGroups: ['Sales', 'Accounting', 'Managers', 'Admins']
   },
-  { 
-    text: 'Inventory', 
-    icon: <InventoryIcon />, 
+  {
+    text: 'Inventory',
+    icon: <InventoryIcon />,
     path: '/inventory',
     requiredModules: ['inventory'],
-    requiredGroups: ['Inventory', 'Operations', 'Managers', 'Admins'] 
+    requiredGroups: ['Inventory', 'Operations', 'Managers', 'Admins']
   },
-  { 
-    text: 'Expenses', 
-    icon: <ExpensesIcon />, 
+  {
+    text: 'Expenses',
+    icon: <ExpensesIcon />,
     path: '/expenses',
     requiredModules: ['expenses'],
-    requiredGroups: ['Accounting', 'Finance', 'Managers', 'Admins'] 
+    requiredGroups: ['Accounting', 'Finance', 'Managers', 'Admins']
   },
-  { 
-    text: 'Maintenance', 
-    icon: <BuildIcon />, 
+  {
+    text: 'Maintenance',
+    icon: <BuildIcon />,
     path: '/maintenance',
     requiredModules: ['maintenance'],
-    requiredGroups: ['Maintenance', 'Operations', 'Managers', 'Admins'] 
+    requiredGroups: ['Maintenance', 'Operations', 'Managers', 'Admins']
   },
-  { 
-    text: 'Tools', 
-    icon: <ToolsIcon />, 
+  {
+    text: 'Tools',
+    icon: <ToolsIcon />,
     path: '/tools',
     superuserOnly: true
-  },  { 
-    text: 'Company Settings', 
-    icon: <SettingsIcon />, 
+  },  {
+    text: 'Company Settings',
+    icon: <SettingsIcon />,
     path: '/company-settings',
     superuserOnly: true
   },
-  { 
-    text: 'Group Management', 
-    icon: <AdminIcon />, 
+  {
+    text: 'Group Management',
+    icon: <AdminIcon />,
     path: '/group-management',
     superuserOnly: true
   },
@@ -129,9 +123,8 @@ const navigationItems = [
 export default function DashboardLayout() {
   const [open, setOpen] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, logout, isAdmin } = useAuth();
-  
+  const { user, logout } = useAuth();
+
   // Check if user is a superuser
   const isSuperuser = user?.isSuperuser === true;
   console.log('[DashboardLayout] isSuperuser:', isSuperuser); // Add console log
@@ -159,7 +152,7 @@ export default function DashboardLayout() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {user?.group && (
-                <Chip 
+                <Chip
                   label={user.group}
                   color="default"
                   sx={{
@@ -173,10 +166,10 @@ export default function DashboardLayout() {
                     color: '#000'
                   }}
                 />
-              )}              <Typography 
-                variant="body1" 
-                fontWeight="medium" 
-                noWrap 
+              )}              <Typography
+                variant="body1"
+                fontWeight="medium"
+                noWrap
                 sx={{ cursor: 'pointer' }}
                 onClick={() => navigate('/profile')}
               >
@@ -216,12 +209,6 @@ export default function DashboardLayout() {
         <Box sx={{ overflow: 'auto' }}>
           {/* Use GroupAwareNavigation to render navigation items */}
           <GroupAwareNavigation navigationItems={navigationItems} />
-                  </ListItem>
-                ))}
-              </List>
-            </>
-          )}
-          
           <Divider />
         </Box>
       </Drawer>
@@ -233,4 +220,4 @@ export default function DashboardLayout() {
       </Main>
     </Box>
   );
-} 
+}
