@@ -33,28 +33,31 @@ const GroupList: React.FC<GroupListProps> = ({ groups, onSelect, onDelete, selec
         <ListItem>
           <Typography color="text.secondary">No groups found</Typography>
         </ListItem>
-      )}
-      {groups.map((group) => (        <ListItem 
+      )}      {groups.map((group) => (
+        <ListItem 
           key={group.id}
-          onClick={() => onSelect(group.id)}
-          selected={selectedId === group.id}
-          sx={{ 
-            borderRadius: 1,
-            mb: 0.5,
-            cursor: 'pointer',
-            '&.Mui-selected': {
-              backgroundColor: 'primary.light',
-              '&:hover': {
-                backgroundColor: 'primary.light',
-              },
-            }
-          }}
+          disablePadding
         >
-          <GroupIcon sx={{ mr: 2, color: 'primary.main' }} />
-          <ListItemText 
-            primary={group.name} 
-            secondary={`${group.user_count} user${group.user_count !== 1 ? 's' : ''}`} 
-          />
+          <ListItemButton
+            onClick={() => onSelect(group.id)}
+            selected={selectedId === group.id}
+            sx={{ 
+              borderRadius: 1,
+              mb: 0.5,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.light',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                },
+              }
+            }}
+          >
+            <GroupIcon sx={{ mr: 2, color: 'primary.main' }} />
+            <ListItemText 
+              primary={group.name} 
+              secondary={`${group.user_count} user${group.user_count !== 1 ? 's' : ''}`} 
+            />
+          </ListItemButton>
           <ListItemSecondaryAction>
             <IconButton 
               edge="end" 
