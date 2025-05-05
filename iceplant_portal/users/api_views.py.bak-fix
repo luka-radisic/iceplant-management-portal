@@ -1,4 +1,4 @@
-﻿from rest_framework.views import APIView
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
@@ -18,26 +18,6 @@ from .serializers import (
 class IsAdmins(IsInGroups):
     def __init__(self):
         super().__init__(groups=["Admins"])
-
-class UserPermissionsView(APIView):
-    """
-    API endpoint to get the current user's permissions.
-    """
-    authentication_classes = [TokenAuthentication, SessionAuthentication]
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        """Get the user's permissions"""
-        user = request.user
-        data = {
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'is_staff': user.is_staff,
-            'is_superuser': user.is_superuser,
-            'groups': list(user.groups.values_list('name', flat=True))
-        }
-        return Response(data)
 
 class UserPermissionsGroupViewSet(viewsets.ModelViewSet):
     """

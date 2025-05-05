@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the changes made to fix errors and warnings in the Access Control UI implementation. The changes were made on May 4, 2025.
+This document summarizes the changes made to fix errors and warnings in the Access Control UI implementation. The changes were made on May 4-5, 2025.
 
 ## Fixed Issues
 
@@ -49,6 +49,38 @@ This document summarizes the changes made to fix errors and warnings in the Acce
    - Removed unnecessary imports from multiple files
    - Fixed incorrect icon imports in admin pages
    - Ensured all used components are properly imported
+
+### Backend Permission Configuration
+
+1. **Django REST Framework Permission Classes**
+   - Fixed incorrect permission class usage in backend views
+   - Addressed "object is not callable" error with IsInGroups permission class
+   - Created custom IsAdmin permission class for cleaner code
+   - Files updated:
+     - users/api_views_groups.py
+     - maintenance/views.py
+
+2. **API Access Errors**
+   - Fixed 500 server errors when accessing group management endpoints
+   - Ensured proper instantiation of permission classes
+   - Restored functionality of admin group management features
+
+### URL Configuration and Import Errors
+
+1. **Missing API View Classes**
+   - Added missing `UserPermissionsView` class to api_views.py
+   - Fixed import error in Django URL configuration
+   - Restored API functionality for permission endpoints
+
+2. **Class Naming Conflicts**
+   - Resolved naming conflicts between duplicate `GroupViewSet` implementations
+   - Renamed one implementation to `UserPermissionsGroupViewSet` for clarity
+   - Added explicit import comments to indicate source modules
+
+3. **URL Pattern Registration**
+   - Fixed URL routing for user, group, and permission endpoints
+   - Ensured correct association between URL patterns and view classes
+   - Eliminated ambiguity in URL configuration
 
 ## Benefits of Changes
 
