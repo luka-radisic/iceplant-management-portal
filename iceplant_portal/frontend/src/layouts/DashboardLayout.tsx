@@ -27,7 +27,7 @@ import {
   Chip,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -124,10 +124,22 @@ export default function DashboardLayout() {
   const [open, setOpen] = useState(true);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   // Check if user is a superuser
   const isSuperuser = user?.isSuperuser === true;
   console.log('[DashboardLayout] isSuperuser:', isSuperuser); // Add console log
+  
+  // Listen for auth-change events to update the navigation
+  useEffect(() => {
+    const handleAuthChange = () => {
+      console.log('[DashboardLayout] Auth change detected, updating navigation');
+      setForceUpdate(prev => prev + 1);
+    };
+    
+    window.addEventListener('auth-change', handleAuthChange);
+    return () => window.removeEventListener('auth-change', handleAuthChange);
+  }, []);
 
   const handleDrawerToggle = () => {
     setOpen(!open);

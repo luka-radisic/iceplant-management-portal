@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Grid, Paper, Typography, Box, Card, CardContent, 
   Divider, List, ListItem, ListItemText, Chip, 
-  CircularProgress, Stack
+  CircularProgress, Stack, Alert
 } from '@mui/material';
 import {
   BuildOutlined as MaintenanceIcon,
@@ -21,7 +21,7 @@ import {
 } from '../../types/api';
 import { formatCurrency } from '../../utils/formatters';
 import { useSnackbar } from 'notistack';
-import apiService from '../../services/api';
+import { apiClient } from '../../services/apiClient';
 import { endpoints } from '../../services/endpoints';
 
 interface MaintenanceDashboardProps {
@@ -69,14 +69,14 @@ const MaintenanceDashboard: React.FC<MaintenanceDashboardProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const response = await apiService.get(endpoints.maintenanceDashboard);
-        
-        if (response) {
-          const apiData = response as ApiDashboardResponse;
+  useEffect(() => {  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      // Use the correct path with apiClient
+      const response = await apiClient.get(`${endpoints.maintenanceDashboard}`);
+      
+      if (response && response.data) {
+        const apiData = response.data;
           
           // Transform API response to match component's expected format
           const transformedData: DashboardData = {

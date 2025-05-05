@@ -33,7 +33,7 @@ import {
   Group as GroupIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
-import apiService from '../../services/api';
+import { apiClient } from '../../services/apiClient';
 import { endpoints } from '../../services/endpoints';
 
 interface Group {
@@ -79,12 +79,12 @@ const GroupManagementPage: React.FC = () => {
   useEffect(() => {
     fetchGroups();
     fetchModuleMapping();
-  }, []);
-  const fetchGroups = async () => {
+  }, []);  const fetchGroups = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await apiService.get(endpoints.groups);
+      // Use apiClient with the proper endpoint
+      const response = await apiClient.get(endpoints.groups);
       setGroups(response.data);
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -92,23 +92,43 @@ const GroupManagementPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-  const fetchModuleMapping = async () => {
+  };  const fetchModuleMapping = async () => {
     try {
-      const response = await apiService.get(endpoints.modulePermissions);
+      const response = await apiClient.get(endpoints.modulePermissions);
       setModuleMapping(response.data);
       
       // Prepare available modules
-      if (response.data) {
+      if (response.data && Object.keys(response.data).length > 0) {
         const modules: Module[] = Object.keys(response.data).map(key => ({
           key,
           name: key.charAt(0).toUpperCase() + key.slice(1), // Capitalize module name
           allowed: false
         }));
         setAvailableModules(modules);
+      } else {
+        // Set default modules if no data returned
+        const defaultModules: Module[] = [
+          { key: 'attendance', name: 'Attendance', allowed: false },
+          { key: 'sales', name: 'Sales', allowed: false },
+          { key: 'inventory', name: 'Inventory', allowed: false },
+          { key: 'expenses', name: 'Expenses', allowed: false },
+          { key: 'maintenance', name: 'Maintenance', allowed: false },
+          { key: 'buyers', name: 'Buyers', allowed: false }
+        ];
+        setAvailableModules(defaultModules);
       }
     } catch (err) {
       console.error('Error fetching module mapping:', err);
+      // Set default modules if error
+      const defaultModules: Module[] = [
+        { key: 'attendance', name: 'Attendance', allowed: false },
+        { key: 'sales', name: 'Sales', allowed: false },
+        { key: 'inventory', name: 'Inventory', allowed: false },
+        { key: 'expenses', name: 'Expenses', allowed: false },
+        { key: 'maintenance', name: 'Maintenance', allowed: false },
+        { key: 'buyers', name: 'Buyers', allowed: false }
+      ];
+      setAvailableModules(defaultModules);
       enqueueSnackbar('Failed to load module permissions', { variant: 'error' });
     }
   };
@@ -139,20 +159,20 @@ const GroupManagementPage: React.FC = () => {
     setDialogMode('edit');
     setDialogOpen(true);
   };
-
   const handleSaveGroup = async () => {
     if (!groupName.trim()) {
       enqueueSnackbar('Group name is required', { variant: 'error' });
       return;
-    }    try {
+    }    
+    try {
       setDialogLoading(true);
       if (dialogMode === 'create') {
         // Create new group
-        await apiService.post(endpoints.groups, { name: groupName });
+        await apiClient.post(endpoints.groups, { name: groupName });
         enqueueSnackbar('Group created successfully', { variant: 'success' });
       } else if (dialogMode === 'edit' && selectedGroup) {
         // Update existing group
-        await apiService.put(`${endpoints.groups}${selectedGroup.id}/`, { name: groupName });
+        await apiClient.put(`${endpoints.groups}${selectedGroup.id}/`, { name: groupName });
         enqueueSnackbar('Group updated successfully', { variant: 'success' });
       }
       
@@ -167,7 +187,6 @@ const GroupManagementPage: React.FC = () => {
       setDialogLoading(false);
     }
   };
-
   const handleDeleteGroup = async (group: Group) => {
     // Ask for confirmation
     if (!window.confirm(`Are you sure you want to delete the group "${group.name}"? This action cannot be undone.`)) {
@@ -175,7 +194,7 @@ const GroupManagementPage: React.FC = () => {
     }
 
     try {
-      await apiService.delete(`/api/groups/${group.id}/`);
+      await apiClient.delete(`${endpoints.groups}${group.id}/`);
       enqueueSnackbar('Group deleted successfully', { variant: 'success' });
       await fetchGroups();
     } catch (err: any) {

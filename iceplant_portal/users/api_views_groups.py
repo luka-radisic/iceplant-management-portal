@@ -5,6 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from iceplant_core.group_permissions import IsInGroups
 
+# Define custom permission class for Admins group
+class IsAdmin(IsInGroups):
+    def __init__(self):
+        super().__init__(groups=['Admins'])
+
 
 class GroupSerializer(serializers.ModelSerializer):
     """Serializer for Group model"""
@@ -37,7 +42,7 @@ class GroupViewSet(viewsets.ModelViewSet):
     """
     queryset = Group.objects.all().order_by('name')
     serializer_class = GroupSerializer
-    permission_classes = [IsAuthenticated, IsInGroups(['Admins'])]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def create(self, request, *args, **kwargs):
         name = request.data.get('name')
@@ -110,7 +115,7 @@ class UserManagementViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all().order_by('username')
     serializer_class = UserGroupSerializer
-    permission_classes = [IsAuthenticated, IsInGroups(['Admins'])]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     @action(detail=True, methods=['post'])
     def assign_groups(self, request, pk=None):
