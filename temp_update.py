@@ -246,6 +246,18 @@ def update_group_module_permissions(request):
     for module in module_mapping:
         module_mapping[module] = [g for g in module_mapping[module] if g in existing_groups]
     
+    # First remove the group from all modules that aren't explicitly set to True
+    # This ensures that we handle modules not included in the request
+    all_modules = set(module_mapping.keys())
+    modules_to_include = {m for m, v in modules.items() if v}
+    modules_to_exclude = all_modules - modules_to_include
+    
+    # Remove group from all modules not explicitly included
+    for module in modules_to_exclude:
+        if module in module_mapping and group_name in module_mapping[module]:
+            module_mapping[module].remove(group_name)
+            logger.info(f"Removed {group_name} from {module} (excluded module)")
+    
     # Now update the modules based on the request
     for module, has_access in modules.items():
         if module not in module_mapping:
