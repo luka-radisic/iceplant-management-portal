@@ -1,4 +1,4 @@
-from rest_framework import permissions
+﻿from rest_framework import permissions
 
 class IsInGroups(permissions.BasePermission):
     """
@@ -34,7 +34,7 @@ class HasModulePermission(permissions.BasePermission):
         permission_classes = [HasModulePermission('attendance')]
     """
     
-    # Define which groups can access which modules
+    # Define default module-group mapping
     MODULE_GROUP_MAPPING = {
         'attendance': ['HR', 'Managers', 'Admins'],
         'sales': ['Sales', 'Accounting', 'Managers', 'Admins'],
@@ -43,6 +43,30 @@ class HasModulePermission(permissions.BasePermission):
         'maintenance': ['Maintenance', 'Operations', 'Managers', 'Admins'],
         'buyers': ['Sales', 'Accounting', 'Managers', 'Admins'],
     }
+    
+    # Try to load module permissions from disk on module import
+    try:
+        import os
+        import json
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # Check if the permissions file exists
+        permission_file = 'module_permissions.json'
+        if os.path.exists(permission_file):
+            try:
+                with open(permission_file, 'r') as f:
+                    saved_permissions = json.load(f)
+                
+                # Update the mapping with saved permissions
+                MODULE_GROUP_MAPPING.update(saved_permissions)
+                logger.info(f"Loaded module permissions from {permission_file}")
+            except Exception as e:
+                logger.error(f"Error loading module permissions: {e}")
+    except Exception as e:
+        # Don't crash if there's an error loading permissions
+        pass
     
     def __init__(self, module=None):
         self.module = module

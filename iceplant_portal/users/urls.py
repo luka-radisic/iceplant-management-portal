@@ -1,9 +1,9 @@
-from django.urls import path, include
+﻿from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import UserViewSet, register_user
 from .api_views import UserPermissionsView
 # Import explicitly from api_views_groups to avoid confusion
-from .api_views_groups import GroupViewSet, UserManagementViewSet, module_group_mapping
+from .api_views_groups import GroupViewSet, UserManagementViewSet, module_group_mapping, update_group_module_permissions
 
 # Create a router for the user views
 user_router = DefaultRouter()
@@ -23,4 +23,5 @@ urlpatterns = [
     # Include the new group management endpoints
     path('', include(groups_router.urls)),
     path('module-permissions/', module_group_mapping, name='module-permissions'),
+    path('update-group-modules/', update_group_module_permissions, name='update-group-modules'),
 ]
