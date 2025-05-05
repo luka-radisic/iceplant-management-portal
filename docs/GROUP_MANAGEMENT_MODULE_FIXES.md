@@ -79,7 +79,13 @@ This document summarizes the issues identified and fixes implemented for the Gro
    - When a user attempts to access a module, their group membership is checked
    - Users in the "Admins" group or superusers have access to all modules
 
-3. **API Endpoints**
+3. **Django Permission Integration**
+   - Each module is mapped to specific Django permissions in `MODULE_PERMISSION_MAPPING`
+   - When a group is assigned to a module, it receives all necessary Django permissions
+   - When a group is removed from a module, its permissions for that module are revoked
+   - This ensures that users in a group can actually perform actions within the module
+
+4. **API Endpoints**
    - `GET /api/users/module-permissions/` - Returns the current module permission mapping
    - `POST /api/users/update-group-modules/` - Updates module permissions for a group
 

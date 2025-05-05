@@ -104,6 +104,7 @@ class GroupViewSet(viewsets.ModelViewSet):
         Override perform_destroy to also remove the group from all module permissions
         """
         from iceplant_core.group_permissions import HasModulePermission
+        from iceplant_core.module_permissions import remove_module_permissions_from_group
         import logging
         
         # Get a logger
@@ -120,9 +121,13 @@ class GroupViewSet(viewsets.ModelViewSet):
         removed_any = False
         for module in module_mapping:
             if group_name in module_mapping[module]:
+                # Remove from module mapping
                 module_mapping[module].remove(group_name)
                 removed_any = True
                 logger.info(f"Removed '{group_name}' from '{module}' module")
+                
+                # Also remove Django permissions for this module
+                remove_module_permissions_from_group(group_name, module)
         
         # Persist changes to disk if any changes were made
         if removed_any:
@@ -217,7 +222,8 @@ def update_group_module_permissions(request):
         }
     }
     """
-    from iceplant_core.group_permissions import HasModulePermission
+    from iceplant_core.group_permissions import HasModulePermission, MODULE_PERMISSION_MAPPING
+    from iceplant_core.module_permissions_utils import assign_module_permissions_to_group, remove_module_permissions_from_group
     import logging
     
     # Get a logger
@@ -270,11 +276,20 @@ def update_group_module_permissions(request):
             if group_name not in module_mapping[module]:
                 module_mapping[module].append(group_name)
                 logger.info(f"Added {group_name} to {module}")
+                
+                # Also assign Django permissions for this module to the group
+                assign_module_permissions_to_group(module, group_name)
         else:
             # Remove group from module permissions if it's there
             if group_name in module_mapping[module]:
                 module_mapping[module].remove(group_name)
                 logger.info(f"Removed {group_name} from {module}")
+                
+                # Also remove Django permissions for this module from the group
+                remove_module_permissions_from_group(module, group_name)
+                
+                # Also remove Django permissions for this module from the group
+                remove_module_permissions_from_group(group_name, module)
     
     # Persist changes to disk
     try:

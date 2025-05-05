@@ -1,5 +1,64 @@
 ﻿from rest_framework import permissions
 
+# Define the mapping between modules and their permissions
+MODULE_PERMISSION_MAPPING = {
+    'attendance': [
+        'attendance.view_attendance',
+        'attendance.add_attendance',
+        'attendance.change_attendance',
+        'attendance.delete_attendance',
+        'attendance.view_attendanceapprovallog',
+        'attendance.view_departmentshift',
+        'attendance.view_employeeprofile',
+        'attendance.view_employeeshift',
+    ],
+    'sales': [
+        'sales.view_sale',
+        'sales.add_sale',
+        'sales.change_sale',
+        'sales.delete_sale',
+        'sales.view_saleitem',
+        'sales.add_saleitem',
+        'sales.change_saleitem',
+        'sales.delete_saleitem',
+    ],
+    'inventory': [
+        'inventory.view_inventory',
+        'inventory.add_inventory',
+        'inventory.change_inventory',
+        'inventory.delete_inventory',
+        'inventory.view_inventoryadjustment',
+        'inventory.add_inventoryadjustment',
+        'inventory.change_inventoryadjustment',
+        'inventory.delete_inventoryadjustment',
+    ], 'expenses': [
+        'expenses.view_expense',
+        'expenses.add_expense',
+        'expenses.change_expense',
+        'expenses.delete_expense',
+        'expenses.view_expensecategory',
+        'expenses.add_expensecategory',
+        'expenses.change_expensecategory',
+        'expenses.delete_expensecategory',
+    ],
+    'maintenance': [
+        'maintenance.view_maintenanceitem',
+        'maintenance.add_maintenanceitem',
+        'maintenance.change_maintenanceitem',
+        'maintenance.delete_maintenanceitem',
+        'maintenance.view_maintenancerecord',
+        'maintenance.add_maintenancerecord',
+        'maintenance.change_maintenancerecord',
+        'maintenance.delete_maintenancerecord',
+    ],
+    'buyers': [
+        'buyers.view_buyer',
+        'buyers.add_buyer',
+        'buyers.change_buyer',
+        'buyers.delete_buyer',
+    ],
+}
+
 class IsInGroups(permissions.BasePermission):
     """
     Permission class that requires the user to be in at least one of the specified groups.
