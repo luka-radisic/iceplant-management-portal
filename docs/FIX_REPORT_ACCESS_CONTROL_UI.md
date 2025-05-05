@@ -65,6 +65,11 @@ This document summarizes the changes made to fix errors and warnings in the Acce
    - Ensured proper instantiation of permission classes
    - Restored functionality of admin group management features
 
+3. **Maintenance Module Permissions**
+   - Created custom HasMaintenanceModulePermission class to properly handle maintenance module access
+   - Fixed 500 errors when accessing maintenance dashboard and equipment pages
+   - Ensured proper implementation of the module-based permission pattern
+
 ### URL Configuration and Import Errors
 
 1. **Missing API View Classes**

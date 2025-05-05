@@ -13,6 +13,11 @@ from iceplant_core.group_permissions import IsInGroups, HasModulePermission, Rea
 from .models import MaintenanceItem, MaintenanceRecord
 from .serializers import MaintenanceItemSerializer, MaintenanceRecordSerializer
 
+
+# Define a custom permission class for Maintenance module access
+class HasMaintenanceModulePermission(HasModulePermission):
+    def __init__(self):
+        super().__init__(module='maintenance')
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
@@ -24,7 +29,7 @@ class MaintenanceItemViewSet(viewsets.ModelViewSet):
     serializer_class = MaintenanceItemSerializer
     pagination_class = StandardResultsSetPagination
     authentication_classes = [TokenAuthentication, SessionAuthentication]
-    permission_classes = [IsAuthenticated, HasModulePermission('maintenance')]
+    permission_classes = [IsAuthenticated, HasMaintenanceModulePermission]
     
     def get_queryset(self):
         queryset = MaintenanceItem.objects.all().order_by('-created_at')
@@ -120,7 +125,7 @@ class MaintenanceRecordViewSet(viewsets.ModelViewSet):
     serializer_class = MaintenanceRecordSerializer
     pagination_class = StandardResultsSetPagination
     authentication_classes = [TokenAuthentication, SessionAuthentication]
-    permission_classes = [IsAuthenticated, HasModulePermission('maintenance')]
+    permission_classes = [IsAuthenticated, HasMaintenanceModulePermission]
     
     def get_permissions(self):
         """
