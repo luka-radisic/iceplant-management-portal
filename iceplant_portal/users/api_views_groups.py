@@ -127,7 +127,7 @@ class GroupViewSet(viewsets.ModelViewSet):
                 logger.info(f"Removed '{group_name}' from '{module}' module")
                 
                 # Also remove Django permissions for this module
-                remove_module_permissions_from_group(group_name, module)
+                remove_module_permissions_from_group(module, group_name)
         
         # Persist changes to disk if any changes were made
         if removed_any:
@@ -287,9 +287,7 @@ def update_group_module_permissions(request):
                 
                 # Also remove Django permissions for this module from the group
                 remove_module_permissions_from_group(module, group_name)
-                
-                # Also remove Django permissions for this module from the group
-                remove_module_permissions_from_group(group_name, module)
+                remove_module_permissions_from_group(module, group_name)
     
     # Persist changes to disk
     try:

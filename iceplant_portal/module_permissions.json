@@ -1,31 +1,25 @@
 {
   "attendance": [
     "HR",
-    "Admins",
-    "Test Group"
+    "Admins"
   ],
   "sales": [
     "Sales",
     "Admins",
-    "Test Group",
     "ModuleTest"
   ],
   "inventory": [
     "Admins",
-    "Test Group",
     "ModuleTest"
   ],
   "expenses": [
-    "Admins",
-    "Test Group"
+    "Admins"
   ],
   "maintenance": [
-    "Admins",
-    "Test Group"
+    "Admins"
   ],
   "buyers": [
     "Sales",
-    "Admins",
-    "Test Group"
+    "Admins"
   ]
 }

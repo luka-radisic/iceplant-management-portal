@@ -101,7 +101,7 @@ def assign_module_permissions_to_group(group_name, module_name):
     logger.info(f"Assigned {len(permissions)} permissions for module {module_name} to group {group_name}")
     return True
 
-def remove_module_permissions_from_group(group_name, module_name):
+def remove_module_permissions_from_group(module_name, group_name):
     """Remove all permissions for a module from a group"""
     try:
         group = Group.objects.get(name=group_name)
