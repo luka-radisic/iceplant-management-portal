@@ -302,7 +302,8 @@ def update_group_module_permissions(request):
                             group.permissions.remove(perm)
                             logger.info(f"Explicitly removed {perm_name} from {group_name}")
                     except Exception as e:
-                        logger.error(f"Error removing {perm_name}: {e}")                # Removed redundant call to remove_module_permissions_from_group
+                        logger.error(f"Error removing {perm_name}: {e}")
+                remove_module_permissions_from_group(module, group_name)
     
     # Persist changes to disk
     try:
