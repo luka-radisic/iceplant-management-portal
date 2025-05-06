@@ -39,6 +39,13 @@ def load_module_permissions(filename='module_permissions.json'):
         from iceplant_core.group_permissions import HasModulePermission
         # Update module permissions
         HasModulePermission.MODULE_GROUP_MAPPING.update(permissions)
+        
+        # Also update MODULE_PERMISSION_MAPPING with any missing modules from the JSON
+        for module in permissions.keys():
+            if module not in MODULE_PERMISSION_MAPPING:
+                logger.info(f"Adding module '{module}' from JSON to PERMISSION_MAPPING")
+                MODULE_PERMISSION_MAPPING[module] = []  # Empty permission list
+        
         logger.info(f"Loaded module permissions from {filename}")
         return True
     except json.JSONDecodeError:
@@ -102,6 +109,15 @@ MODULE_PERMISSION_MAPPING = {
         'buyers.change_buyer',
         'buyers.delete_buyer',
     ],
+    # Adding missing modules that appear in the UI but aren't defined in the backend
+    'Office': [],  # Empty permission list for now
+    'HR': [],      # Empty permission list for now
+    'HR Payor': [], # Empty permission list for now
+    'ModuleTest': [], # Empty permission list for now
+    'CompleteSysTestGroup': [], # Empty permission list for now
+    'Test Group': [], # Empty permission list for now
+    'PermissionsTestGroup': [], # Empty permission list for now
+    'ParameterOrderTestGroup': [], # Empty permission list for now
 }
 
 def assign_module_permissions_to_group(module, group_name):

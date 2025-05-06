@@ -101,6 +101,15 @@ class HasModulePermission(permissions.BasePermission):
         'expenses': ['Accounting', 'Finance', 'Managers', 'Admins'],
         'maintenance': ['Maintenance', 'Operations', 'Managers', 'Admins'],
         'buyers': ['Sales', 'Accounting', 'Managers', 'Admins'],
+        # Adding missing modules that appear in the UI but aren't defined in the backend
+        'Office': ['Admins'],  
+        'HR': ['HR', 'Managers', 'Admins'],
+        'HR Payor': ['HR', 'Accounting', 'Admins'],
+        'ModuleTest': ['Admins'],
+        'CompleteSysTestGroup': ['Admins'],
+        'Test Group': ['Admins'],
+        'PermissionsTestGroup': ['Admins'],
+        'ParameterOrderTestGroup': ['Admins'],
     }
     
     # Try to load module permissions from disk on module import
