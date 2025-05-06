@@ -1,10 +1,10 @@
 {
   "attendance": [
     "HR",
-    "Admins"
+    "Admins",
+    "HR Payrol"
   ],
   "sales": [
-    "Sales",
     "Admins"
   ],
   "inventory": [
@@ -14,11 +14,9 @@
     "Admins"
   ],
   "maintenance": [
-    "Admins",
-    "Test Group"
+    "Admins"
   ],
   "buyers": [
-    "Sales",
     "Admins"
   ]
 }

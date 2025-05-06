@@ -1,0 +1,37 @@
+{
+  "attendance": [
+    "HR",
+    "Managers",
+    "Admins"
+  ],
+  "sales": [
+    "Sales",
+    "Accounting",
+    "Managers",
+    "Admins"
+  ],
+  "inventory": [
+    "Inventory",
+    "Operations",
+    "Managers",
+    "Admins"
+  ],
+  "expenses": [
+    "Accounting",
+    "Finance",
+    "Managers",
+    "Admins"
+  ],
+  "maintenance": [
+    "Maintenance",
+    "Operations",
+    "Managers",
+    "Admins"
+  ],
+  "buyers": [
+    "Sales",
+    "Accounting",
+    "Managers",
+    "Admins"
+  ]
+}
