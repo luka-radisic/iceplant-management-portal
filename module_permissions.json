@@ -2,7 +2,8 @@
   "attendance": [
     "HR",
     "Managers",
-    "Admins"
+    "Admins",
+    "HR Payrol"
   ],
   "sales": [
     "Sales",
@@ -20,7 +21,8 @@
     "Accounting",
     "Finance",
     "Managers",
-    "Admins"
+    "Admins",
+    "HR Payrol"
   ],
   "maintenance": [
     "Maintenance",
