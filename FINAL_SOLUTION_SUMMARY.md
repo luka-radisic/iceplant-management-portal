@@ -2,7 +2,7 @@
 
 ## Overview
 
-We've successfully implemented a comprehensive solution to the module permissions issues in the Iceplant Management Portal. This document summarizes the work done and the final state of the system.
+We've successfully implemented a comprehensive solution to the module permissions issues in the Iceplant Management Portal. This document summarizes the work done and the final state of the system, and provides clear deployment instructions.
 
 ## Issues Addressed
 
@@ -93,6 +93,81 @@ For even better reliability and performance in the future, consider:
 2. Implementing more granular permissions beyond module-level access
 3. Creating a custom admin interface specifically for managing module permissions
 4. Adding comprehensive test coverage for the permission system
+
+## Deployment Instructions
+
+1. **Transfer Files to Production**
+   - Copy all the new and modified files to the production server
+
+2. **Run Deployment Script**
+   ```bash
+   # On Linux/Mac
+   ./deploy_module_permissions.sh
+   
+   # On Windows
+   ./deploy_module_permissions.ps1
+   ```
+
+3. **Fix HR Payrol Permissions**
+   ```bash
+   # On Linux/Mac
+   ./fix_hr_payrol_permissions.sh
+   
+   # On Windows
+   ./fix_hr_payrol_permissions.bat
+   ```
+
+4. **Sync Permissions**
+   ```bash
+   python manage.py sync_module_permissions
+   ```
+
+5. **Restart Server**
+   Restart the Django server to ensure all changes take effect:
+   ```bash
+   # If using gunicorn
+   systemctl restart iceplant_portal
+   
+   # If using Docker
+   docker-compose restart web
+   ```
+
+## Validation Steps
+
+1. **Check Module Permissions Files**
+   Verify that module_permissions.json exists in all standard locations:
+   - root directory
+   - iceplant_portal directory
+   - iceplant_portal/iceplant_core directory
+
+2. **Check Django Admin**
+   - Log in to Django admin interface
+   - Check that HR Payrol group has proper permissions for attendance and expenses
+   - Verify that other groups also have correct permissions
+
+3. **Test Frontend Access**
+   - Log in as a user in HR Payrol group
+   - Verify access to attendance and expenses modules
+   - Verify denial of access to other modules
+
+4. **Test Persistence**
+   - Restart the server
+   - Check that all permissions remain intact
+
+## Troubleshooting
+
+If issues persist after deployment:
+
+1. **Run Manual Sync for HR Payrol**
+   ```bash
+   python manage.py sync_module_permissions --group "HR Payrol"
+   ```
+
+2. **Check Logs**
+   Look for error messages related to permissions in the Django logs
+
+3. **Check File Permissions**
+   Ensure the module_permissions.json files are readable/writable by the web server
 
 ## Conclusion
 

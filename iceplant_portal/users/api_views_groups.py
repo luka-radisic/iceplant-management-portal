@@ -310,3 +310,114 @@ def update_group_module_permissions(request):
         "message": f"Module permissions updated for group '{group_name}'",
         "updated_mapping": module_mapping
     })
+
+
+# Updated module permissions function
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def update_group_module_permissions(request):
+    """
+    Update module permissions for a group.
+    Request format:
+    {
+        "group_name": "Test Group",
+        "modules": {
+            "maintenance": true,
+            "inventory": false,
+            ...
+        }
+    }
+    """
+    import logging
+    
+    # Get a logger
+    logger = logging.getLogger(__name__)
+    logger.info(f"Updating module permissions: {request.data}")
+    
+    group_name = request.data.get('group_name')
+    modules = request.data.get('modules', {})
+    
+    if not group_name:
+        return Response({"error": "Group name is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Check if group exists
+        group = Group.objects.get(name=group_name)
+    except Group.DoesNotExist:
+        return Response({"error": f"Group '{group_name}' does not exist"}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Use the improved module_permissions_system to update permissions
+    try:
+        from iceplant_core.module_permissions_system import (
+            update_group_module_access, 
+            HasModulePermission
+        )
+        
+        # Update the module access using the comprehensive system
+        update_success = update_group_module_access(group_name, modules)
+        
+        if not update_success:
+            logger.warning(f"Some errors occurred while updating module access for {group_name}")
+        
+        # Get the updated mapping for the response
+        module_mapping = HasModulePermission.MODULE_GROUP_MAPPING
+        
+    except ImportError:
+        # Fall back to the old method if the new system is not available
+        logger.warning("module_permissions_system not available, falling back to legacy method")
+        
+        from iceplant_core.group_permissions import HasModulePermission
+        from iceplant_core.module_permissions_utils import save_module_permissions
+        
+        # Legacy implementation
+        existing_groups = set(Group.objects.values_list('name', flat=True))
+        module_mapping = HasModulePermission.MODULE_GROUP_MAPPING
+        
+        # Clean up first - remove any non-existent groups from all modules
+        for module in module_mapping:
+            module_mapping[module] = [g for g in module_mapping[module] if g in existing_groups]
+        
+        # First remove the group from all modules that aren't explicitly set to True
+        # This ensures that we handle modules not included in the request
+        all_modules = set(module_mapping.keys())
+        modules_to_include = {m for m, v in modules.items() if v}
+        modules_to_exclude = all_modules - modules_to_include
+        
+        # Remove group from all modules not explicitly included
+        for module in modules_to_exclude:
+            if module in module_mapping and group_name in module_mapping[module]:
+                module_mapping[module].remove(group_name)
+                logger.info(f"Removed {group_name} from {module} (excluded module)")
+        
+        # Now update the modules based on the request
+        for module, has_access in modules.items():
+            if module not in module_mapping:
+                continue
+                
+            logger.info(f"Module {module}: {has_access}")
+            
+            if has_access:
+                # Add group to module permissions if not already there
+                if group_name not in module_mapping[module]:
+                    module_mapping[module].append(group_name)
+                    logger.info(f"Added {group_name} to {module}")
+            else:
+                # Remove group from module permissions if it's there
+                if group_name in module_mapping[module]:
+                    module_mapping[module].remove(group_name)
+                    logger.info(f"Removed {group_name} from {module}")
+        
+        # Persist changes to disk
+        try:
+            save_module_permissions()
+            logger.info("Module permissions persisted to disk")
+        except Exception as e:
+            logger.error(f"Error persisting module permissions: {e}")
+    
+    # Log the final state for debugging
+    logger.info(f"Final module mapping: {module_mapping}")
+    
+    return Response({
+        "message": f"Module permissions updated for group '{group_name}'",
+        "updated_mapping": module_mapping
+    })
