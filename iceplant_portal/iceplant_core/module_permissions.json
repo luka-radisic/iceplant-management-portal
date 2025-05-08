@@ -1,39 +1,23 @@
 {
   "attendance": [
     "HR",
-    "Managers",
-    "Admins",
-    "HR Payrol"
+    "Admins"
   ],
   "sales": [
-    "Sales",
-    "Accounting",
-    "Managers",
     "Admins"
   ],
   "inventory": [
-    "Inventory",
-    "Operations",
-    "Managers",
-    "Admins"
+    "Admins",
+    "HR Payrol"
   ],
   "expenses": [
-    "Accounting",
-    "Finance",
-    "Managers",
     "Admins",
     "HR Payrol"
   ],
   "maintenance": [
-    "Maintenance",
-    "Operations",
-    "Managers",
     "Admins"
   ],
   "buyers": [
-    "Sales",
-    "Accounting",
-    "Managers",
     "Admins"
   ]
 }

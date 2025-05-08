@@ -1,14 +1,14 @@
 {
   "attendance": [
     "HR",
-    "Admins",
-    "HR Payrol"
+    "Admins"
   ],
   "sales": [
     "Admins"
   ],
   "inventory": [
-    "Admins"
+    "Admins",
+    "HR Payrol"
   ],
   "expenses": [
     "Admins",
