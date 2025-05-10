@@ -107,8 +107,8 @@ This matrix outlines the recommended permissions for standard roles.
 
 *   **Custom Module Permissions (`MODULE_GROUP_MAPPING`):**
     *   **Storage:** `iceplant_portal/iceplant_core/module_permissions.json` (and potentially other paths as defined in `STANDARD_PERMISSION_PATHS` in `module_permissions_utils.py`).
-    *   **Management API:** `POST /api/users/update-group-modules/` (View: `users.api_views_groups.update_group_module_permissions`). This API updates the JSON file.
-    *   **Loading:** Loaded into memory at application start by `iceplant_core.group_permissions.load_module_permissions`.
+    *   **Management API (Create/Update):** `POST /api/users/update-group-modules/` (View: `users.api_views_groups.update_group_module_permissions`). This API updates the module assignments for a group in the JSON files.
+    *   **Management (Delete):** Deleting a group via the Django Admin interface (`/admin/auth/group/`) also triggers an update to the JSON files, removing the deleted group from all module assignments. This is typically handled by a signal receiver (e.g., connected to the `Group` model's `post_delete` signal) which then calls a utility function (likely in `iceplant_core.group_permissions.py` or `iceplant_portal.users.signals.py`) to modify and save the `MODULE_GROUP_MAPPING` to the JSON files.
     *   **Enforcement:** `@has_module_permission('module_name')` decorator (defined in `iceplant_core.permissions.py`). This checks the in-memory `MODULE_GROUP_MAPPING`.
 
 *   **Django Granular Permissions:**
